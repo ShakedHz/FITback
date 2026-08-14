@@ -1,0 +1,122 @@
+.weekly-survey-add {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+}
+
+.weekly-survey-add__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weekly-survey-add__form .input {
+  width: 100%;
+  font-size: 16px;
+}
+
+.weekly-survey-add__form .btn {
+  width: 100%;
+}
+
+.weekly-survey-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+.weekly-survey-message {
+  margin-bottom: 10px;
+  padding: 14px;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.weekly-survey-message p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ddd6fe;
+  word-break: break-word;
+}
+
+.weekly-survey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.weekly-survey-actions .btn {
+  width: auto;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.weekly-survey-empty-list {
+  text-align: center;
+  padding: 20px 16px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.weekly-survey-empty-list p {
+  margin: 0;
+}
+
+.weekly-survey-clients {
+  padding: 4px 12px 8px;
+}
+
+.weekly-survey-client {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.weekly-survey-client:last-child {
+  border-bottom: none;
+}
+
+.weekly-survey-client__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(139, 92, 246, 0.22);
+  color: #ddd6fe;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.weekly-survey-client__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.weekly-survey-client__name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weekly-survey-client__contact {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.weekly-survey-client__remove {
+  width: auto;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}

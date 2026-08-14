@@ -1,0 +1,352 @@
+.exercise-video {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1228;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.exercise-video--empty {
+  cursor: default;
+}
+
+.exercise-video__placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #4c1d95, #1e1b4b);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.exercise-video__poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.exercise-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.exercise-video--thumb {
+  width: 68px;
+  height: 68px;
+}
+
+@media (max-width: 480px) {
+  .exercise-video--thumb {
+    width: 64px;
+    height: 64px;
+  }
+
+  .exercise-video--hero {
+    height: clamp(160px, 40vw, 200px);
+  }
+
+  .video-modal {
+    padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  }
+}
+
+.exercise-video--row {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+}
+
+.exercise-video--hero {
+  width: 100%;
+  height: 180px;
+  border-radius: 16px;
+}
+
+.exercise-video__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.45) 100%);
+  pointer-events: none;
+}
+
+.exercise-video__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  transition: background 0.2s;
+}
+
+.exercise-video:hover .exercise-video__play {
+  background: rgba(139, 92, 246, 0.35);
+}
+
+.exercise-video__play svg {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.exercise-video__badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.85);
+  color: white;
+}
+
+.video-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.video-modal__content {
+  width: 100%;
+  max-width: 360px;
+  position: relative;
+}
+
+.video-modal__close {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.video-modal__player {
+  width: 100%;
+  border-radius: 16px;
+  background: #000;
+  max-height: 60vh;
+}
+
+.video-modal__info {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.video-modal__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.video-modal__meta {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.exercise-new-cta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 14px 16px !important;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.18), rgba(26, 18, 40, 0.92));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.exercise-new-cta:active {
+  transform: scale(0.99);
+}
+
+.exercise-new-cta__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(109, 40, 217, 0.35);
+}
+
+.exercise-new-cta__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.exercise-new-cta__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.exercise-new-cta__desc {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+.exercise-new-cta__arrow {
+  color: #a78bfa;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.exercise-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px !important;
+}
+
+.exercise-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.exercise-card__name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.exercise-card__meta {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.add-exercise-upload {
+  border: 2px dashed rgba(139, 92, 246, 0.4);
+  border-radius: 16px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.add-exercise-upload:hover,
+.add-exercise-upload.has-file {
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.add-exercise-upload input {
+  display: none;
+}
+
+.add-exercise-preview {
+  margin-top: 16px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.ai-video-loop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.ai-video-loop__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.ai-video-loop--playing .ai-video-loop__frame--a {
+  animation: aiFrameA 3s ease-in-out infinite;
+}
+
+.ai-video-loop--playing .ai-video-loop__frame--b {
+  animation: aiFrameB 3s ease-in-out infinite;
+}
+
+.ai-video-loop--playing.ai-video-loop--large .ai-video-loop__frame--a,
+.ai-video-loop--playing.ai-video-loop--large .ai-video-loop__frame--b {
+  animation-duration: 2.5s;
+}
+
+@keyframes aiFrameA {
+  0%, 45% { opacity: 1; transform: scale(1); }
+  50%, 95% { opacity: 0; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes aiFrameB {
+  0%, 45% { opacity: 0; transform: scale(1.04); }
+  50%, 95% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+
+.exercise-video__badge--ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(167, 139, 250, 0.9);
+  left: auto;
+  right: 6px;
+}
+
+.video-modal__ai-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1a1228;
+}
+
+.video-modal__ai-wrap .ai-video-loop {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.video-modal__ai-label {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(139, 92, 246, 0.85);
+  color: white;
+  backdrop-filter: blur(8px);
+}
+

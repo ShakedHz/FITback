@@ -1,0 +1,177 @@
+.ai-lesson-loading {
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-lesson-loading__card {
+  margin-top: 24px;
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.ai-lesson-loading__icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+}
+
+.ai-lesson-loading__dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.ai-lesson-loading__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a78bfa;
+  animation: ai-dot 1.2s ease-in-out infinite;
+}
+
+.ai-lesson-loading__dots span:nth-child(2) { animation-delay: 0.15s; }
+.ai-lesson-loading__dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes ai-dot {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-4px); }
+}
+
+.ai-lesson-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ddd6fe;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  margin-bottom: 10px;
+}
+
+.ai-lesson-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ai-lesson-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: rgba(26, 18, 40, 0.8);
+  border: 1px solid rgba(139, 92, 246, 0.16);
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.ai-lesson-hero {
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.ai-lesson-hero__cover {
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.ai-lesson-hero__type {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  margin-bottom: 8px;
+}
+
+.ai-lesson-hero__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.ai-lesson-hero__meta {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.ai-lesson-rationale {
+  margin-bottom: 16px;
+  padding: 14px;
+  border-color: rgba(167, 139, 250, 0.28);
+  background: linear-gradient(160deg, rgba(139, 92, 246, 0.14), rgba(26, 18, 40, 0.92));
+}
+
+.ai-lesson-rationale__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ai-lesson-rationale__head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.ai-lesson-rationale p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e9d5ff;
+}
+
+.ai-lesson-themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ai-lesson-theme {
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+}
+
+.ai-lesson-signals {
+  margin: 0;
+  padding-left: 18px;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ai-lesson-signals li {
+  margin-bottom: 4px;
+}
+
+.ai-lesson-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  margin-bottom: 12px;
+}

@@ -1,0 +1,101 @@
+.instructor-avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 2px solid rgba(139, 92, 246, 0.35);
+  flex-shrink: 0;
+  background: #1a1228;
+  display: block;
+}
+
+.instructor-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: unset;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.instructor-avatar__initials {
+  line-height: 1;
+  font-size: 0.4em;
+}
+
+.instructor-avatar--sm .instructor-avatar__initials {
+  font-size: 13px;
+}
+
+.instructor-avatar--md .instructor-avatar__initials {
+  font-size: 15px;
+}
+
+.instructor-avatar--lg .instructor-avatar__initials {
+  font-size: 20px;
+}
+
+.instructor-avatar--xl .instructor-avatar__initials {
+  font-size: 28px;
+}
+
+.instructor-avatar--sm {
+  width: 36px;
+  height: 36px;
+}
+
+.instructor-avatar--md {
+  width: 44px;
+  height: 44px;
+}
+
+.instructor-avatar--lg {
+  width: 56px;
+  height: 56px;
+}
+
+.instructor-avatar--xl {
+  width: 88px;
+  height: 88px;
+  border-width: 3px;
+}
+
+.feed-preview {
+  position: relative;
+  height: clamp(180px, 42vw, 240px);
+  overflow: hidden;
+  background: #1a1228;
+}
+
+.feed-preview__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+}
+
+.feed-preview__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(15, 10, 26, 0.6) 100%);
+  pointer-events: none;
+}
+
+.feed-preview__lock {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feed-card-instructor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}

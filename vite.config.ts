@@ -1,0 +1,37 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { fileURLToPath, URL } from 'node:url';
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 5199,
+    strictPort: true,
+    hmr: {
+      clientPort: 5199,
+    },
+    proxy: {
+      '/api/arbox': {
+        target: 'http://127.0.0.1:5201',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/arbox/, ''),
+      },
+      '/api/sms': {
+        target: 'http://127.0.0.1:5200',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/sms/, ''),
+      },
+    },
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5198,
+    strictPort: true,
+  },
+});

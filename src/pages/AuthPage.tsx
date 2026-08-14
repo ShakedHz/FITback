@@ -1,0 +1,325 @@
+import { FormEvent, useState } from 'react';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { hasInstructorProfile, useAuth } from '@/auth/AuthContext';
+import type { AuthUser } from '@/auth/types';
+import type { StudioRole } from '@/data/scheduleTypes';
+import { BrandLogo } from '@/components/BrandLogo';
+import { SpecialtyPicker } from '@/components/SpecialtyPicker';
+import { BRAND } from '@/data/brand';
+import { bioFromSpecialties, type TrainingType } from '@/data/trainingTypes';
+import './Auth.css';
+
+type Mode = 'login' | 'register';
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z" />
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.6 8.3 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3C29.3 35.3 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.3 5.3C39.5 36.1 44 30.7 44 24c0-1.2-.1-2.3-.4-3.5z" />
+    </svg>
+  );
+}
+
+function AppleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16.4 12.7c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.1.8s-1.6-.7-2.7-.7c-1.4 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.5 2 2.6 2 1 0 1.4-.7 2.7-.7s1.6.7 2.7.7 1.8-1 2.5-1.9c.8-1.1 1.1-2.2 1.1-2.3-.1 0-2.1-.8-2.1-3.1zM14.7 6.5c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.6.6-1.1 1.7-.9 2.6 1 .1 1.9-.5 2.5-1.2z" />
+    </svg>
+  );
+}
+
+export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const mode: Mode =
+    location.pathname === '/register' ? 'register' : initialMode;
+
+  const {
+    user,
+    isAuthenticated,
+    isReady,
+    isLoading,
+    error,
+    clearError,
+    register,
+    loginWithEmail,
+    loginWithGoogle,
+    loginWithApple,
+    loginWithArbox,
+  } = useAuth();
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [specialties, setSpecialties] = useState<TrainingType[]>([]);
+  const [showArbox, setShowArbox] = useState(false);
+  const [arboxKey, setArboxKey] = useState('');
+  const [arboxRole, setArboxRole] = useState<StudioRole>('instructor');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  if (isReady && isAuthenticated) {
+    return (
+      <Navigate
+        to={hasInstructorProfile(user) || user?.arboxLinked ? '/dashboard' : '/onboarding'}
+        replace
+      />
+    );
+  }
+
+  const go = (next: Mode) => {
+    clearError();
+    setLocalError(null);
+    navigate(next === 'login' ? '/login' : '/register', { replace: true });
+  };
+
+  const afterAuth = (authUser: AuthUser) => {
+    navigate(
+      hasInstructorProfile(authUser) || authUser.arboxLinked ? '/dashboard' : '/onboarding',
+      { replace: true }
+    );
+  };
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLocalError(null);
+    try {
+      if (mode === 'register') {
+        if (name.trim().length < 2) {
+          setLocalError('Please enter your name');
+          return;
+        }
+        if (specialties.length === 0) {
+          setLocalError('Choose at least one class type');
+          return;
+        }
+        const authUser = await register({ name, email, password, specialties });
+        afterAuth(authUser);
+      } else {
+        const authUser = await loginWithEmail({ email, password });
+        afterAuth(authUser);
+      }
+    } catch {
+      // context error
+    }
+  };
+
+  const run = async (fn: () => Promise<AuthUser>) => {
+    setLocalError(null);
+    try {
+      const authUser = await fn();
+      afterAuth(authUser);
+    } catch {
+      // context error
+    }
+  };
+
+  const displayError = localError || error;
+
+  const scrollFieldIntoView = (el: HTMLElement) => {
+    // Wait for keyboard / viewport settle, then keep the field above the keyboard
+    window.setTimeout(() => {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 320);
+  };
+
+  return (
+    <div className="page auth-page fade-in">
+      <div className="auth-page__header">
+        <BrandLogo size={72} className="auth-page__logo" />
+        <h1 className="auth-page__brand-name">{BRAND.name}</h1>
+        <p className="auth-page__tagline">{BRAND.tagline}</p>
+      </div>
+
+      <div className="auth-tabs">
+        <button
+          type="button"
+          className={mode === 'login' ? 'active' : ''}
+          onClick={() => go('login')}
+        >
+          Log in
+        </button>
+        <button
+          type="button"
+          className={mode === 'register' ? 'active' : ''}
+          onClick={() => go('register')}
+        >
+          Sign up
+        </button>
+      </div>
+
+      <div className="auth-social">
+        <button
+          type="button"
+          className="auth-social__btn auth-social__btn--google"
+          onClick={() => run(loginWithGoogle)}
+          disabled={isLoading}
+        >
+          <GoogleIcon />
+          Google
+        </button>
+        <button
+          type="button"
+          className="auth-social__btn auth-social__btn--apple"
+          onClick={() => run(loginWithApple)}
+          disabled={isLoading}
+        >
+          <AppleIcon />
+          Apple
+        </button>
+        <button
+          type="button"
+          className="auth-social__btn auth-social__btn--arbox"
+          onClick={() => {
+            clearError();
+            setShowArbox((v) => !v);
+          }}
+          disabled={isLoading}
+        >
+          Arbox
+        </button>
+      </div>
+
+      {showArbox && (
+        <div className="auth-arbox-panel">
+          <p className="auth-arbox-panel__hint">
+            Paste your API key from Arbox → Settings → Club Information. Your schedule and clients
+            load automatically.
+          </p>
+          <div className="auth-role-pick" role="group" aria-label="Sign in as">
+            <button
+              type="button"
+              className={arboxRole === 'instructor' ? 'active' : ''}
+              onClick={() => setArboxRole('instructor')}
+            >
+              Instructor
+            </button>
+            <button
+              type="button"
+              className={arboxRole === 'studio_manager' ? 'active' : ''}
+              onClick={() => setArboxRole('studio_manager')}
+            >
+              Studio manager
+            </button>
+          </div>
+          <input
+            className="input"
+            type="password"
+            placeholder="Arbox API key"
+            value={arboxKey}
+            onChange={(e) => setArboxKey(e.target.value)}
+            onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+            autoComplete="off"
+          />
+          <button
+            type="button"
+            className="btn btn-primary auth-submit"
+            onClick={() => run(() => loginWithArbox(arboxKey, arboxRole))}
+            disabled={isLoading || arboxKey.trim().length < 8}
+          >
+            {isLoading ? 'Loading studio…' : 'Log in with Arbox'}
+          </button>
+        </div>
+      )}
+
+      <div className="auth-divider">or</div>
+
+      <form className="auth-form" onSubmit={onSubmit}>
+        {displayError && <p className="auth-error">{displayError}</p>}
+
+        {mode === 'register' && (
+          <input
+            className="input"
+            type="text"
+            placeholder="Full name"
+            autoComplete="name"
+            required
+            minLength={2}
+            value={name}
+            onChange={(e) => {
+              clearError();
+              setLocalError(null);
+              setName(e.target.value);
+            }}
+            onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+          />
+        )}
+
+        <input
+          className="input"
+          type="email"
+          placeholder="Email"
+          autoComplete="email"
+          inputMode="email"
+          required
+          value={email}
+          onChange={(e) => {
+            clearError();
+            setLocalError(null);
+            setEmail(e.target.value);
+          }}
+          onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+        />
+
+        <input
+          className="input"
+          type="password"
+          placeholder="Password"
+          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+          required
+          minLength={8}
+          value={password}
+          onChange={(e) => {
+            clearError();
+            setLocalError(null);
+            setPassword(e.target.value);
+          }}
+          onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+        />
+
+        {mode === 'register' && (
+          <>
+            <SpecialtyPicker
+              value={specialties}
+              onChange={(next) => {
+                clearError();
+                setLocalError(null);
+                setSpecialties(next);
+              }}
+            />
+            {specialties.length > 0 && (
+              <p className="auth-bio-preview">{bioFromSpecialties(specialties)}</p>
+            )}
+          </>
+        )}
+
+        <button type="submit" className="btn btn-primary auth-submit" disabled={isLoading}>
+          {isLoading
+            ? mode === 'login'
+              ? 'Signing in…'
+              : 'Creating…'
+            : mode === 'login'
+              ? 'Log in'
+              : 'Create account'}
+        </button>
+      </form>
+
+      <button
+        type="button"
+        className="auth-client-link"
+        onClick={() => navigate('/feedback/demo')}
+      >
+        Client feedback
+      </button>
+    </div>
+  );
+}
+
+export function LoginPage() {
+  return <AuthPage initialMode="login" />;
+}
+
+export function RegisterPage() {
+  return <AuthPage initialMode="register" />;
+}
