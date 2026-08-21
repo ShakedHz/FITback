@@ -55,7 +55,7 @@ export const he: Messages = {
     hiit: 'HIIT',
     barre: 'בר',
     cycle: 'אופניים',
-    movana: 'Movana',
+    movana: 'FITback',
   },
   category: {
     all: 'הכל',

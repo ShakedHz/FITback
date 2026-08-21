@@ -12,10 +12,10 @@ const root = join(__dirname, '..');
 const svg = readFileSync(join(root, 'public/icon.svg'));
 
 const sizes = [
-  { name: 'movana-logo-192.png', size: 192 },
-  { name: 'movana-logo-512.png', size: 512 },
-  { name: 'movana-logo-1024.png', size: 1024 },
-  { name: 'movana-logo.png', size: 512 },
+  { name: 'fitback-logo-192.png', size: 192 },
+  { name: 'fitback-logo-512.png', size: 512 },
+  { name: 'fitback-logo-1024.png', size: 1024 },
+  { name: 'fitback-logo.png', size: 512 },
 ];
 
 for (const { name, size } of sizes) {

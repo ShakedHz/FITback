@@ -1,6 +1,6 @@
 {
-  "name": "Movana",
-  "short_name": "Movana",
+  "name": "FITback",
+  "short_name": "FITback",
   "description": "Community for fitness instructors — share lesson plans, document teaching, grow with feedback.",
   "start_url": "/",
   "display": "standalone",
@@ -11,19 +11,19 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "/movana-logo-192.png",
+      "src": "/fitback-logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/movana-logo-512.png",
+      "src": "/fitback-logo-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/movana-logo-1024.png",
+      "src": "/fitback-logo-1024.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"

@@ -792,7 +792,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       duration: lesson.duration,
       source: 'flowpilates',
       category: trainingTypeToEventCategory(lesson.trainingType),
-      location: 'Movana',
+      location: 'FITback',
       instructorId,
       instructor: instructorName,
       attendees,

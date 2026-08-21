@@ -894,7 +894,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname.includes('message') || url.pathname.includes('sms')) {
-      return json(res, 403, { message: 'Outbound messaging is disabled in Movana dev proxy' });
+      return json(res, 403, { message: 'Outbound messaging is disabled in FITback dev proxy' });
     }
 
     return json(res, 404, { message: 'Not found' });

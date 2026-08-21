@@ -53,7 +53,7 @@ export const en = {
     hiit: 'HIIT',
     barre: 'Barre',
     cycle: 'Cycle',
-    movana: 'Movana',
+    movana: 'FITback',
   },
   category: {
     all: 'All',
