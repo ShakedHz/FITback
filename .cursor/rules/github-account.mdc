@@ -1,0 +1,13 @@
+---
+description: GitHub account for this repo — never use oris77
+alwaysApply: true
+---
+
+# GitHub account
+
+This repo must use GitHub account **oris7003** only.
+
+- Remote: `https://github.com/oris7003/FITback.git`
+- Never use account **oris77** (no `gh` as oris77, no `oris77/FITback`, no origin pointing at oris77).
+- If `gh` is on oris77, switch first: `gh auth switch --user oris7003`
+- Do not change git `user.name` / `user.email`.

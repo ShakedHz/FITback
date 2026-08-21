@@ -1,0 +1,19 @@
+# Dependencies and build
+node_modules/
+dist/
+*.local
+
+# Env (keep .env.example)
+.env
+.env.*
+!.env.example
+
+# Logs and caches
+*.log
+.vite/
+.cache/
+.DS_Store
+
+# Editor
+.idea/
+*.swp
