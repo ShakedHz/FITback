@@ -1,6 +1,8 @@
 export type Locale = 'en' | 'he';
 
-export const LOCALE_STORAGE_KEY = 'movana_locale_v1';
+export const LOCALE_STORAGE_KEY = 'movana_locale_v2';
+
+export const DEFAULT_LOCALE: Locale = 'he';
 
 export function readStoredLocale(): Locale {
   try {
@@ -9,7 +11,7 @@ export function readStoredLocale(): Locale {
   } catch {
     /* private mode */
   }
-  return 'en';
+  return DEFAULT_LOCALE;
 }
 
 export function persistLocale(locale: Locale) {
