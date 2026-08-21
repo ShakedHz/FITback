@@ -1,14 +1,13 @@
 ---
-description: GitHub account for this repo — never use oris77
+description: GitHub remote for this repo — ShakedHz/FITback
 alwaysApply: true
 ---
 
 # GitHub account
 
-This repo must use GitHub account **oris7003** only.
+This repo’s origin is **https://github.com/ShakedHz/FITback.git**.
 
-- Remote: `https://github.com/oris7003/FITback.git`
-- Never use account **oris77** (no `gh` as oris77, no `oris77/FITback`, no origin pointing at oris77).
-- If `gh` is on oris77, switch first: `gh auth switch --user oris7003`
+- Push to `ShakedHz/FITback` only. Do not create a new GitHub repo for this project.
+- Never use account **oris77** (no `gh` as oris77, no `oris77/FITback`).
 - Do not change git `user.name` / `user.email`.
 - Never add Cursor or any agent as a commit author, co-author, or GitHub contributor.
