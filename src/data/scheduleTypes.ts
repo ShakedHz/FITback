@@ -25,7 +25,7 @@ export interface ScheduleEvent {
   id: string;
   title: string;
   lessonId?: string;
-  /** Movana lesson plan attached to an Arbox slot */
+  /** FITback lesson plan attached to an Arbox slot */
   lessonPlanId?: string;
   lessonPlanTitle?: string;
   start: string;
@@ -108,7 +108,7 @@ export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {
   hiit: 'HIIT',
   barre: 'Barre',
   cycle: 'Cycle',
-  movana: 'Movana',
+  movana: 'FITback',
 };
 
 export const SCHEDULE_START_HOUR = 8;

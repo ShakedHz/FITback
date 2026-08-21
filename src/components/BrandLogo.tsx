@@ -3,7 +3,7 @@ interface BrandLogoProps {
   className?: string;
 }
 
-/** Movana app mark — flowing M on purple gradient. */
+/** FITback app mark — an F held inside a calm feedback bubble. */
 export function BrandLogo({ size = 72, className }: BrandLogoProps) {
   return (
     <svg
@@ -12,32 +12,28 @@ export function BrandLogo({ size = 72, className }: BrandLogoProps) {
       width={size}
       height={size}
       role="img"
-      aria-label="Movana"
+      aria-label="FITback"
       className={className}
     >
       <defs>
-        <linearGradient id="movana-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#c4b5fd" />
-          <stop offset="45%" stopColor="#8b5cf6" />
-          <stop offset="100%" stopColor="#5b21b6" />
-        </linearGradient>
-        <linearGradient id="movana-mark" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#ede9fe" />
+        <linearGradient id="fitback-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#aaa3be" />
+          <stop offset="100%" stopColor="#625c78" />
         </linearGradient>
       </defs>
-      <rect width="512" height="512" rx="112" fill="url(#movana-bg)" />
-      <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="512" height="512" rx="112" fill="url(#fitback-bg)" />
+      <g
+        fill="none"
+        stroke="#f8f5ef"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path
-          d="M 148 368 V 196 C 148 168 168 148 196 148 C 220 148 238 162 248 182 L 256 198 L 264 182 C 274 162 292 148 316 148 C 344 148 364 168 364 196 V 368"
-          stroke="url(#movana-mark)"
-          strokeWidth="36"
+          d="M 158 146 H 354 C 382 146 400 164 400 192 V 306 C 400 334 382 352 354 352 H 260 L 202 398 V 352 H 158 C 130 352 112 334 112 306 V 192 C 112 164 130 146 158 146 Z"
+          strokeWidth="18"
         />
-        <path
-          d="M 128 392 C 196 356 316 356 384 392"
-          stroke="rgba(255,255,255,0.42)"
-          strokeWidth="14"
-        />
+        <path d="M 206 308 V 194 H 320" strokeWidth="32" />
+        <path d="M 206 250 H 288" strokeWidth="32" />
       </g>
     </svg>
   );

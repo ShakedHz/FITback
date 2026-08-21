@@ -1,4 +1,4 @@
-# Movana — Full Product Description for AI Analysis
+# FITback — Full Product Description for AI Analysis
 
 Copy everything below and give it to an analysis agent.
 
@@ -6,11 +6,11 @@ Copy everything below and give it to an analysis agent.
 
 ## Executive Summary
 
-**Movana** is a Hebrew-first, mobile-first **Progressive Web App (PWA)** for **fitness instructors and trainers**. It lets them create structured lesson plans ("מערכים"), sell and discover peer content via an internal coin economy, manage a teaching schedule (with mock Arbox studio integration), analyze lesson performance, and collect experiential client feedback.
+**FITback** is a Hebrew-first, mobile-first **Progressive Web App (PWA)** for **fitness instructors and trainers**. It lets them create structured lesson plans ("מערכים"), sell and discover peer content via an internal coin economy, manage a teaching schedule (with mock Arbox studio integration), analyze lesson performance, and collect experiential client feedback.
 
 **Current state:** Frontend prototype with **mock data only** — no backend, no real auth, no real payments, no real video hosting. All state lives in React Context and resets on refresh.
 
-**Codebase:** `/Users/shaked/flowpilates` (repo name is legacy; product brand is **Movana**)
+**Codebase:** `/Users/oris/Personal/FITback`
 
 **Dev:** React 18 + TypeScript + Vite, port `5199`, RTL Hebrew UI
 
@@ -20,8 +20,8 @@ Copy everything below and give it to an analysis agent.
 
 | Field | Value |
 |-------|-------|
-| **Product name** | Movana |
-| **Virtual currency** | MovanaCoins (מטבעות) |
+| **Product name** | FITback |
+| **Virtual currency** | FITbackCoins (מטבעות) |
 | **Core unit** | מערך / מערכים — a structured lesson plan (workout blueprint) |
 | **Tagline (EN)** | "Share workouts. Learn together. Grow with feedback." |
 | **Tagline (HE)** | "קהילה למדריכים ומאמנים — שיתוף מערכים, תיעוד שיעורים ופידבק" |
@@ -117,7 +117,7 @@ Bottom nav is **hidden** on: `/` (splash), `/feedback/*` (client feedback flow).
 | `/preview` | LessonPreviewPage | Pre-publish preview |
 | `/feedback/:id?` | FeedbackPage | Client post-lesson feedback (`/feedback/demo`) |
 | `/earnings` | EarningsPage | Wallet, earn methods, transaction history |
-| `/shop` | CoinShopPage | Buy MovanaCoin packages (mock) |
+| `/shop` | CoinShopPage | Buy FITbackCoins packages (mock) |
 | `/profile` | ProfilePage | Instructor profile, logout |
 | `*` | — | Redirect to `/` |
 
@@ -129,7 +129,7 @@ Bottom nav is **hidden** on: `/` (splash), `/feedback/*` (client feedback flow).
 - Time-based Hebrew greeting (בוקר / צהריים / ערב)
 - Hero: instructor avatar, name, specialty chips
 - Dynamic subtitle: today's event count OR library lesson count
-- **Wallet card:** MovanaCoins balance → links to Shop & Earnings
+- **Wallet card:** FITbackCoins balance → links to Shop & Earnings
 - **"היום ביומן":** Up to 3 today's schedule events + Arbox connection status
 - CTA: "שיעור חדש" → `/create`
 - **Quick actions:** יומן, דאשבורד (→ `/analytics`), ספרייה, פיד
@@ -157,11 +157,11 @@ Filter by training type. Tap → `/lesson/:id`
 - Day view + week view, week navigation, "היום" shortcut
 - **Dual event sources:**
   - **Arbox** — external studio scheduling (mock)
-  - **Movana** — lessons added by user (`source: 'flowpilates'`, UI label "Movana")
+  - **FITback** — lessons added by user (`source: 'flowpilates'`, UI label "FITback")
 - Arbox connect: paste API key (≥8 chars), mock sync ~800ms
 - **Add lesson FAB (2-step):** (1) pick training type grid → (2) filtered lessons + time slots
 - Event detail sheet: location, instructor, enrollment, source
-- Only Movana events are deletable
+- Only FITback events are deletable
 - Time grid: 8:00–20:00, 15-min snap (drag/move API exists but UI is add-only)
 
 ### 5.5 Lesson Creation Flow
@@ -205,7 +205,7 @@ Filter by training type. Tap → `/lesson/:id`
 
 Analytics exists for lessons: `l1`, `l2`, `l3`, `l4`, `l23`, `l25`, `l27`
 
-### 5.8 MovanaCoins Economy
+### 5.8 FITbackCoins Economy
 - **Starting balance:** 1,250 coins (Maya)
 - **Earn (shown in Earnings):** lesson sale (+250), high rating (+50), retention (+30)
 - **Spend:** purchase lesson plans from feed
@@ -450,7 +450,7 @@ Israeli gym/studio scheduling platform simulation.
 - Categories: pilates, reformer, prenatal, stretch, power, yoga, hiit, barre, cycle
 - Shows enrollment/capacity, instructor names
 - Manual sync button with spinner
-- Movana-added events tagged separately; only Movana events removable
+- FITback-added events tagged separately; only FITback events removable
 
 ---
 
@@ -477,7 +477,7 @@ Note: `instructorTier` exists in data model but is **not rendered in Feed UI** c
 ## 13. Splash / Onboarding
 
 **SplashPage (`/`):**
-1. Hero image + Movana logo badge
+1. Hero image + FITback logo badge
 2. Brand title + EN/HE taglines
 3. Feature pills: שיתוף מערכים · תיעוד שיעורים · פידבק מלקוחות
 4. Social proof: 3 avatars + "+340 מדריכים פעילים בקהילה"
@@ -517,7 +517,7 @@ All in-memory; resets on page refresh.
 5. **Exercise "add to lesson"** — UI toggle only, not persisted
 6. **Remix button** — navigates to `/builder` without loading purchased lesson
 7. **README** mislabels `/dashboard` as analytics; app uses בית/דאשבורד split
-8. **Repo name `flowpilates`** vs brand **Movana**; internal schedule source tag still `'flowpilates'`
+8. Internal schedule source tag still `'flowpilates'` (legacy; UI label is FITback)
 9. **`instructorTier`** not shown in Feed UI
 10. **Maya excluded from feed** — demo positions her as creator/buyer, not seller
 
@@ -525,12 +525,12 @@ All in-memory; resets on page refresh.
 
 ## 16. Competitive Context (for analysis)
 
-Movana is **not** a consumer fitness app (like Nike Training Club or Peloton). It is an **instructor tooling + marketplace** app, closer to:
+FITback is **not** a consumer fitness app (like Nike Training Club or Peloton). It is an **instructor tooling + marketplace** app, closer to:
 
 - **Lesson plan marketplace** (like Gumroad for workout content)
 - **Studio scheduling** (Arbox integration direction)
 - **Instructor analytics** (like creator dashboards on Teachable/Thinkific)
-- **Internal economy** (MovanaCoins vs real money)
+- **Internal economy** (FITbackCoins vs real money)
 
 Differentiation vs generic fitness apps:
 - Black-box lesson IP protection
@@ -548,12 +548,12 @@ When analyzing, consider:
 1. **Product-market fit:** Does the black-box + coin economy model work for Hebrew fitness instructors?
 2. **MVP prioritization:** What should ship first when moving from mock to production?
 3. **UX gaps:** Which flows are broken or incomplete?
-4. **Monetization:** Is MovanaCoins the right model vs direct ILS/Stripe?
+4. **Monetization:** Is FITbackCoins the right model vs direct ILS/Stripe?
 5. **Competitive positioning:** How does this compare to Arbox, Fittix, Trainerize, or content marketplaces?
 6. **Technical debt:** What blocks production readiness?
 7. **Retention hooks:** What drives daily/weekly instructor engagement?
-8. **Expansion:** Should Movana stay instructor-focused or add a student-facing app?
+8. **Expansion:** Should FITback stay instructor-focused or add a student-facing app?
 
 ---
 
-*End of Movana product description. Version as of July 2026. Codebase: `/Users/shaked/flowpilates`.*
+*End of FITback product description. Version as of August 2026. Codebase: `/Users/oris/Personal/FITback`.*

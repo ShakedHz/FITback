@@ -17,7 +17,7 @@ export function isEventInFeedbackScope(
     if (conn.role === 'studio_manager') return true;
     return isOwnEvent(event, conn);
   }
-  // Movana-only events are always owned by the current user
+  // FITback-only events are always owned by the current user
   return true;
 }
 

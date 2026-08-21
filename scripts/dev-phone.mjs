@@ -33,7 +33,7 @@ function getLanIps() {
 
 const ips = getLanIps();
 
-console.log('\n📱 Movana — app + Arbox (read-only, no SMS)\n');
+console.log('\n📱 FITback — app + Arbox (read-only, no SMS)\n');
 if (ips.length === 0) {
   console.log('Open: http://localhost:5199/\n');
 } else {

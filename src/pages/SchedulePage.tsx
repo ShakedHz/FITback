@@ -18,6 +18,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { BRAND } from '@/data/brand';
 import {
   buildClassSurveyUrl,
 } from '@/services/classFeedback';
@@ -278,7 +279,7 @@ export function SchedulePage() {
             {ev.instructor && <span>· {ev.instructor}</span>}
             {own && <span className="schedule-card__tag schedule-card__tag--own">You</span>}
             {otherInstructor && <span className="schedule-card__tag schedule-card__tag--other">View only</span>}
-            {ev.source === 'flowpilates' && <span className="schedule-card__tag">Movana</span>}
+            {ev.source === 'flowpilates' && <span className="schedule-card__tag">{BRAND.name}</span>}
             {ev.feedbackSentAt && <span className="schedule-card__tag schedule-card__tag--sent">Survey sent</span>}
           </div>
           {showPlanStatus && (
@@ -612,7 +613,7 @@ export function SchedulePage() {
               )}
               <div className="schedule-sheet__row">
                 <Link2 size={16} />
-                <span>{selectedEvent.source === 'arbox' ? 'Arbox' : 'Movana'}</span>
+                <span>{selectedEvent.source === 'arbox' ? 'Arbox' : BRAND.name}</span>
               </div>
               {selectedEvent.lessonPlanTitle ? (
                 <div className="schedule-sheet__row schedule-sheet__row--plan">

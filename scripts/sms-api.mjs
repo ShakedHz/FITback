@@ -1,5 +1,5 @@
 /**
- * Movana SMS relay (dev + production).
+ * FITback SMS relay (dev + production).
  * Priority: Twilio → macOS Messages → log (always returns ok in dev).
  */
 import http from 'node:http';

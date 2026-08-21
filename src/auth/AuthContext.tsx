@@ -250,7 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { connection } = await connectArboxAccount(apiKey, role, weekStart);
       await syncArboxSchedule(connection, weekStart);
 
-      const email = `${connection.clubId || connection.staffId}@arbox.movana.app`;
+      const email = `${connection.clubId || connection.staffId}@arbox.fitback.app`;
       const authUser = upsertOAuthAccount({
         email,
         name: connection.clubName || connection.staffName,
