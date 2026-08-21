@@ -4,7 +4,9 @@ import { BookOpen, Users, RefreshCw, LogOut, Camera } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
-import { TRAINING_TYPE_LABELS, TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
+import { LanguageSwitch } from '@/components/LanguageSwitch';
+import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
+import { instructorBio, trainingLabel, useI18n } from '@/i18n';
 import { fileToAvatarDataUrl } from '@/utils/avatarImage';
 import './Profile.css';
 
@@ -12,14 +14,19 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const { user, updateAvatar } = useAuth();
   const { instructor, logout } = useApp();
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
 
+  const bio = instructor.specialties.length > 0
+    ? instructorBio(instructor.specialties, t)
+    : instructor.bio;
+
   const stats = [
-    { icon: BookOpen, value: instructor.lessonsCount, label: 'Lessons' },
-    { icon: Users, value: instructor.studentsCount, label: 'Students' },
-    { icon: RefreshCw, value: `${instructor.retention}%`, label: 'Retention' },
+    { icon: BookOpen, value: instructor.lessonsCount, label: t('profile.lessons') },
+    { icon: Users, value: instructor.studentsCount, label: t('profile.students') },
+    { icon: RefreshCw, value: `${instructor.retention}%`, label: t('profile.retention') },
   ];
 
   const openPicker = () => {
@@ -38,7 +45,7 @@ export function ProfilePage() {
       const dataUrl = await fileToAvatarDataUrl(file);
       updateAvatar(dataUrl);
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : 'Could not update photo');
+      setAvatarError(err instanceof Error ? err.message : t('errors.photo'));
     } finally {
       setAvatarBusy(false);
     }
@@ -53,7 +60,7 @@ export function ProfilePage() {
             className="profile-avatar__btn"
             onClick={openPicker}
             disabled={avatarBusy}
-            aria-label={instructor.avatar ? 'Change profile photo' : 'Add profile photo'}
+            aria-label={instructor.avatar ? t('profile.changePhoto') : t('profile.addPhoto')}
           >
             <InstructorAvatar src={instructor.avatar} name={instructor.name} size="xl" />
           </button>
@@ -75,9 +82,9 @@ export function ProfilePage() {
           <p style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>{user.email}</p>
         )}
 
-        {instructor.bio && (
+        {bio && (
           <p style={{ color: '#94a3b8', fontSize: 14, marginTop: 12, lineHeight: 1.5 }}>
-            {instructor.bio}
+            {bio}
           </p>
         )}
 
@@ -98,7 +105,7 @@ export function ProfilePage() {
                     color: colors.text,
                   }}
                 >
-                  {TRAINING_TYPE_LABELS[type]}
+                  {trainingLabel(type, t)}
                 </span>
               );
             })}
@@ -116,12 +123,17 @@ export function ProfilePage() {
         ))}
       </div>
 
+      <div className="profile-lang">
+        <p className="profile-lang__label">{t('lang.label')}</p>
+        <LanguageSwitch />
+      </div>
+
       <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button
           className="btn btn-ghost"
           onClick={() => { logout(); navigate('/'); }}
         >
-          <LogOut size={18} /> Log out
+          <LogOut size={18} /> {t('profile.logout')}
         </button>
       </div>
     </div>

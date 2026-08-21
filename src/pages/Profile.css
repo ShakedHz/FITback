@@ -24,7 +24,7 @@
 
 .profile-avatar__edit {
   position: absolute;
-  right: -2px;
+  inset-inline-end: -2px;
   bottom: -2px;
   width: 32px;
   height: 32px;

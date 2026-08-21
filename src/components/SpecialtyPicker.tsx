@@ -1,8 +1,8 @@
 import {
   TRAINING_TYPES,
-  TRAINING_TYPE_LABELS,
   type TrainingType,
 } from '@/data/trainingTypes';
+import { trainingLabel, useI18n } from '@/i18n';
 import './SpecialtyPicker.css';
 
 interface SpecialtyPickerProps {
@@ -14,11 +14,14 @@ interface SpecialtyPickerProps {
 export function SpecialtyPicker({
   value,
   onChange,
-  label = 'What do you teach?',
+  label,
 }: SpecialtyPickerProps) {
+  const { t } = useI18n();
+  const pickerLabel = label ?? t('auth.teach');
+
   const toggle = (type: TrainingType) => {
     if (value.includes(type)) {
-      onChange(value.filter((t) => t !== type));
+      onChange(value.filter((item) => item !== type));
     } else {
       onChange([...value, type]);
     }
@@ -26,8 +29,8 @@ export function SpecialtyPicker({
 
   return (
     <fieldset className="specialty-picker">
-      <legend className="specialty-picker__label">{label}</legend>
-      <div className="specialty-picker__list" role="group" aria-label={label}>
+      <legend className="specialty-picker__label">{pickerLabel}</legend>
+      <div className="specialty-picker__list" role="group" aria-label={pickerLabel}>
         {TRAINING_TYPES.map((type) => {
           const selected = value.includes(type);
           const id = `specialty-${type}`;
@@ -40,7 +43,7 @@ export function SpecialtyPicker({
                 checked={selected}
                 onChange={() => toggle(type)}
               />
-              <span className="specialty-picker__text">{TRAINING_TYPE_LABELS[type]}</span>
+              <span className="specialty-picker__text">{trainingLabel(type, t)}</span>
             </label>
           );
         })}

@@ -9,33 +9,34 @@ import {
   type SurveyClient,
 } from '@/services/surveyClients';
 import { isValidPhone } from '@/utils/sms';
+import { useI18n } from '@/i18n';
 import './WeeklySurvey.css';
 
 export function WeeklySurveyPage() {
   const navigate = useNavigate();
   const { instructor, arboxConnection, arboxClients } = useApp();
+  const { t } = useI18n();
   const isLiveArbox = arboxConnection.connected && arboxConnection.dataSource === 'live';
   const [clients, setClients] = useState<SurveyClient[]>(() => loadSurveyClients());
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const instructorName = instructor.name || 'your instructor';
+  const instructorName = instructor.name || t('clients.instructorFallback');
 
   const previewUrl = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const params = new URLSearchParams({
-      title: 'Class feedback',
+      title: t('feedback.classFeedback'),
       instructor: instructorName,
     });
     return `${origin}/feedback/demo?${params.toString()}`;
-  }, [instructorName]);
+  }, [instructorName, t]);
 
   const messagePreview = useMemo(
     () =>
-      `Hi! Thanks for joining "Class name" today. ` +
-      `We'd love your feedback — it only takes a minute: ${previewUrl}`,
-    [previewUrl]
+      t('clients.smsPreview', { url: previewUrl }),
+    [previewUrl, t]
   );
 
   const addClient = (e: FormEvent) => {
@@ -44,18 +45,18 @@ export function WeeklySurveyPage() {
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
     if (!trimmedName) {
-      setError('Enter a client name');
+      setError(t('errors.clientName'));
       return;
     }
     if (!isValidPhone(trimmedPhone)) {
-      setError('Enter a valid phone number (e.g. 0501234567)');
+      setError(t('errors.clientPhone'));
       return;
     }
     const duplicate = clients.some(
       (c) => c.phone.replace(/\D/g, '') === trimmedPhone.replace(/\D/g, '')
     );
     if (duplicate) {
-      setError('This phone number is already on the list');
+      setError(t('errors.phoneExists'));
       return;
     }
     const client = addSurveyClient({ name: trimmedName, phone: trimmedPhone });
@@ -71,22 +72,22 @@ export function WeeklySurveyPage() {
   return (
     <div className="page fade-in weekly-survey">
       <div className="page-header">
-        <h1 className="page-title">Clients</h1>
+        <h1 className="page-title">{t('clients.title')}</h1>
         <p className="page-subtitle">
           {isLiveArbox
-            ? `${arboxClients.length} clients synced from Arbox. Tap a class in Schedule to see who is enrolled.`
-            : 'Add clients here, then select who attended each class in Schedule.'}
+            ? t('clients.synced', { count: arboxClients.length })
+            : t('clients.addHint')}
         </p>
       </div>
 
       {isLiveArbox ? (
         <>
           <p className="section-title">
-            {arboxClients.length === 0 ? 'No clients in Arbox' : `${arboxClients.length} clients from Arbox`}
+            {arboxClients.length === 0 ? t('clients.noneInArbox') : t('clients.fromArbox', { count: arboxClients.length })}
           </p>
           {arboxClients.length === 0 ? (
             <div className="card weekly-survey-empty-list">
-              <p>Your Arbox account has no clients yet, or they could not be loaded.</p>
+              <p>{t('clients.arboxEmpty')}</p>
             </div>
           ) : (
             <div className="card weekly-survey-clients">
@@ -98,7 +99,7 @@ export function WeeklySurveyPage() {
                   <div className="weekly-survey-client__body">
                     <p className="weekly-survey-client__name">{client.name}</p>
                     <p className="weekly-survey-client__contact">
-                      {client.phone || client.email || 'No contact on file'}
+                      {client.phone || client.email || t('clients.noContact')}
                     </p>
                   </div>
                 </div>
@@ -113,7 +114,7 @@ export function WeeklySurveyPage() {
           <input
             className="input"
             type="text"
-            placeholder="Client name"
+            placeholder={t('clients.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
@@ -122,13 +123,13 @@ export function WeeklySurveyPage() {
             className="input"
             type="tel"
             inputMode="tel"
-            placeholder="Phone (0501234567)"
+            placeholder={t('clients.phonePlaceholder')}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             autoComplete="tel"
           />
           <button type="submit" className="btn btn-primary">
-            <Plus size={16} /> Add client
+            <Plus size={16} /> {t('clients.add')}
           </button>
         </form>
       </div>
@@ -139,7 +140,7 @@ export function WeeklySurveyPage() {
         </p>
       )}
 
-      <p className="section-title">Message sent after class</p>
+      <p className="section-title">{t('clients.messageAfter')}</p>
       <div className="card weekly-survey-message">
         <p>{messagePreview}</p>
       </div>
@@ -152,17 +153,17 @@ export function WeeklySurveyPage() {
             navigate(`${url.pathname}${url.search}`);
           }}
         >
-          <ExternalLink size={14} /> Preview feedback form
+          <ExternalLink size={14} /> {t('clients.previewForm')}
         </button>
       </div>
 
       <p className="section-title">
-        {clients.length === 0 ? 'No clients yet' : `${clients.length} clients`}
+        {clients.length === 0 ? t('clients.noneYet') : t('clients.count', { count: clients.length })}
       </p>
 
       {clients.length === 0 ? (
         <div className="card weekly-survey-empty-list">
-          <p>Add a name and phone number to build your list.</p>
+          <p>{t('clients.emptyList')}</p>
         </div>
       ) : (
         <div className="card weekly-survey-clients">
@@ -179,7 +180,7 @@ export function WeeklySurveyPage() {
                 type="button"
                 className="btn btn-ghost btn-sm weekly-survey-client__remove"
                 onClick={() => removeClient(client.id)}
-                aria-label={`Remove ${client.name}`}
+                aria-label={t('clients.removeAria', { name: client.name })}
               >
                 <Trash2 size={14} />
               </button>

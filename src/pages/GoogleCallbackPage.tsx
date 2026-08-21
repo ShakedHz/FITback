@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useI18n } from '@/i18n';
 import './Auth.css';
 
 /**
@@ -6,6 +7,8 @@ import './Auth.css';
  * Writes the ID token to localStorage so the opener can complete login.
  */
 export function GoogleCallbackPage() {
+  const { t } = useI18n();
+
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, '');
     const params = new URLSearchParams(hash);
@@ -26,7 +29,7 @@ export function GoogleCallbackPage() {
 
   return (
     <div className="page auth-callback">
-      Signing you in with Google…
+      {t('auth.googleSigningIn')}
     </div>
   );
 }

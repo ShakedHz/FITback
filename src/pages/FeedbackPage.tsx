@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Star } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useI18n } from '@/i18n';
 
 export function FeedbackPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const { scheduleEvents, submitFeedback } = useApp();
+  const { t } = useI18n();
   const [rating, setRating] = useState(0);
   const [improve, setImprove] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -21,7 +23,7 @@ export function FeedbackPage() {
     if (!title && !searchParams.get('lessonId')) {
       return {
         id,
-        title: 'Class feedback',
+        title: t('feedback.classFeedback'),
         instructor: searchParams.get('instructor') || undefined,
         lessonPlanId: searchParams.get('lessonId') || undefined,
         lessonId: searchParams.get('lessonId') || undefined,
@@ -29,17 +31,17 @@ export function FeedbackPage() {
     }
     return {
       id,
-      title: title || 'Class feedback',
+      title: title || t('feedback.classFeedback'),
       instructor: searchParams.get('instructor') || undefined,
       lessonPlanId: searchParams.get('lessonId') || undefined,
       lessonId: searchParams.get('lessonId') || undefined,
     };
-  }, [id, scheduleEvents, searchParams]);
+  }, [id, scheduleEvents, searchParams, t]);
 
   const handleSubmit = () => {
     setError(null);
     if (rating < 1) {
-      setError('Please choose a rating from 1 to 5');
+      setError(t('errors.ratingRequired'));
       return;
     }
 
@@ -55,14 +57,14 @@ export function FeedbackPage() {
         sourceId,
         rating,
         improve,
-        title: classEvent?.title || searchParams.get('title') || 'Class feedback',
+        title: classEvent?.title || searchParams.get('title') || t('feedback.classFeedback'),
         instructor: classEvent?.instructor || searchParams.get('instructor') || undefined,
         lessonId: linkedLessonId || undefined,
       });
       setSavedRating(rating);
       setSubmitted(true);
     } catch {
-      setError('Could not save feedback. Try again.');
+      setError(t('errors.saveFeedback'));
     }
   };
 
@@ -81,16 +83,18 @@ export function FeedbackPage() {
         }}
       >
         <CheckCircle2 size={48} color="#34d399" />
-        <h2 style={{ marginTop: 8 }}>Thanks for your feedback!</h2>
+        <h2 style={{ marginTop: 8 }}>{t('feedback.thanks')}</h2>
         <p style={{ color: '#94a3b8' }}>
-          Saved {savedRating}/5 stars
-          {improve.trim() ? ' with a note' : ''}.
+          {t('feedback.saved', {
+            rating: savedRating,
+            note: improve.trim() ? t('feedback.withNote') : '',
+          })}
         </p>
         <Link to="/analytics" className="btn btn-primary" style={{ marginTop: 16, width: 'auto', minWidth: 200 }}>
-          View in Ratings
+          {t('feedback.viewRatings')}
         </Link>
         <Link to="/dashboard" className="btn btn-ghost" style={{ width: 'auto' }}>
-          Back to Home
+          {t('feedback.backHome')}
         </Link>
       </div>
     );
@@ -100,16 +104,18 @@ export function FeedbackPage() {
     <div className="page fade-in">
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <Star size={40} color="#a78bfa" strokeWidth={1.5} />
-        <h1 className="page-title" style={{ marginTop: 12 }}>How was the class?</h1>
+        <h1 className="page-title" style={{ marginTop: 12 }}>{t('feedback.title')}</h1>
         <p className="page-subtitle">
           {classEvent
-            ? `${classEvent.title}${classEvent.instructor ? ` with ${classEvent.instructor}` : ''}`
-            : 'Rate the class — an improvement note is optional'}
+            ? classEvent.instructor
+              ? t('feedback.withInstructor', { title: classEvent.title, instructor: classEvent.instructor })
+              : classEvent.title
+            : t('feedback.subtitle')}
         </p>
       </div>
 
       <div className="card" style={{ textAlign: 'center' }}>
-        <p className="section-title">Your rating</p>
+        <p className="section-title">{t('feedback.yourRating')}</p>
         <div
           style={{
             display: 'flex',
@@ -124,7 +130,7 @@ export function FeedbackPage() {
               key={n}
               type="button"
               onClick={() => setRating(n)}
-              aria-label={`${n} stars`}
+              aria-label={t('feedback.stars', { n })}
               aria-pressed={rating === n}
               style={{
                 width: 52,
@@ -144,17 +150,17 @@ export function FeedbackPage() {
           ))}
         </div>
         <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 12 }}>
-          {rating > 0 ? `${rating} / 5 selected` : 'Tap a number'}
+          {rating > 0 ? t('feedback.selected', { rating }) : t('feedback.tapNumber')}
         </p>
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
         <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 8 }}>
-          What could be improved? <span style={{ color: '#64748b' }}>(optional)</span>
+          {t('feedback.improve')} <span style={{ color: '#64748b' }}>({t('common.optional')})</span>
         </label>
         <textarea
           className="input"
-          placeholder="e.g. slower pace, longer cool-down…"
+          placeholder={t('feedback.improvePlaceholder')}
           value={improve}
           onChange={(e) => setImprove(e.target.value)}
           rows={4}
@@ -175,7 +181,7 @@ export function FeedbackPage() {
         onClick={handleSubmit}
         disabled={rating === 0}
       >
-        Submit feedback
+        {t('feedback.submit')}
       </button>
     </div>
   );

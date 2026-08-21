@@ -5,25 +5,14 @@ import { useApp } from '@/context/AppContext';
 import { ExerciseVideo } from '@/components/ExerciseVideo';
 import { durationsFromExercises } from '@/utils/lessonDuration';
 import { builderPathFromParams, newExercisePath } from '@/utils/exerciseNav';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  'חימום': 'Warm-up',
-  'ליבה': 'Core',
-  'גב': 'Back',
-  'מתיחות': 'Stretching',
-  'סיום': 'Cool-down',
-  'אחר': 'Other',
-};
-
-function categoryLabel(cat: string): string {
-  return CATEGORY_LABELS[cat] ?? cat;
-}
+import { categoryLabel, useI18n } from '@/i18n';
 
 export function ExerciseLibraryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetSectionId = searchParams.get('section');
   const { allExercises, lessonDraft, setLessonDraft } = useApp();
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [added, setAdded] = useState<string[]>([]);
@@ -49,9 +38,9 @@ export function ExerciseLibraryPage() {
             exerciseIds: [...s.exerciseIds],
           }))
         : [
-            { id: 's1', title: 'Warm-up', exerciseIds: [] as string[] },
-            { id: 's2', title: 'Main section', exerciseIds: [] as string[] },
-            { id: 's3', title: 'Cool-down', exerciseIds: [] as string[] },
+            { id: 's1', title: t('builder.warmup'), exerciseIds: [] as string[] },
+            { id: 's2', title: t('builder.main'), exerciseIds: [] as string[] },
+            { id: 's3', title: t('builder.cooldown'), exerciseIds: [] as string[] },
           ];
 
     const alreadyInPlan = new Set(baseSections.flatMap((s) => s.exerciseIds));
@@ -70,13 +59,13 @@ export function ExerciseLibraryPage() {
 
   return (
     <div className="page fade-in">
-      <button className="back-btn" onClick={() => navigate(returnToBuilder)}>← Back</button>
-      <h1 className="page-title">Exercise library</h1>
+      <button className="back-btn" onClick={() => navigate(returnToBuilder)}>{t('common.back')}</button>
+      <h1 className="page-title">{t('exercises.title')}</h1>
       <p className="page-subtitle">
-        {allExercises.length} exercises
-        {customCount > 0 && ` · ${customCount} yours`}
+        {t('exercises.count', { count: allExercises.length })}
+        {customCount > 0 && t('exercises.yours', { count: customCount })}
         {targetSectionId && lessonDraft.sections?.find((s) => s.id === targetSectionId) && (
-          <> · Adding to {lessonDraft.sections.find((s) => s.id === targetSectionId)?.title}</>
+          <>{t('exercises.addingTo', { section: lessonDraft.sections.find((s) => s.id === targetSectionId)?.title ?? '' })}</>
         )}
       </p>
 
@@ -89,20 +78,19 @@ export function ExerciseLibraryPage() {
           <Plus size={22} strokeWidth={2.5} />
         </span>
         <span className="exercise-new-cta__text">
-          <span className="exercise-new-cta__title">New Exercise</span>
-          <span className="exercise-new-cta__desc">Create your own and add it to the library</span>
+          <span className="exercise-new-cta__title">{t('exercises.newTitle')}</span>
+          <span className="exercise-new-cta__desc">{t('exercises.newDesc')}</span>
         </span>
-        <span className="exercise-new-cta__arrow" aria-hidden>→</span>
+        <span className="exercise-new-cta__arrow rtl-flip" aria-hidden>→</span>
       </button>
 
       <div style={{ position: 'relative', marginBottom: 16 }}>
-        <Search size={18} color="#64748b" style={{ position: 'absolute', left: 14, top: 14 }} />
+        <Search size={18} color="#64748b" className="input-with-icon__icon" />
         <input
-          className="input"
-          placeholder="Search exercise..."
+          className="input input-with-icon"
+          placeholder={t('exercises.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ paddingLeft: 42 }}
         />
       </div>
 
@@ -114,7 +102,7 @@ export function ExerciseLibraryPage() {
             className={`chip ${categoryFilter === cat ? 'selected' : ''}`}
             onClick={() => setCategoryFilter(cat)}
           >
-            {categoryLabel(cat)}
+            {categoryLabel(cat, t)}
           </button>
         ))}
       </div>
@@ -125,9 +113,9 @@ export function ExerciseLibraryPage() {
           <div className="exercise-card__info">
             <p className="exercise-card__name">
               {ex.nameHe}
-              {ex.isCustom && <span className="tag" style={{ marginLeft: 6, fontSize: 10 }}>Mine</span>}
+              {ex.isCustom && <span className="tag" style={{ marginInlineStart: 6, fontSize: 10 }}>{t('exercises.mine')}</span>}
             </p>
-            <p className="exercise-card__meta">{ex.name} · {ex.duration} min · {categoryLabel(ex.category)}</p>
+            <p className="exercise-card__meta">{t('exercises.meta', { name: ex.name, duration: ex.duration, category: categoryLabel(ex.category, t) })}</p>
           </div>
           <button
             type="button"
@@ -146,20 +134,20 @@ export function ExerciseLibraryPage() {
 
       {filtered.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: 24 }}>
-          <p style={{ color: '#94a3b8' }}>No exercises found</p>
+          <p style={{ color: '#94a3b8' }}>{t('exercises.none')}</p>
           <button
             className="btn btn-secondary btn-sm"
             style={{ marginTop: 12 }}
             onClick={() => navigate(newExercisePath(searchParams))}
           >
-            New Exercise
+            {t('exercises.newTitle')}
           </button>
         </div>
       )}
 
       {added.length > 0 && (
         <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={addToLesson}>
-          Add to lesson ({added.length} exercises)
+          {t('exercises.addToLesson', { count: added.length })}
         </button>
       )}
     </div>

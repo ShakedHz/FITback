@@ -13,7 +13,7 @@ import {
 import { LessonCover } from '@/components/LessonCover';
 import { lessonHasMedia } from '@/utils/lessonCover';
 import { WeeklyBarChart } from '@/components/AnalyticsCharts';
-import { TRAINING_TYPE_LABELS } from '@/data/trainingTypes';
+import { trainingLabel, useI18n } from '@/i18n';
 import '@/components/Analytics.css';
 
 function RatingBars({
@@ -44,6 +44,7 @@ export function LessonAnalyticsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getLessonById, feedbackResponses } = useApp();
+  const { t } = useI18n();
   const [period, setPeriod] = useState<AnalyticsPeriod>('7d');
   const lesson = id ? getLessonById(id) : undefined;
 
@@ -56,10 +57,10 @@ export function LessonAnalyticsPage() {
     return (
       <div className="page fade-in">
         <button type="button" className="back-btn" onClick={() => navigate('/analytics')}>
-          <ArrowLeft size={20} /> Back
+          <ArrowLeft className="rtl-flip" size={20} /> {t('common.back')}
         </button>
         <div className="card" style={{ textAlign: 'center', padding: 32, marginTop: 20 }}>
-          <p style={{ color: '#94a3b8' }}>Lesson not found</p>
+          <p style={{ color: '#94a3b8' }}>{t('analytics.lessonNotFound')}</p>
         </div>
       </div>
     );
@@ -71,16 +72,20 @@ export function LessonAnalyticsPage() {
 
   return (
     <div className="page fade-in">
-      <button type="button" className="back-btn" onClick={() => navigate('/analytics')}>
-        <ArrowLeft size={20} /> Back to ratings
-      </button>
+        <button type="button" className="back-btn" onClick={() => navigate('/analytics')}>
+          <ArrowLeft className="rtl-flip" size={20} /> {t('analytics.backToRatings')}
+        </button>
 
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 16 }}>
         {lessonHasMedia(lesson) && <LessonCover lesson={lesson} alt={lesson.title} size="md" />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="page-title" style={{ fontSize: 20 }}>{lesson.title}</h1>
           <p className="page-subtitle">
-            {lesson.duration} min · {TRAINING_TYPE_LABELS[lesson.trainingType]} · {analytics.responseCount} ratings
+            {t('analytics.lessonMetaLine', {
+              duration: lesson.duration,
+              type: trainingLabel(lesson.trainingType, t),
+              count: analytics.responseCount,
+            })}
           </p>
         </div>
         <div className="ratings-score-ring ratings-score-ring--lg" style={{ borderColor: scoreColor, color: scoreColor }}>
@@ -96,7 +101,7 @@ export function LessonAnalyticsPage() {
             className={period === p ? 'active' : ''}
             onClick={() => setPeriod(p)}
           >
-            {p === '7d' ? 'Last 7 days' : 'Last 30 days'}
+            {p === '7d' ? t('analytics.last7') : t('analytics.last30')}
           </button>
         ))}
       </div>
@@ -104,7 +109,7 @@ export function LessonAnalyticsPage() {
       <div className="card ratings-ai-card">
         <div className="ratings-section-head">
           <Bot size={18} color="#a78bfa" />
-          <h2>AI analysis</h2>
+          <h2>{t('analytics.aiAnalysis')}</h2>
         </div>
         <p className="ratings-ai-card__summary">{analytics.aiSummary}</p>
       </div>
@@ -112,7 +117,7 @@ export function LessonAnalyticsPage() {
       <div className={`card ratings-focus-card ratings-focus-card--${action.tone}`}>
         <div className="ratings-section-head">
           <Lightbulb size={18} />
-          <h2>Recommended action</h2>
+          <h2>{t('analytics.recommended')}</h2>
         </div>
         <p>{action.text}</p>
         <button
@@ -121,7 +126,7 @@ export function LessonAnalyticsPage() {
           style={{ marginTop: 12, width: '100%' }}
           onClick={() => navigate(`/builder?lessonId=${lesson.id}`)}
         >
-          <Pencil size={14} /> Edit this plan
+          <Pencil size={14} /> {t('analytics.editPlan')}
         </button>
       </div>
 
@@ -130,38 +135,38 @@ export function LessonAnalyticsPage() {
           <Star size={16} color="#fbbf24" fill="#fbbf24" />
           <div>
             <p className="ratings-kpi__value">{analytics.avgRating}</p>
-            <p className="ratings-kpi__label">Average</p>
+            <p className="ratings-kpi__label">{t('analytics.average')}</p>
           </div>
         </div>
         <div className="ratings-kpi">
           <Sparkles size={16} color="#34d399" />
           <div>
             <p className="ratings-kpi__value">{analytics.highRatingRate}%</p>
-            <p className="ratings-kpi__label">4–5 stars</p>
+            <p className="ratings-kpi__label">{t('analytics.highStars')}</p>
           </div>
         </div>
         <div className="ratings-kpi">
           <AlertTriangle size={16} color={analytics.lowRatingRate > 12 ? '#f87171' : '#94a3b8'} />
           <div>
             <p className="ratings-kpi__value">{analytics.lowRatingRate}%</p>
-            <p className="ratings-kpi__label">1–2 stars</p>
+            <p className="ratings-kpi__label">{t('analytics.lowStars')}</p>
           </div>
         </div>
         <div className="ratings-kpi">
           <MessageSquareText size={16} color="#a78bfa" />
           <div>
             <p className="ratings-kpi__value">{analytics.comments.length}</p>
-            <p className="ratings-kpi__label">Notes</p>
+            <p className="ratings-kpi__label">{t('analytics.notes')}</p>
           </div>
         </div>
       </div>
 
-      <p className="section-title">Rating breakdown</p>
+      <p className="section-title">{t('analytics.breakdown')}</p>
       <div className="card" style={{ marginBottom: 16 }}>
         <RatingBars distribution={analytics.ratingDistribution} />
       </div>
 
-      <p className="section-title">What to do</p>
+      <p className="section-title">{t('analytics.whatToDo')}</p>
       {analytics.recommendations.map((rec) => (
         <div
           key={rec.id}
@@ -174,7 +179,7 @@ export function LessonAnalyticsPage() {
 
       {analytics.aiThemes.length > 0 && (
         <>
-          <p className="section-title">Themes in notes</p>
+          <p className="section-title">{t('analytics.themes')}</p>
           <div className="ratings-themes" style={{ marginBottom: 16 }}>
             {analytics.aiThemes.map((t) => (
               <span key={t.theme} className={`ratings-theme ratings-theme--${t.sentiment}`}>
@@ -188,7 +193,7 @@ export function LessonAnalyticsPage() {
 
       {analytics.comments.length > 0 && (
         <>
-          <p className="section-title">Client improvement notes</p>
+          <p className="section-title">{t('analytics.improvementNotes')}</p>
           <div className="card" style={{ marginBottom: 16, padding: 0, overflow: 'hidden' }}>
             {analytics.comments.map((c) => (
               <div key={c.id} className="ratings-comment ratings-comment--static">
@@ -203,7 +208,7 @@ export function LessonAnalyticsPage() {
         </>
       )}
 
-      <p className="section-title">Ratings over time</p>
+      <p className="section-title">{t('analytics.overTime')}</p>
       <div className="card" style={{ marginBottom: 16 }}>
         <WeeklyBarChart data={analytics.weeklyResponses} />
       </div>

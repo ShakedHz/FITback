@@ -1,14 +1,16 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { hasInstructorProfile, useAuth } from '@/auth/AuthContext';
+import { useI18n } from '@/i18n';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isReady } = useAuth();
+  const { t } = useI18n();
   const location = useLocation();
 
   if (!isReady) {
     return (
       <div className="page" style={{ display: 'grid', placeItems: 'center', color: '#94a3b8' }}>
-        Loading…
+        {t('common.loading')}
       </div>
     );
   }

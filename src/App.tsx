@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/auth/AuthContext';
 import { AppProvider } from '@/context/AppContext';
+import { LocaleProvider } from '@/i18n';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { BottomNav } from '@/components/BottomNav';
 import { LoginPage, RegisterPage } from '@/pages/AuthPage';
@@ -65,12 +66,14 @@ function AppLayout() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <BrowserRouter>
-          <AppLayout />
-        </BrowserRouter>
-      </AppProvider>
-    </AuthProvider>
+    <LocaleProvider>
+      <AuthProvider>
+        <AppProvider>
+          <BrowserRouter>
+            <AppLayout />
+          </BrowserRouter>
+        </AppProvider>
+      </AuthProvider>
+    </LocaleProvider>
   );
 }

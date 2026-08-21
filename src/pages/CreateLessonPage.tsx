@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { PenLine, LayoutTemplate, Sparkles } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useI18n } from '@/i18n';
 
 const options = [
   {
     id: 'new',
     icon: PenLine,
-    title: 'Build a new lesson',
-    desc: 'Start empty — add every exercise yourself',
+    titleKey: 'create.buildTitle',
+    descKey: 'create.buildDesc',
     path: '/builder?blank=1',
     color: '#8b5cf6',
     draftMode: 'blank' as const,
@@ -15,8 +16,8 @@ const options = [
   {
     id: 'template',
     icon: LayoutTemplate,
-    title: 'Import from template',
-    desc: 'Use a ready-made professional lesson plan',
+    titleKey: 'create.templateTitle',
+    descKey: 'create.templateDesc',
     path: '/builder?template=1',
     color: '#fbbf24',
     draftMode: 'template' as const,
@@ -24,8 +25,8 @@ const options = [
   {
     id: 'ai',
     icon: Sparkles,
-    title: 'Create with AI',
-    desc: 'Design a class from client ratings and improvement notes',
+    titleKey: 'create.aiTitle',
+    descKey: 'create.aiDesc',
     path: '/create/ai',
     color: '#34d399',
     highlight: true,
@@ -35,6 +36,7 @@ const options = [
 export function CreateLessonPage() {
   const navigate = useNavigate();
   const { resetLessonDraft } = useApp();
+  const { t } = useI18n();
 
   const open = (path: string, draftMode?: 'blank' | 'template') => {
     if (draftMode) resetLessonDraft(draftMode);
@@ -44,8 +46,8 @@ export function CreateLessonPage() {
   return (
     <div className="page fade-in">
       <div className="page-header">
-        <h1 className="page-title">Create a new lesson</h1>
-        <p className="page-subtitle">Choose how to get started</p>
+        <h1 className="page-title">{t('create.title')}</h1>
+        <p className="page-subtitle">{t('create.subtitle')}</p>
       </div>
 
       {options.map((opt) => {
@@ -81,10 +83,10 @@ export function CreateLessonPage() {
                 <Icon size={24} color={opt.color} />
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontWeight: 600, marginBottom: 4 }}>{opt.title}</p>
-                <p style={{ fontSize: 13, color: '#94a3b8' }}>{opt.desc}</p>
+                <p style={{ fontWeight: 600, marginBottom: 4 }}>{t(opt.titleKey)}</p>
+                <p style={{ fontSize: 13, color: '#94a3b8' }}>{t(opt.descKey)}</p>
               </div>
-              <span style={{ color: opt.highlight ? '#34d399' : '#a78bfa' }}>→</span>
+              <span className="rtl-flip" style={{ color: opt.highlight ? '#34d399' : '#a78bfa' }}>→</span>
             </div>
           </div>
         );

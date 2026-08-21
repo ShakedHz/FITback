@@ -3,6 +3,7 @@ import { Upload, X, Film } from 'lucide-react';
 import { LessonCover } from '@/components/LessonCover';
 import type { Lesson } from '@/data/mockData';
 import type { TrainingType } from '@/data/trainingTypes';
+import { useI18n } from '@/i18n';
 
 interface LessonVideoUploadProps {
   lesson: Pick<Lesson, 'coverVideo' | 'coverImage'> & {
@@ -19,6 +20,7 @@ export function LessonVideoUpload({
   onVideoChange,
   alt,
 }: LessonVideoUploadProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const previewLesson = {
@@ -41,7 +43,7 @@ export function LessonVideoUpload({
 
   return (
     <div className="lesson-cover-upload card">
-      <p className="section-title">Lesson preview video</p>
+      <p className="section-title">{t('cover.title')}</p>
       {coverVideo ? (
         <div className="lesson-cover-upload__preview">
           <LessonCover lesson={previewLesson} alt={alt} size="md" />
@@ -49,19 +51,19 @@ export function LessonVideoUpload({
       ) : (
         <div className="lesson-cover-upload__empty">
           <Film size={28} color="#64748b" />
-          <p>No video yet</p>
+          <p>{t('cover.none')}</p>
         </div>
       )}
       <p className="lesson-cover-upload__hint">
-        Optional — plays as a preview when you browse My library
+        {t('cover.hint')}
       </p>
       <div className="lesson-cover-upload__actions">
         <button type="button" className="btn btn-secondary btn-sm" onClick={() => inputRef.current?.click()}>
-          <Upload size={16} /> {coverVideo ? 'Change video' : 'Add video'}
+          <Upload size={16} /> {coverVideo ? t('cover.change') : t('cover.add')}
         </button>
         {coverVideo && (
           <button type="button" className="btn btn-ghost btn-sm" onClick={remove}>
-            <X size={16} /> Remove
+            <X size={16} /> {t('cover.remove')}
           </button>
         )}
       </div>

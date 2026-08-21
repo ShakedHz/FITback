@@ -8,10 +8,12 @@ import { inferEquipment } from '@/data/equipmentTypes';
 import { TRAINING_TYPE_LABELS } from '@/data/trainingTypes';
 import { getLessonTemplate } from '@/data/lessonTemplates';
 import { lessonHasMedia } from '@/utils/lessonCover';
+import { trainingLabel, useI18n } from '@/i18n';
 
 export function LessonPreviewPage() {
   const navigate = useNavigate();
   const { addCreatedLesson, instructor, allExercises, lessonDraft, resetLessonDraft } = useApp();
+  const { t } = useI18n();
 
   const planSections = useMemo(() => {
     const sections =
@@ -59,7 +61,7 @@ export function LessonPreviewPage() {
       comments: 0,
       description:
         lessonDraft.description.trim() ||
-        `A ${TRAINING_TYPE_LABELS[lessonDraft.trainingType].toLowerCase()} lesson plan for your clients.`,
+        t('preview.defaultDesc', { type: trainingLabel(lessonDraft.trainingType, t).toLowerCase() }),
       sections: planSections,
       isCreated: true,
       isOwned: true,
@@ -73,9 +75,9 @@ export function LessonPreviewPage() {
 
   return (
     <div className="page fade-in">
-      <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
-      <h1 className="page-title">Preview</h1>
-      <p className="page-subtitle">How clients will experience the lesson (without exercise details)</p>
+      <button className="back-btn" onClick={() => navigate(-1)}>{t('common.back')}</button>
+      <h1 className="page-title">{t('preview.title')}</h1>
+      <p className="page-subtitle">{t('preview.subtitle')}</p>
 
       {lessonHasMedia(draftLesson) && (
         <div style={{ marginTop: 16, borderRadius: 16, overflow: 'hidden' }}>
@@ -94,7 +96,7 @@ export function LessonPreviewPage() {
       >
         <h2 style={{ fontSize: 22 }}>{lessonDraft.title}</h2>
         <p style={{ color: '#94a3b8', marginTop: 8 }}>
-          {lessonDraft.duration} minutes · {TRAINING_TYPE_LABELS[lessonDraft.trainingType]}
+          {t('preview.meta', { duration: lessonDraft.duration, type: trainingLabel(lessonDraft.trainingType, t) })}
         </p>
         {lessonDraft.description.trim() && (
           <p style={{ marginTop: 12, fontSize: 14, color: '#cbd5e1', lineHeight: 1.45 }}>
@@ -103,11 +105,11 @@ export function LessonPreviewPage() {
         )}
       </div>
 
-      <p className="section-title" style={{ marginTop: 24 }}>Internal plan (instructor only)</p>
+      <p className="section-title" style={{ marginTop: 24 }}>{t('preview.internal')}</p>
       {planSections.map((section) => (
         <div key={section.id} className="card" style={{ marginBottom: 8 }}>
           <p style={{ fontWeight: 600, color: '#a78bfa', marginBottom: 12 }}>
-            {section.title} ({section.duration} min)
+            {t('preview.sectionDur', { title: section.title, duration: section.duration })}
           </p>
           {section.exercises.map((ex) => (
             <div
@@ -116,14 +118,14 @@ export function LessonPreviewPage() {
             >
               <ExerciseVideo exercise={ex} size="row" />
               <span style={{ flex: 1 }}>{ex.nameHe}</span>
-              <span style={{ color: '#64748b' }}>{ex.duration} min</span>
+              <span style={{ color: '#64748b' }}>{ex.duration} {t('common.min')}</span>
             </div>
           ))}
         </div>
       ))}
 
       <button type="button" className="btn btn-primary" style={{ marginTop: 20 }} onClick={handlePublish}>
-        Save to library
+        {t('preview.save')}
       </button>
     </div>
   );

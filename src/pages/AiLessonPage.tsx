@@ -4,14 +4,16 @@ import { Bot, Sparkles, Star, MessageSquareText, BookOpen, ArrowRight, RefreshCw
 import { useApp } from '@/context/AppContext';
 import { suggestLessonFromClientData, type AiLessonSuggestion } from '@/data/aiLessonSuggest';
 import { hasSurveyResults } from '@/data/lessonAnalytics';
-import { TRAINING_TYPE_LABELS, TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
+import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
 import { LessonCover } from '@/components/LessonCover';
 import { exercises } from '@/data/mockData';
+import { trainingLabel, useI18n } from '@/i18n';
 import './AiLesson.css';
 
 export function AiLessonPage() {
   const navigate = useNavigate();
   const { createdLessons, instructor, setLessonDraft } = useApp();
+  const { t } = useI18n();
   const [phase, setPhase] = useState<'loading' | 'ready'>('loading');
   const [suggestion, setSuggestion] = useState<AiLessonSuggestion | null>(null);
 
@@ -61,17 +63,17 @@ export function AiLessonPage() {
     return (
       <div className="page fade-in">
         <button type="button" className="back-btn" onClick={() => navigate('/create')}>
-          ← Back
+          {t('common.back')}
         </button>
         <div className="card" style={{ textAlign: 'center', padding: 32, marginTop: 20 }}>
           <Bot size={40} color="#a78bfa" style={{ marginBottom: 12 }} />
           <p style={{ fontWeight: 600, marginBottom: 8 }}>
-            {createdLessons.length === 0 ? 'Not enough data yet' : 'No survey results yet'}
+            {createdLessons.length === 0 ? t('ai.notEnough') : t('ai.noSurvey')}
           </p>
           <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.45 }}>
             {createdLessons.length === 0
-              ? 'Add lesson plans to your library first, then collect client ratings.'
-              : 'Send the weekly survey and wait for client ratings. AI uses those responses to design the next class.'}
+              ? t('ai.addFirst')
+              : t('ai.sendSurvey')}
           </p>
           <button
             type="button"
@@ -79,7 +81,7 @@ export function AiLessonPage() {
             style={{ marginTop: 16 }}
             onClick={() => navigate(createdLessons.length === 0 ? '/create' : '/survey')}
           >
-            {createdLessons.length === 0 ? 'Create manually' : 'Go to Survey'}
+            {createdLessons.length === 0 ? t('ai.createManually') : t('ai.goSurvey')}
           </button>
         </div>
       </div>
@@ -90,15 +92,15 @@ export function AiLessonPage() {
     return (
       <div className="page fade-in ai-lesson-loading">
         <button type="button" className="back-btn" onClick={() => navigate('/create')}>
-          ← Back
+          {t('common.back')}
         </button>
         <div className="ai-lesson-loading__card card card-glow">
           <div className="ai-lesson-loading__icon">
             <Bot size={32} color="#c4b5fd" />
           </div>
-          <h1 className="page-title" style={{ fontSize: 22 }}>Analyzing client feedback…</h1>
+          <h1 className="page-title" style={{ fontSize: 22 }}>{t('ai.analyzing')}</h1>
           <p className="page-subtitle">
-            Reading ratings and optional improvement notes to design the class clients want most
+            {t('ai.analyzingSub')}
           </p>
           <div className="ai-lesson-loading__dots" aria-hidden>
             <span />
@@ -120,30 +122,30 @@ export function AiLessonPage() {
   return (
     <div className="page fade-in">
       <button type="button" className="back-btn" onClick={() => navigate('/create')}>
-        ← Back
+        {t('common.back')}
       </button>
 
       <div className="page-header">
         <div className="ai-lesson-badge">
           <Sparkles size={14} />
-          AI from client data
+          {t('ai.badge')}
         </div>
-        <h1 className="page-title">Suggested next class</h1>
-        <p className="page-subtitle">Built from what clients rated and wrote</p>
+        <h1 className="page-title">{t('ai.suggested')}</h1>
+        <p className="page-subtitle">{t('ai.builtFrom')}</p>
       </div>
 
       <div className="ai-lesson-stats">
         <div className="ai-lesson-stat">
           <Star size={15} color="#fbbf24" fill="#fbbf24" />
-          <span>{basedOn.ratings} ratings</span>
+          <span>{t('ai.ratings', { count: basedOn.ratings })}</span>
         </div>
         <div className="ai-lesson-stat">
           <MessageSquareText size={15} color="#a78bfa" />
-          <span>{basedOn.notes} notes</span>
+          <span>{t('ai.notes', { count: basedOn.notes })}</span>
         </div>
         <div className="ai-lesson-stat">
           <BookOpen size={15} color="#34d399" />
-          <span>{basedOn.lessonsAnalyzed} lessons</span>
+          <span>{t('ai.lessons', { count: basedOn.lessonsAnalyzed })}</span>
         </div>
       </div>
 
@@ -161,23 +163,23 @@ export function AiLessonPage() {
             color: typeColors.text,
           }}
         >
-          {TRAINING_TYPE_LABELS[draft.trainingType]}
+          {trainingLabel(draft.trainingType, t)}
         </span>
         <h2 className="ai-lesson-hero__title">{draft.title}</h2>
-        <p className="ai-lesson-hero__meta">{draft.duration} min · Based on your clients</p>
+        <p className="ai-lesson-hero__meta">{t('ai.basedOnClients', { duration: draft.duration })}</p>
       </div>
 
       <div className="card ai-lesson-rationale">
         <div className="ai-lesson-rationale__head">
           <Bot size={18} color="#a78bfa" />
-          <h3>Why this plan</h3>
+          <h3>{t('ai.why')}</h3>
         </div>
         <p>{rationale}</p>
       </div>
 
       {focusThemes.length > 0 && (
         <>
-          <p className="section-title">Addresses client notes about</p>
+          <p className="section-title">{t('ai.addresses')}</p>
           <div className="ai-lesson-themes">
             {focusThemes.map((theme) => (
               <span key={theme} className="ai-lesson-theme">{theme}</span>
@@ -186,7 +188,7 @@ export function AiLessonPage() {
         </>
       )}
 
-      <p className="section-title">Signals used</p>
+      <p className="section-title">{t('ai.signals')}</p>
       <div className="card" style={{ marginBottom: 16 }}>
         <ul className="ai-lesson-signals">
           {signals.map((s) => (
@@ -195,12 +197,12 @@ export function AiLessonPage() {
         </ul>
       </div>
 
-      <p className="section-title">Plan outline</p>
+      <p className="section-title">{t('ai.outline')}</p>
       {previewSections.map((section) => (
         <div key={section.id} className="card" style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
             <span style={{ fontWeight: 600 }}>{section.title}</span>
-            <span className="tag">{section.duration} min</span>
+            <span className="tag">{section.duration} {t('common.min')}</span>
           </div>
           <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
             {section.exercises.map((e) => e.nameHe).join(' · ')}
@@ -210,10 +212,10 @@ export function AiLessonPage() {
 
       <div className="ai-lesson-actions">
         <button type="button" className="btn btn-primary" onClick={openInBuilder}>
-          Use this plan <ArrowRight size={16} />
+          {t('ai.usePlan')} <ArrowRight className="rtl-flip" size={16} />
         </button>
         <button type="button" className="btn btn-secondary" onClick={runSuggest}>
-          <RefreshCw size={16} /> Regenerate
+          <RefreshCw size={16} /> {t('ai.regenerate')}
         </button>
       </div>
     </div>

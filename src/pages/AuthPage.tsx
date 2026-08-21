@@ -6,7 +6,9 @@ import type { StudioRole } from '@/data/scheduleTypes';
 import { BrandLogo } from '@/components/BrandLogo';
 import { SpecialtyPicker } from '@/components/SpecialtyPicker';
 import { BRAND } from '@/data/brand';
-import { bioFromSpecialties, type TrainingType } from '@/data/trainingTypes';
+import { type TrainingType } from '@/data/trainingTypes';
+import { instructorBio, translateError, useI18n } from '@/i18n';
+import { LanguageSwitch } from '@/components/LanguageSwitch';
 import './Auth.css';
 
 type Mode = 'login' | 'register';
@@ -49,6 +51,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
     loginWithApple,
     loginWithArbox,
   } = useAuth();
+  const { t } = useI18n();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -87,11 +90,11 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
     try {
       if (mode === 'register') {
         if (name.trim().length < 2) {
-          setLocalError('Please enter your name');
+          setLocalError(t('errors.name'));
           return;
         }
         if (specialties.length === 0) {
-          setLocalError('Choose at least one class type');
+          setLocalError(t('errors.classType'));
           return;
         }
         const authUser = await register({ name, email, password, specialties });
@@ -126,10 +129,13 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
 
   return (
     <div className="page auth-page fade-in">
+      <div className="auth-lang">
+        <LanguageSwitch />
+      </div>
       <div className="auth-page__header">
         <BrandLogo size={72} className="auth-page__logo" />
         <h1 className="auth-page__brand-name">{BRAND.name}</h1>
-        <p className="auth-page__tagline">{BRAND.tagline}</p>
+        <p className="auth-page__tagline">{t('auth.tagline')}</p>
       </div>
 
       <div className="auth-tabs">
@@ -138,14 +144,14 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           className={mode === 'login' ? 'active' : ''}
           onClick={() => go('login')}
         >
-          Log in
+          {t('auth.login')}
         </button>
         <button
           type="button"
           className={mode === 'register' ? 'active' : ''}
           onClick={() => go('register')}
         >
-          Sign up
+          {t('auth.signup')}
         </button>
       </div>
 
@@ -157,7 +163,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           disabled={isLoading}
         >
           <GoogleIcon />
-          Google
+          {t('auth.google')}
         </button>
         <button
           type="button"
@@ -166,7 +172,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           disabled={isLoading}
         >
           <AppleIcon />
-          Apple
+          {t('auth.apple')}
         </button>
         <button
           type="button"
@@ -177,36 +183,35 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           }}
           disabled={isLoading}
         >
-          Arbox
+          {t('auth.arbox')}
         </button>
       </div>
 
       {showArbox && (
         <div className="auth-arbox-panel">
           <p className="auth-arbox-panel__hint">
-            Paste your API key from Arbox → Settings → Club Information. Your schedule and clients
-            load automatically.
+            {t('auth.arboxHint')}
           </p>
-          <div className="auth-role-pick" role="group" aria-label="Sign in as">
+          <div className="auth-role-pick" role="group" aria-label={t('auth.signInAs')}>
             <button
               type="button"
               className={arboxRole === 'instructor' ? 'active' : ''}
               onClick={() => setArboxRole('instructor')}
             >
-              Instructor
+              {t('auth.instructor')}
             </button>
             <button
               type="button"
               className={arboxRole === 'studio_manager' ? 'active' : ''}
               onClick={() => setArboxRole('studio_manager')}
             >
-              Studio manager
+              {t('auth.studioManager')}
             </button>
           </div>
           <input
             className="input"
             type="password"
-            placeholder="Arbox API key"
+            placeholder={t('auth.arboxKey')}
             value={arboxKey}
             onChange={(e) => setArboxKey(e.target.value)}
             onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
@@ -218,21 +223,21 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
             onClick={() => run(() => loginWithArbox(arboxKey, arboxRole))}
             disabled={isLoading || arboxKey.trim().length < 8}
           >
-            {isLoading ? 'Loading studio…' : 'Log in with Arbox'}
+            {isLoading ? t('auth.loadingStudio') : t('auth.loginArbox')}
           </button>
         </div>
       )}
 
-      <div className="auth-divider">or</div>
+      <div className="auth-divider">{t('common.or')}</div>
 
       <form className="auth-form" onSubmit={onSubmit}>
-        {displayError && <p className="auth-error">{displayError}</p>}
+        {displayError && <p className="auth-error">{translateError(t, displayError)}</p>}
 
         {mode === 'register' && (
           <input
             className="input"
             type="text"
-            placeholder="Full name"
+            placeholder={t('auth.fullName')}
             autoComplete="name"
             required
             minLength={2}
@@ -249,7 +254,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
         <input
           className="input"
           type="email"
-          placeholder="Email"
+          placeholder={t('auth.email')}
           autoComplete="email"
           inputMode="email"
           required
@@ -265,7 +270,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
         <input
           className="input"
           type="password"
-          placeholder="Password"
+          placeholder={t('auth.password')}
           autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           required
           minLength={8}
@@ -289,7 +294,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
               }}
             />
             {specialties.length > 0 && (
-              <p className="auth-bio-preview">{bioFromSpecialties(specialties)}</p>
+              <p className="auth-bio-preview">{instructorBio(specialties, t)}</p>
             )}
           </>
         )}
@@ -297,11 +302,11 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
         <button type="submit" className="btn btn-primary auth-submit" disabled={isLoading}>
           {isLoading
             ? mode === 'login'
-              ? 'Signing in…'
-              : 'Creating…'
+              ? t('auth.signingIn')
+              : t('auth.creating')
             : mode === 'login'
-              ? 'Log in'
-              : 'Create account'}
+              ? t('auth.login')
+              : t('auth.createAccount')}
         </button>
       </form>
 
@@ -310,7 +315,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
         className="auth-client-link"
         onClick={() => navigate('/feedback/demo')}
       >
-        Client feedback
+        {t('auth.clientFeedback')}
       </button>
     </div>
   );

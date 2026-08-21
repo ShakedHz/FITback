@@ -8,32 +8,34 @@ import {
   Library,
   User,
 } from 'lucide-react';
+import { useI18n } from '@/i18n';
 import './BottomNav.css';
 
 type Tab = {
   path: string;
   icon: typeof LayoutDashboard;
-  label: string;
+  labelKey: string;
   compact?: boolean;
   matchPrefix?: boolean;
 };
 
 const tabsBefore: Tab[] = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-  { path: '/analytics', icon: BarChart3, label: 'Ratings', matchPrefix: true, compact: true },
-  { path: '/survey', icon: Users, label: 'Clients', compact: true },
+  { path: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.home' },
+  { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', matchPrefix: true, compact: true },
+  { path: '/survey', icon: Users, labelKey: 'nav.clients', compact: true },
 ];
 
-const centerTab = { path: '/create', icon: PlusCircle, label: 'New' };
+const centerTab = { path: '/create', icon: PlusCircle, labelKey: 'nav.new' };
 
 const tabsAfter: Tab[] = [
-  { path: '/schedule', icon: Calendar, label: 'Schedule', compact: true },
-  { path: '/library', icon: Library, label: 'Library', compact: true },
-  { path: '/profile', icon: User, label: 'Profile' },
+  { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule', compact: true },
+  { path: '/library', icon: Library, labelKey: 'nav.library', compact: true },
+  { path: '/profile', icon: User, labelKey: 'nav.profile' },
 ];
 
-function NavTab({ path, icon: Icon, label, compact, matchPrefix }: Tab) {
+function NavTab({ path, icon: Icon, labelKey, compact, matchPrefix }: Tab) {
   const location = useLocation();
+  const { t } = useI18n();
 
   return (
     <NavLink
@@ -46,13 +48,14 @@ function NavTab({ path, icon: Icon, label, compact, matchPrefix }: Tab) {
       }}
     >
       <Icon size={compact ? 18 : 20} strokeWidth={2} />
-      <span className="nav-label">{label}</span>
+      <span className="nav-label">{t(labelKey)}</span>
     </NavLink>
   );
 }
 
 export function BottomNav() {
   const location = useLocation();
+  const { t } = useI18n();
   const path = location.pathname;
   const hidden =
     path === '/' ||
@@ -76,6 +79,7 @@ export function BottomNav() {
 
       <NavLink
         to={centerTab.path}
+        aria-label={t(centerTab.labelKey)}
         className={({ isActive }) => `nav-item nav-center ${isActive ? 'active' : ''}`}
       >
         <CenterIcon size={28} strokeWidth={2.5} />

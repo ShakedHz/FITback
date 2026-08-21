@@ -3,6 +3,7 @@ import { Maximize2 } from 'lucide-react';
 import { getLessonMediaData, lessonHasMedia } from '@/utils/lessonCover';
 import type { Lesson } from '@/data/mockData';
 import type { TrainingType } from '@/data/trainingTypes';
+import { useI18n } from '@/i18n';
 import './LessonCover.css';
 
 interface LessonCoverProps {
@@ -26,6 +27,7 @@ export function LessonCover({
   lockOverlay,
   showFullscreenButton = false,
 }: LessonCoverProps) {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const { coverVideo, coverImage } = getLessonMediaData(lesson);
   const hasMedia = lessonHasMedia(lesson);
@@ -86,7 +88,7 @@ export function LessonCover({
               type="button"
               className="lesson-cover__fullscreen"
               onClick={enterFullscreen}
-              aria-label="Fullscreen"
+              aria-label={t('cover.fullscreen')}
             >
               <Maximize2 size={18} />
             </button>

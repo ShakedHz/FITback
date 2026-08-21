@@ -175,15 +175,15 @@ export function yToScheduleTime(y: number): string {
   return `${String(clampedH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-export function formatDayStrip(date: Date): { dow: string; num: string } {
+export function formatDayStrip(date: Date, locale = 'en-US'): { dow: string; num: string } {
   return {
-    dow: date.toLocaleDateString('en-US', { weekday: 'short' }),
+    dow: date.toLocaleDateString(locale, { weekday: 'short' }),
     num: String(date.getDate()),
   };
 }
 
-export function formatFullDayLabel(date: Date): string {
-  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+export function formatFullDayLabel(date: Date, locale = 'en-US'): string {
+  return date.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 export const TIME_SLOTS = [
@@ -208,14 +208,14 @@ export function addDays(date: Date, days: number): Date {
   return d;
 }
 
-export function formatDayLabel(date: Date): string {
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+export function formatDayLabel(date: Date, locale = 'en-US'): string {
+  return date.toLocaleDateString(locale, { weekday: 'short', month: 'numeric', day: 'numeric' });
 }
 
-export function formatWeekRange(weekStart: Date): string {
+export function formatWeekRange(weekStart: Date, locale = 'en-US'): string {
   const end = addDays(weekStart, 6);
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
-  return `${weekStart.toLocaleDateString('en-US', opts)} – ${end.toLocaleDateString('en-US', opts)}`;
+  return `${weekStart.toLocaleDateString(locale, opts)} – ${end.toLocaleDateString(locale, opts)}`;
 }
 
 /** Local calendar date key (YYYY-MM-DD), not UTC. */

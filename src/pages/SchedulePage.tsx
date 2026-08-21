@@ -34,14 +34,13 @@ import {
   getEventCategory,
   getEventColors,
   shouldShowEventType,
-  EVENT_CATEGORY_LABELS,
   TIME_SLOTS,
   canAttachPlanToEvent,
   isOwnEvent,
   type ScheduleEvent,
 } from '@/data/scheduleTypes';
-import { TRAINING_TYPES, TRAINING_TYPE_LABELS, TRAINING_TYPE_COLORS, type TrainingType } from '@/data/trainingTypes';
-import { EQUIPMENT_LABELS } from '@/data/equipmentTypes';
+import { TRAINING_TYPES, TRAINING_TYPE_COLORS, type TrainingType } from '@/data/trainingTypes';
+import { equipmentLabel, eventCategoryLabel, trainingLabel, useI18n } from '@/i18n';
 import '@/components/Schedule.css';
 
 type ViewMode = 'day' | 'week';
@@ -81,6 +80,7 @@ export function SchedulePage() {
     schedulableLessons,
     setLinkedInstructor,
   } = useApp();
+  const { t, dateLocale, locale } = useI18n();
 
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [selectedDay, setSelectedDay] = useState<Date>(() => startOfDay(new Date()));
@@ -272,14 +272,14 @@ export function SchedulePage() {
           </div>
           <div className="schedule-card__meta">
             {shouldShowEventType(ev) && (
-              <span className="schedule-card__type">{EVENT_CATEGORY_LABELS[getEventCategory(ev)]}</span>
+              <span className="schedule-card__type">{eventCategoryLabel(getEventCategory(ev), t)}</span>
             )}
             {ev.location && <span>· {ev.location}</span>}
             {ev.instructor && <span>· {ev.instructor}</span>}
-            {own && <span className="schedule-card__tag schedule-card__tag--own">You</span>}
-            {otherInstructor && <span className="schedule-card__tag schedule-card__tag--other">View only</span>}
+            {own && <span className="schedule-card__tag schedule-card__tag--own">{t('common.you')}</span>}
+            {otherInstructor && <span className="schedule-card__tag schedule-card__tag--other">{t('schedule.viewOnly')}</span>}
             {ev.source === 'flowpilates' && <span className="schedule-card__tag">Movana</span>}
-            {ev.feedbackSentAt && <span className="schedule-card__tag schedule-card__tag--sent">Survey sent</span>}
+            {ev.feedbackSentAt && <span className="schedule-card__tag schedule-card__tag--sent">{t('schedule.surveySent')}</span>}
           </div>
           {showPlanStatus && (
             <div
@@ -287,7 +287,7 @@ export function SchedulePage() {
             >
               <BookOpen size={13} strokeWidth={2} aria-hidden />
               <span className="schedule-card__plan-label">
-                {hasPlan ? ev.lessonPlanTitle : 'No lesson plan'}
+                {hasPlan ? ev.lessonPlanTitle : t('schedule.noPlan')}
               </span>
             </div>
           )}
@@ -311,13 +311,13 @@ export function SchedulePage() {
     <div className="page fade-in schedule-page">
       <header className="schedule-top">
         <div className="schedule-top__row">
-          <h1 className="page-title">Schedule</h1>
-          <button type="button" className="schedule-today" onClick={goToday}>Today</button>
+          <h1 className="page-title">{t('schedule.title')}</h1>
+          <button type="button" className="schedule-today" onClick={goToday}>{t('common.today')}</button>
         </div>
 
         {needsInstructorPick && (
           <div className="schedule-identity-pick">
-            <p className="schedule-identity-pick__label">Which instructor are you?</p>
+            <p className="schedule-identity-pick__label">{t('schedule.whichInstructor')}</p>
             <div className="schedule-identity-pick__options">
               {arboxConnection.team.map((member) => (
                 <button
@@ -334,28 +334,28 @@ export function SchedulePage() {
         )}
 
         <div className="schedule-nav">
-          <button type="button" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label="Previous week">
-            <ChevronLeft size={20} />
+          <button type="button" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label={t('schedule.previousWeek')}>
+            {locale === 'he' ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
           </button>
-          <span>{formatWeekRange(weekStart)}</span>
-          <button type="button" onClick={() => setWeekStart(addDays(weekStart, 7))} aria-label="Next week">
-            <ChevronRight size={20} />
+          <span>{formatWeekRange(weekStart, dateLocale)}</span>
+          <button type="button" onClick={() => setWeekStart(addDays(weekStart, 7))} aria-label={t('schedule.nextWeek')}>
+            {locale === 'he' ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
           </button>
         </div>
 
         <div className="schedule-tabs">
           <button type="button" className={viewMode === 'day' ? 'active' : ''} onClick={() => setViewMode('day')}>
-            Day
+            {t('schedule.day')}
           </button>
           <button type="button" className={viewMode === 'week' ? 'active' : ''} onClick={() => setViewMode('week')}>
-            Week
+            {t('schedule.week')}
           </button>
         </div>
 
         <div className="schedule-days">
           {days.map((day) => {
             const key = toDateKey(day);
-            const strip = formatDayStrip(day);
+            const strip = formatDayStrip(day, dateLocale);
             const isToday = key === todayKey;
             const isSelected = key === selectedKey;
             const count = eventsByDay[key]?.length ?? 0;
@@ -379,7 +379,7 @@ export function SchedulePage() {
       <main className="schedule-main">
         {viewMode === 'day' && (
           <section className="schedule-agenda">
-            <h2 className="schedule-agenda__title">{formatFullDayLabel(selectedDay)}</h2>
+            <h2 className="schedule-agenda__title">{formatFullDayLabel(selectedDay, dateLocale)}</h2>
             {dayEvents.length > 0 ? (
               <div className="schedule-agenda__list">
                 {dayEvents.map((ev) => renderEventCard(ev, () => setSelectedEvent(ev)))}
@@ -387,26 +387,29 @@ export function SchedulePage() {
             ) : arboxConnection.connected ? (
               <div className="schedule-empty">
                 <CalendarPlus size={36} strokeWidth={1.5} />
-                <p>No Arbox classes on this day</p>
+                <p>{t('schedule.noArbox')}</p>
                 {arboxConnection.scheduleDebug && (
                   <p className="schedule-empty__hint">
-                    Arbox returned {arboxConnection.scheduleDebug.rowCount} classes for{' '}
-                    {arboxConnection.scheduleDebug.from} – {arboxConnection.scheduleDebug.to}.
+                    {t('schedule.arboxReturned', {
+                      count: arboxConnection.scheduleDebug.rowCount,
+                      from: arboxConnection.scheduleDebug.from ?? '',
+                      to: arboxConnection.scheduleDebug.to ?? '',
+                    })}
                     {arboxConnection.scheduleDebug.rowCount === 0
-                      ? ' Check that classes exist in Arbox for this period.'
-                      : ' Try another day or week — classes may be on a different date.'}
+                      ? t('schedule.arboxNone')
+                      : t('schedule.arboxOtherDay')}
                   </p>
                 )}
                 <p className="schedule-empty__hint">
-                  Navigate weeks with the arrows to find other classes.
+                  {t('schedule.navigateHint')}
                 </p>
               </div>
             ) : (
               <div className="schedule-empty">
                 <CalendarPlus size={36} strokeWidth={1.5} />
-                <p>No classes on this day</p>
+                <p>{t('schedule.noClassesDay')}</p>
                 <button type="button" className="btn btn-secondary schedule-empty__btn" onClick={openAddSheet}>
-                  Add class
+                  {t('schedule.addClass')}
                 </button>
               </div>
             )}
@@ -424,8 +427,8 @@ export function SchedulePage() {
               return (
                 <div key={key} className="schedule-week__group">
                   <h3 className="schedule-week__label">
-                    {formatFullDayLabel(day)}
-                    {isToday && <span className="schedule-week__today">Today</span>}
+                    {formatFullDayLabel(day, dateLocale)}
+                    {isToday && <span className="schedule-week__today">{t('common.today')}</span>}
                   </h3>
                   <div className="schedule-agenda__list">
                     {events.map((ev) => renderEventCard(ev, () => setSelectedEvent(ev)))}
@@ -436,14 +439,14 @@ export function SchedulePage() {
             {scheduleEvents.length === 0 && (
               <div className="schedule-empty">
                 <CalendarPlus size={36} strokeWidth={1.5} />
-                <p>No classes this week</p>
+                <p>{t('schedule.noClassesWeek')}</p>
               </div>
             )}
           </section>
         )}
       </main>
 
-      <button type="button" className="schedule-fab" onClick={openAddSheet} aria-label="Add class to schedule">
+      <button type="button" className="schedule-fab" onClick={openAddSheet} aria-label={t('schedule.addAria')}>
         <Plus size={24} />
       </button>
 
@@ -455,28 +458,28 @@ export function SchedulePage() {
               <div className="schedule-sheet__head">
                 <h2>
                   {sheetMode === 'attach'
-                    ? 'Attach lesson plan'
+                    ? t('schedule.attachPlan')
                     : addStep === 'type'
-                      ? 'Add class'
-                      : 'Select lesson'}
+                      ? t('schedule.addClass')
+                      : t('schedule.selectLesson')}
                 </h2>
-                <button type="button" className="schedule-sheet__close" onClick={closeAddSheet} aria-label="Close">
+                <button type="button" className="schedule-sheet__close" onClick={closeAddSheet} aria-label={t('common.close')}>
                   <X size={20} />
                 </button>
               </div>
               <p className="schedule-sheet__date">
                 {sheetMode === 'attach' && selectedEvent
                   ? `${selectedEvent.title} · ${getEventTime(selectedEvent)}`
-                  : formatFullDayLabel(selectedDay)}
+                  : formatFullDayLabel(selectedDay, dateLocale)}
               </p>
               {sheetMode === 'attach' && (
                 <p className="schedule-sheet__hint schedule-sheet__hint--inline">
-                  You can only attach plans to your own schedule slots
+                  {t('schedule.attachOwnOnly')}
                 </p>
               )}
               {addStep === 'lesson' && addTrainingType && (
                 <button type="button" className="schedule-sheet__back-type" onClick={backToTypeStep}>
-                  ← {TRAINING_TYPE_LABELS[addTrainingType]}
+                  ← {trainingLabel(addTrainingType, t)}
                 </button>
               )}
             </div>
@@ -484,7 +487,7 @@ export function SchedulePage() {
             <div className="schedule-sheet__body">
               {addStep === 'type' && (
                 <>
-                  <p className="schedule-sheet__label">Training type</p>
+                  <p className="schedule-sheet__label">{t('schedule.trainingType')}</p>
                   <div className="schedule-type-grid">
                     {availableTypes.map((type) => {
                       const colors = TRAINING_TYPE_COLORS[type];
@@ -501,8 +504,8 @@ export function SchedulePage() {
                           }}
                           onClick={() => selectTrainingType(type)}
                         >
-                          <span className="schedule-type-pick__label">{TRAINING_TYPE_LABELS[type]}</span>
-                          <span className="schedule-type-pick__count">{count} lessons</span>
+                          <span className="schedule-type-pick__label">{trainingLabel(type, t)}</span>
+                          <span className="schedule-type-pick__count">{t('schedule.lessonsCount', { count })}</span>
                         </button>
                       );
                     })}
@@ -512,7 +515,7 @@ export function SchedulePage() {
 
               {addStep === 'lesson' && addTrainingType && (
                 <>
-                  <p className="schedule-sheet__label">Lesson plan</p>
+                  <p className="schedule-sheet__label">{t('schedule.lessonPlan')}</p>
                   <div className="schedule-sheet__lessons">
                     {lessonsForType.map((lesson) => (
                       <button
@@ -527,7 +530,7 @@ export function SchedulePage() {
                       >
                         <span className="schedule-pick__title">{lesson.title}</span>
                         <span className="schedule-pick__meta">
-                          {EQUIPMENT_LABELS[lesson.equipment]} · {lesson.duration} min
+                          {equipmentLabel(lesson.equipment, t)} · {lesson.duration} {t('common.min')}
                         </span>
                       </button>
                     ))}
@@ -535,7 +538,7 @@ export function SchedulePage() {
 
                   {sheetMode === 'add' && (
                     <>
-                      <p className="schedule-sheet__label">Time</p>
+                      <p className="schedule-sheet__label">{t('schedule.time')}</p>
                       <div className="schedule-sheet__times">
                         {TIME_SLOTS.map((t) => (
                           <button
@@ -563,8 +566,8 @@ export function SchedulePage() {
                   onClick={confirmAdd}
                 >
                   {sheetMode === 'attach'
-                    ? 'Attach plan to slot'
-                    : `Add to schedule · ${addTime}`}
+                    ? t('schedule.attachToSlot')
+                    : t('schedule.addAtTime', { time: addTime })}
                 </button>
               </div>
             )}
@@ -585,7 +588,7 @@ export function SchedulePage() {
             <h2 className="schedule-sheet__title">{selectedEvent.title}</h2>
             <p className="schedule-sheet__sub">
               <Clock size={14} />
-              {getEventTime(selectedEvent)} · {selectedEvent.duration} min
+              {getEventTime(selectedEvent)} · {selectedEvent.duration} {t('common.min')}
             </p>
             <div className="schedule-sheet__details">
               {shouldShowEventType(selectedEvent) && (
@@ -594,7 +597,7 @@ export function SchedulePage() {
                     className="schedule-sheet__category"
                     style={{ backgroundColor: getEventColors(selectedEvent).bg }}
                   >
-                    {EVENT_CATEGORY_LABELS[getEventCategory(selectedEvent)]}
+                    {eventCategoryLabel(getEventCategory(selectedEvent), t)}
                   </span>
                 </div>
               )}
@@ -607,7 +610,7 @@ export function SchedulePage() {
               {selectedEvent.enrolled != null && selectedEvent.capacity != null && (
                 <div className="schedule-sheet__row">
                   <Users size={16} />
-                  <span>{selectedEvent.enrolled} enrolled of {selectedEvent.capacity}</span>
+                  <span>{t('schedule.enrolledOf', { enrolled: selectedEvent.enrolled, capacity: selectedEvent.capacity })}</span>
                 </div>
               )}
               <div className="schedule-sheet__row">
@@ -622,15 +625,17 @@ export function SchedulePage() {
               ) : canAttachPlanToEvent(selectedEvent, arboxConnection) ? (
                 <div className="schedule-sheet__row schedule-sheet__row--plan schedule-sheet__row--plan-missing">
                   <BookOpen size={16} />
-                  <span>No lesson plan attached</span>
+                  <span>{t('schedule.noPlanAttached')}</span>
                 </div>
               ) : null}
               {selectedEvent.feedbackSentAt && (
                 <div className="schedule-sheet__row">
                   <MessageSquare size={16} />
                   <span>
-                    Survey sent {new Date(selectedEvent.feedbackSentAt).toLocaleString('en-US', {
-                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                    {t('schedule.surveySentAt', {
+                      when: new Date(selectedEvent.feedbackSentAt).toLocaleString(dateLocale, {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                      }),
                     })}
                   </span>
                 </div>
@@ -639,18 +644,18 @@ export function SchedulePage() {
                 selectedEvent.source === 'arbox' &&
                 !canAttachPlanToEvent(selectedEvent, arboxConnection) && (
                 <p className="schedule-sheet__readonly">
-                  View only — you can attach plans only to your own slots
+                  {t('schedule.viewOnlyHint')}
                 </p>
               )}
             </div>
 
             <div className="schedule-attendees">
-              <p className="schedule-sheet__label">Participants</p>
+              <p className="schedule-sheet__label">{t('schedule.participants')}</p>
 
               {selectedEvent.source === 'arbox' ? (
                 <>
                   <p className="schedule-attendees__hint">
-                    Enrolled clients from Arbox for this class.
+                    {t('schedule.arboxEnrolledHint')}
                   </p>
                   {(selectedEvent.attendees ?? []).length > 0 ? (
                     <ul className="schedule-attendees__roster">
@@ -664,21 +669,21 @@ export function SchedulePage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="schedule-attendees__empty">No enrolled clients for this slot</p>
+                    <p className="schedule-attendees__empty">{t('schedule.noEnrolled')}</p>
                   )}
                   {selectedEvent.feedbackSentAt && (
-                    <p className="schedule-attendees__selected">Feedback survey already sent</p>
+                    <p className="schedule-attendees__selected">{t('schedule.feedbackAlready')}</p>
                   )}
                 </>
               ) : (
                 <>
                   <p className="schedule-attendees__hint">
-                    Select who attended this class.
+                    {t('schedule.selectAttended')}
                   </p>
 
                   {rosterClients.length === 0 ? (
                     <div className="schedule-attendees__empty-block">
-                      <p className="schedule-attendees__empty">No clients yet</p>
+                      <p className="schedule-attendees__empty">{t('schedule.noClientsYet')}</p>
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
@@ -687,7 +692,7 @@ export function SchedulePage() {
                           navigate('/survey');
                         }}
                       >
-                        <Plus size={14} /> Add clients in Clients
+                        <Plus size={14} /> {t('schedule.addInClients')}
                       </button>
                     </div>
                   ) : (
@@ -717,7 +722,7 @@ export function SchedulePage() {
 
                   {(selectedEvent.attendees ?? []).length > 0 && (
                     <p className="schedule-attendees__selected">
-                      {(selectedEvent.attendees ?? []).length} selected for this class
+                      {t('schedule.selectedCount', { count: (selectedEvent.attendees ?? []).length })}
                     </p>
                   )}
 
@@ -731,7 +736,7 @@ export function SchedulePage() {
                       navigate(`${url.pathname}${url.search}`);
                     }}
                   >
-                    <MessageSquare size={14} /> Preview feedback form
+                    <MessageSquare size={14} /> {t('schedule.previewForm')}
                   </button>
                 </>
               )}
@@ -745,7 +750,7 @@ export function SchedulePage() {
                 onClick={() => openAttachSheet(selectedEvent)}
               >
                 <BookOpen size={16} />
-                {selectedEvent.lessonPlanId ? 'Change lesson plan' : 'Attach lesson plan'}
+                {selectedEvent.lessonPlanId ? t('schedule.changePlan') : t('schedule.attachPlan')}
               </button>
             )}
 
@@ -762,7 +767,7 @@ export function SchedulePage() {
                   });
                 }}
               >
-                <Unlink size={16} /> Remove plan
+                <Unlink size={16} /> {t('schedule.removePlan')}
               </button>
             )}
 
@@ -772,7 +777,7 @@ export function SchedulePage() {
                 className="schedule-sheet__delete"
                 onClick={() => { removeScheduleEvent(selectedEvent.id); setSelectedEvent(null); }}
               >
-                Remove from schedule
+                {t('schedule.removeFromSchedule')}
               </button>
             )}
           </div>

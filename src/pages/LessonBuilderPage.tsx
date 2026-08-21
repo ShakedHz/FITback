@@ -5,14 +5,14 @@ import { useApp, type LessonDraftSection } from '@/context/AppContext';
 import { ExerciseVideo } from '@/components/ExerciseVideo';
 import { LessonVideoUpload } from '@/components/LessonCoverUpload';
 import {
-  TRAINING_TYPE_LABELS,
   TRAINING_TYPE_COLORS,
   type TrainingType,
 } from '@/data/trainingTypes';
 import { getLessonTemplate } from '@/data/lessonTemplates';
-import { EQUIPMENT_LABELS, inferEquipment } from '@/data/equipmentTypes';
+import { inferEquipment } from '@/data/equipmentTypes';
 import { durationsFromExercises } from '@/utils/lessonDuration';
 import { exercisesPath } from '@/utils/exerciseNav';
+import { equipmentLabel, trainingLabel, useI18n } from '@/i18n';
 
 function createSectionId() {
   return `sec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -75,6 +75,7 @@ export function LessonBuilderPage() {
     loadLessonDraft,
     resetLessonDraft,
   } = useApp();
+  const { t } = useI18n();
 
   const specialties = instructor.specialties;
   const allowedTypes = useMemo(
@@ -125,9 +126,9 @@ export function LessonBuilderPage() {
     // Never auto-fill exercises for a blank build
     if (isBlankPlan) {
       return [
-        { id: 's1', title: 'Warm-up', duration: 10, exerciseIds: [] as string[] },
-        { id: 's2', title: 'Main section', duration: 25, exerciseIds: [] as string[] },
-        { id: 's3', title: 'Cool-down', duration: 10, exerciseIds: [] as string[] },
+        { id: 's1', title: t('builder.warmup'), duration: 10, exerciseIds: [] as string[] },
+        { id: 's2', title: t('builder.main'), duration: 25, exerciseIds: [] as string[] },
+        { id: 's3', title: t('builder.cooldown'), duration: 10, exerciseIds: [] as string[] },
       ];
     }
     return getLessonTemplate(lessonDraft.trainingType).map((s) => ({
@@ -274,7 +275,7 @@ export function LessonBuilderPage() {
   const addSection = useCallback(() => {
     applySections([
       ...sections,
-      { id: createSectionId(), title: 'New section', duration: 0, exerciseIds: [] },
+      { id: createSectionId(), title: t('builder.newSection'), duration: 0, exerciseIds: [] },
     ]);
   }, [sections, applySections]);
 
@@ -379,9 +380,9 @@ export function LessonBuilderPage() {
         albumImages: [],
         exerciseIds: [],
         sections: [
-          { id: 's1', title: 'Warm-up', duration: 0, exerciseIds: [] },
-          { id: 's2', title: 'Main section', duration: 0, exerciseIds: [] },
-          { id: 's3', title: 'Cool-down', duration: 0, exerciseIds: [] },
+          { id: 's1', title: t('builder.warmup'), duration: 0, exerciseIds: [] },
+          { id: 's2', title: t('builder.main'), duration: 0, exerciseIds: [] },
+          { id: 's3', title: t('builder.cooldown'), duration: 0, exerciseIds: [] },
         ],
         duration: 0,
       });
@@ -425,28 +426,26 @@ export function LessonBuilderPage() {
 
   return (
     <div className="page fade-in">
-      <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
+      <button className="back-btn" onClick={() => navigate(-1)}>{t('common.back')}</button>
       <h1 className="page-title">
         {lessonId
-          ? 'Edit lesson plan'
+          ? t('builder.edit')
           : fromAi
-            ? 'AI lesson plan'
-            : isBlankPlan
-              ? 'Build lesson'
-              : 'Build lesson'}
+            ? t('builder.ai')
+            : t('builder.build')}
       </h1>
       {fromAi ? (
         <p className="page-subtitle" style={{ marginTop: 4 }}>
-          Shaped from client ratings and improvement notes — edit anything before publishing
+          {t('builder.aiSubtitle')}
         </p>
       ) : isBlankPlan && !lessonId ? (
         <p className="page-subtitle" style={{ marginTop: 4 }}>
-          Empty plan — add exercises to each section from the library
+          {t('builder.blankSubtitle')}
         </p>
       ) : null}
 
       <div className="card" style={{ marginTop: 16 }}>
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 8 }}>Training type</label>
+        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 8 }}>{t('builder.trainingType')}</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {allowedTypes.map((type) => {
             const colors = TRAINING_TYPE_COLORS[type];
@@ -468,28 +467,28 @@ export function LessonBuilderPage() {
                   cursor: 'pointer',
                 }}
               >
-                {TRAINING_TYPE_LABELS[type]}
+                {trainingLabel(type, t)}
               </button>
             );
           })}
         </div>
         <p style={{ fontSize: 12, color: '#64748b', marginBottom: 14 }}>
-          Equipment: {EQUIPMENT_LABELS[equipment]}
-          {isBlankPlan ? ' · Add exercises yourself' : ` · Template for ${TRAINING_TYPE_LABELS[lessonDraft.trainingType]}`}
+          {t('builder.equipment', { equipment: equipmentLabel(equipment, t) })}
+          {isBlankPlan ? t('builder.addYourself') : t('builder.templateFor', { type: trainingLabel(lessonDraft.trainingType, t) })}
         </p>
 
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 6 }}>Lesson name</label>
+        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 6 }}>{t('builder.lessonName')}</label>
         <input
           className="input"
           value={lessonDraft.title}
           onChange={(e) => setLessonDraft({ title: e.target.value })}
         />
         <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
-          Description <span style={{ color: '#64748b', fontWeight: 400 }}>(optional)</span>
+          {t('builder.description')} <span style={{ color: '#64748b', fontWeight: 400 }}>({t('common.optional')})</span>
         </label>
         <textarea
           className="input"
-          placeholder="What is this class about?"
+          placeholder={t('builder.aboutPlaceholder')}
           value={lessonDraft.description}
           onChange={(e) => setLessonDraft({ description: e.target.value })}
           rows={3}
@@ -507,9 +506,9 @@ export function LessonBuilderPage() {
         alt={lessonDraft.title}
       />
 
-      <p className="section-title" style={{ marginTop: 20 }}>Lesson plan</p>
+      <p className="section-title" style={{ marginTop: 20 }}>{t('builder.plan')}</p>
       <p className={`lesson-section-reorder-hint${reorder ? '' : ' lesson-section-reorder-hint--idle'}`}>
-        {reorder ? 'Release to place the section' : 'Drag ⋮⋮ on the left to reorder'}
+        {reorder ? t('builder.releaseSection') : t('builder.dragReorder')}
       </p>
       <div
         ref={sectionListRef}
@@ -533,7 +532,7 @@ export function LessonBuilderPage() {
                   className="lesson-section-grip"
                   role="button"
                   tabIndex={0}
-                  aria-label="Drag to reorder"
+                  aria-label={t('builder.dragAria')}
                   onPointerDown={(e) => {
                     if (e.button !== 0 || reorder) return;
                     e.preventDefault();
@@ -564,13 +563,13 @@ export function LessonBuilderPage() {
                   <button
                     type="button"
                     className="lesson-section-pencil"
-                    aria-label="Edit section name"
+                    aria-label={t('builder.editSection')}
                     onClick={() => setEditingSectionId(section.id)}
                   >
                     <Pencil size={14} />
                   </button>
                   {section.duration > 0 && (
-                    <span className="lesson-section-duration">{section.duration} min</span>
+                    <span className="lesson-section-duration">{section.duration} {t('common.min')}</span>
                   )}
                 </div>
               )}
@@ -582,15 +581,13 @@ export function LessonBuilderPage() {
                 className="btn btn-ghost btn-sm lesson-section-action-btn lesson-section-duplicate-btn"
                 aria-label={
                   section.exerciseIds.length > 0
-                    ? `Duplicate section with ${section.exerciseIds.length} exercises`
-                    : 'Duplicate empty section'
+                    ? t('builder.duplicateWith', { count: section.exerciseIds.length })
+                    : t('builder.duplicateEmpty')
                 }
                 title={
                   section.exerciseIds.length > 0
-                    ? `Duplicate · ${section.exerciseIds.length} exercise${
-                        section.exerciseIds.length === 1 ? '' : 's'
-                      }`
-                    : 'Duplicate section'
+                    ? t('builder.duplicateTitle', { count: section.exerciseIds.length })
+                    : t('builder.duplicateSection')
                 }
                 onClick={() => duplicateSection(section.id)}
               >
@@ -602,9 +599,9 @@ export function LessonBuilderPage() {
               <button
                 type="button"
                 className="btn btn-ghost btn-sm lesson-section-action-btn lesson-section-remove"
-                aria-label="Remove section"
+                aria-label={t('builder.removeSection')}
                 disabled={timedPlan.sections.length <= 1}
-                title={timedPlan.sections.length <= 1 ? 'At least one section is required' : 'Remove section'}
+                title={timedPlan.sections.length <= 1 ? t('builder.oneRequired') : t('builder.removeSection')}
                 onClick={() => deleteSection(section.id)}
               >
                 <Minus size={18} strokeWidth={2.5} aria-hidden />
@@ -613,7 +610,7 @@ export function LessonBuilderPage() {
           </div>
           {section.exerciseIds.length === 0 ? (
             <p style={{ fontSize: 13, color: '#64748b', padding: '8px 0 4px' }}>
-              No exercises yet
+              {t('builder.noExercises')}
             </p>
           ) : (
             section.exerciseIds.map((eid) => {
@@ -632,7 +629,7 @@ export function LessonBuilderPage() {
                 >
                   <ExerciseVideo exercise={ex} size="row" />
                   <span style={{ flex: 1, fontSize: 14 }}>{ex.nameHe}</span>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>{ex.duration} min</span>
+                  <span style={{ fontSize: 12, color: '#64748b' }}>{ex.duration} {t('common.min')}</span>
                 </div>
               );
             })
@@ -643,7 +640,7 @@ export function LessonBuilderPage() {
             style={{ marginTop: 10, width: '100%' }}
             onClick={() => openExerciseLibrary(section.id)}
           >
-            <Plus size={16} /> Add exercise
+            <Plus size={16} /> {t('builder.addExercise')}
           </button>
         </div>
           </Fragment>
@@ -657,7 +654,7 @@ export function LessonBuilderPage() {
         style={{ marginTop: 12, width: '100%' }}
         onClick={addSection}
       >
-        <Plus size={16} /> Add section
+        <Plus size={16} /> {t('builder.addSection')}
       </button>
 
       <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
@@ -666,10 +663,10 @@ export function LessonBuilderPage() {
           className="btn btn-secondary"
           onClick={() => openExerciseLibrary(timedPlan.sections[0]?.id ?? 's1')}
         >
-          Exercise library
+          {t('builder.library')}
         </button>
         <button type="button" className="btn btn-primary" onClick={() => navigate('/preview')}>
-          Preview
+          {t('builder.preview')}
         </button>
       </div>
     </div>

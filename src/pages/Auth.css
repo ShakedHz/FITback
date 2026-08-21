@@ -65,7 +65,8 @@
   .keyboard-open .auth-page__header,
   .keyboard-open .auth-social,
   .keyboard-open .auth-divider,
-  .keyboard-open .auth-client-link {
+  .keyboard-open .auth-client-link,
+  .keyboard-open .auth-lang {
     display: none;
   }
 

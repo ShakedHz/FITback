@@ -4,6 +4,7 @@ import { Upload, Check, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { ExerciseVideo } from '@/components/ExerciseVideo';
 import { exercisesPath } from '@/utils/exerciseNav';
+import { categoryLabel, useI18n } from '@/i18n';
 
 const CATEGORIES = ['Warm-up', 'Core', 'Back', 'Stretching', 'Cool-down', 'Other'];
 
@@ -11,6 +12,7 @@ export function AddExercisePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addCustomExercise } = useApp();
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [nameHe, setNameHe] = useState('');
@@ -28,7 +30,7 @@ export function AddExercisePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('video/')) {
-      setError('Please upload a video file only');
+      setError(t('errors.videoFile'));
       return;
     }
     if (videoUrl.startsWith('blob:')) URL.revokeObjectURL(videoUrl);
@@ -48,7 +50,7 @@ export function AddExercisePage() {
 
   const handleSubmit = () => {
     if (!nameHe.trim()) {
-      setError('Please enter an exercise name');
+      setError(t('errors.exerciseName'));
       return;
     }
     setError(null);
@@ -66,7 +68,7 @@ export function AddExercisePage() {
   const previewExercise = videoUrl
     ? {
         id: 'preview',
-        nameHe: nameHe || 'New exercise',
+        nameHe: nameHe || t('exercises.previewName'),
         name: name || 'New Exercise',
         duration,
         category,
@@ -77,9 +79,9 @@ export function AddExercisePage() {
 
   return (
     <div className="page fade-in">
-      <button className="back-btn" onClick={() => navigate(libraryPath)}>← Back</button>
-      <h1 className="page-title">New Exercise</h1>
-      <p className="page-subtitle">Add an exercise to your library</p>
+      <button className="back-btn" onClick={() => navigate(libraryPath)}>{t('common.back')}</button>
+      <h1 className="page-title">{t('exercises.addPageTitle')}</h1>
+      <p className="page-subtitle">{t('exercises.addSubtitle')}</p>
 
       {error && (
         <p
@@ -101,11 +103,11 @@ export function AddExercisePage() {
 
       <div className="card" style={{ marginTop: 8 }}>
         <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 6 }}>
-          Exercise name *
+          {t('exercises.nameRequired')}
         </label>
         <input
           className="input"
-          placeholder="e.g. Side Plank"
+          placeholder={t('exercises.namePlaceholder')}
           value={nameHe}
           onChange={(e) => {
             setNameHe(e.target.value);
@@ -115,7 +117,7 @@ export function AddExercisePage() {
         />
 
         <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
-          English name (optional)
+          {t('exercises.englishOptional')}
         </label>
         <input
           className="input"
@@ -125,7 +127,7 @@ export function AddExercisePage() {
         />
 
         <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
-          Category
+          {t('exercises.category')}
         </label>
         <div className="chip-row">
           {CATEGORIES.map((cat) => (
@@ -135,13 +137,13 @@ export function AddExercisePage() {
               className={`chip ${category === cat ? 'selected' : ''}`}
               onClick={() => setCategory(cat)}
             >
-              {cat}
+              {categoryLabel(cat, t)}
             </button>
           ))}
         </div>
 
         <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
-          Duration (minutes)
+          {t('exercises.duration')}
         </label>
         <input
           className="input"
@@ -155,7 +157,7 @@ export function AddExercisePage() {
 
       <div className="card" style={{ marginTop: 12 }}>
         <p className="section-title">
-          Video <span style={{ color: '#64748b', fontWeight: 400 }}>(optional)</span>
+          {t('exercises.video')} <span style={{ color: '#64748b', fontWeight: 400 }}>({t('common.optional')})</span>
         </p>
         <div
           className={`add-exercise-upload ${videoUrl ? 'has-file' : ''}`}
@@ -172,16 +174,16 @@ export function AddExercisePage() {
           />
           {videoUrl ? (
             <>
-              <p style={{ fontWeight: 600, color: '#a78bfa' }}>Video uploaded</p>
+              <p style={{ fontWeight: 600, color: '#a78bfa' }}>{t('exercises.uploaded')}</p>
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{videoFileName}</p>
-              <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>Tap to replace</p>
+              <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>{t('exercises.tapReplace')}</p>
             </>
           ) : (
             <>
               <Upload size={28} color="#8b5cf6" style={{ marginBottom: 8 }} />
-              <p style={{ fontWeight: 600 }}>Add video</p>
+              <p style={{ fontWeight: 600 }}>{t('exercises.addVideo')}</p>
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                Optional · MP4, MOV
+                {t('exercises.videoHint')}
               </p>
             </>
           )}
@@ -193,7 +195,7 @@ export function AddExercisePage() {
             style={{ marginTop: 8, width: '100%' }}
             onClick={removeVideo}
           >
-            <X size={16} /> Remove video
+            <X size={16} /> {t('exercises.removeVideo')}
           </button>
         )}
       </div>
@@ -211,9 +213,9 @@ export function AddExercisePage() {
         disabled={saved}
       >
         {saved ? (
-          <><Check size={18} /> Saved successfully!</>
+          <><Check size={18} /> {t('exercises.saved')}</>
         ) : (
-          'Save exercise to library'
+          t('exercises.save')
         )}
       </button>
     </div>

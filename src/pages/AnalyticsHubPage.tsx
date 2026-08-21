@@ -11,24 +11,25 @@ import { LessonCover } from '@/components/LessonCover';
 import { WeeklyBarChart, TRAINING_TYPE_BAR_COLORS } from '@/components/AnalyticsCharts';
 import { MultiLineChart, type LineChartSeries } from '@/components/MultiLineChart';
 import {
-  TRAINING_TYPE_LABELS,
   TRAINING_TYPE_COLORS,
   type TrainingType,
 } from '@/data/trainingTypes';
+import { trainingLabel, useI18n } from '@/i18n';
 import '@/components/Analytics.css';
 
-function formatWhen(iso: string): string {
+function formatWhen(iso: string, t: (key: string, vars?: Record<string, string | number>) => string, dateLocale: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (days <= 0) return t('analytics.today');
+  if (days === 1) return t('analytics.yesterday');
+  if (days < 7) return t('analytics.daysAgo', { count: days });
+  return new Date(iso).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' });
 }
 
 export function AnalyticsHubPage() {
   const navigate = useNavigate();
   const { createdLessons, instructor, feedbackResponses } = useApp();
+  const { t, dateLocale } = useI18n();
 
   const overall = useMemo(
     () => resolveOverallAnalytics(instructor.specialties[0] ?? 'pilates', feedbackResponses),
@@ -75,8 +76,8 @@ export function AnalyticsHubPage() {
 
     feedbackResponses.forEach((r) => {
       const lesson = resolveLesson(r);
-      const lessonId = lesson?.id ?? `title:${r.title?.trim() || 'Class'}`;
-      const title = lesson?.title ?? r.title?.trim() ?? 'Class';
+      const lessonId = lesson?.id ?? `title:${r.title?.trim() || t('common.class')}`;
+      const title = lesson?.title ?? r.title?.trim() ?? t('common.class');
       const type = lesson?.trainingType ?? instructor.specialties[0] ?? 'pilates';
       const bucket = ratingsByLesson.get(lessonId) ?? { title, type, ratings: [] };
       bucket.ratings.push(r.rating);
@@ -104,7 +105,7 @@ export function AnalyticsHubPage() {
 
     const lessonTypeSeries: LineChartSeries[] = types.map((type) => ({
       id: type,
-      label: TRAINING_TYPE_LABELS[type],
+      label: trainingLabel(type, t),
       color: TRAINING_TYPE_BAR_COLORS[type],
       points: lessons
         .filter((l) => l.type === type)
@@ -116,20 +117,19 @@ export function AnalyticsHubPage() {
     }));
 
     return { lessonTypeSeries, lessonCategoryOrder: categoryOrder };
-  }, [feedbackResponses, createdLessons, instructor.specialties]);
+  }, [feedbackResponses, createdLessons, instructor.specialties, t]);
 
   return (
     <div className="page fade-in analytics-hub">
       <div className="page-header">
-        <h1 className="page-title">Ratings</h1>
-        <p className="page-subtitle">From client feedback after class</p>
+        <h1 className="page-title">{t('analytics.title')}</h1>
+        <p className="page-subtitle">{t('analytics.subtitle')}</p>
       </div>
 
       {!hasResults ? (
         <div className="card" style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
           <p style={{ margin: 0, lineHeight: 1.45 }}>
-            No feedback yet. After a class, clients rate 1–5 stars and can leave a note.
-            Open a class in Schedule → <strong>Open feedback form</strong> to try it.
+            {t('analytics.empty')}
           </p>
         </div>
       ) : (
@@ -141,16 +141,16 @@ export function AnalyticsHubPage() {
                 <div>
                   <p className="ratings-responses-dash__value">{overall.responseCount}</p>
                   <p className="ratings-responses-dash__label">
-                    {overall.responseCount === 1 ? 'person responded' : 'people responded'}
+                    {overall.responseCount === 1 ? t('analytics.personResponded') : t('analytics.peopleResponded')}
                   </p>
                 </div>
               </div>
               <div className="ratings-responses-dash__side">
                 <span>
-                  <Star size={14} color="#fbbf24" fill="#fbbf24" /> {overall.avgRating} avg
+                  <Star size={14} color="#fbbf24" fill="#fbbf24" /> {t('analytics.avg', { rating: overall.avgRating })}
                 </span>
                 <span>
-                  <MessageSquareText size={14} color="#34d399" /> {notes.length} notes
+                  <MessageSquareText size={14} color="#34d399" /> {t('analytics.notesCount', { count: notes.length })}
                 </span>
               </div>
             </div>
@@ -161,7 +161,7 @@ export function AnalyticsHubPage() {
             <section className="card ratings-responses-dash">
               <div className="ratings-section-head" style={{ marginBottom: 12 }}>
                 <Star size={18} color="#fbbf24" fill="#fbbf24" />
-                <h2>Average by lesson</h2>
+                <h2>{t('analytics.averageByLesson')}</h2>
               </div>
               <MultiLineChart
                 series={lessonTypeSeries}
@@ -175,26 +175,26 @@ export function AnalyticsHubPage() {
           <section className="card ratings-ai-card">
             <div className="ratings-section-head">
               <Bot size={18} color="#a78bfa" />
-              <h2>AI summary</h2>
+              <h2>{t('analytics.aiSummary')}</h2>
             </div>
             <p className="ratings-ai-card__summary">{overall.aiSummary}</p>
           </section>
 
-          <p className="section-title">Client feedback</p>
+          <p className="section-title">{t('analytics.clientFeedback')}</p>
           <div className="card ratings-feedback-list">
             {feedbackResponses.map((r) => (
               <div key={r.id} className="ratings-feedback-item">
                 <div className="ratings-feedback-item__top">
                   <span className="ratings-feedback-item__stars">{r.rating}/5</span>
                   <span className="ratings-feedback-item__meta">
-                    {r.title || 'Class'} · {formatWhen(r.createdAt)}
+                    {r.title || t('common.class')} · {formatWhen(r.createdAt, t, dateLocale)}
                   </span>
                 </div>
                 {r.improve?.trim() ? (
                   <p className="ratings-feedback-item__note">{r.improve.trim()}</p>
                 ) : (
                   <p className="ratings-feedback-item__note ratings-feedback-item__note--empty">
-                    No written note
+                    {t('analytics.noNote')}
                   </p>
                 )}
               </div>
@@ -203,7 +203,7 @@ export function AnalyticsHubPage() {
 
           {lessonsWithFeedback.length > 0 && (
             <>
-              <p className="section-title">By lesson</p>
+              <p className="section-title">{t('analytics.byLesson')}</p>
               {lessonsWithFeedback.map(({ lesson, analytics }) => {
                 const colors = TRAINING_TYPE_COLORS[lesson.trainingType];
                 return (
@@ -215,14 +215,20 @@ export function AnalyticsHubPage() {
                   >
                     <div className="analytics-lesson-row">
                       <LessonCover lesson={lesson} alt={lesson.title} size="sm" />
-                      <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                      <div style={{ flex: 1, minWidth: 0, textAlign: 'start' }}>
                         <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>{lesson.title}</p>
                         <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>
-                          {analytics.avgRating} avg · {analytics.responseCount} rating
-                          {analytics.responseCount === 1 ? '' : 's'}
-                          {analytics.comments.length > 0
-                            ? ` · ${analytics.comments.length} note${analytics.comments.length === 1 ? '' : 's'}`
-                            : ''}
+                          {t('analytics.lessonMeta', {
+                            avg: analytics.avgRating,
+                            count: analytics.responseCount,
+                            s: analytics.responseCount === 1 ? '' : 's',
+                            notes: analytics.comments.length > 0
+                              ? t('analytics.notesPart', {
+                                  count: analytics.comments.length,
+                                  s: analytics.comments.length === 1 ? '' : 's',
+                                })
+                              : '',
+                          })}
                         </p>
                         <span
                           className="analytics-lesson-card__type"
@@ -234,10 +240,10 @@ export function AnalyticsHubPage() {
                             color: colors.text,
                           }}
                         >
-                          {TRAINING_TYPE_LABELS[lesson.trainingType]}
+                          {trainingLabel(lesson.trainingType, t)}
                         </span>
                       </div>
-                      <ChevronRight size={18} color="#a78bfa" />
+                      <ChevronRight className="rtl-flip" size={18} color="#a78bfa" />
                     </div>
                   </button>
                 );

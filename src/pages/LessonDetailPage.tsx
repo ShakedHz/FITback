@@ -4,22 +4,23 @@ import { useApp } from '@/context/AppContext';
 import { ExerciseVideo } from '@/components/ExerciseVideo';
 import { LessonCover } from '@/components/LessonCover';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
-import { TRAINING_TYPE_LABELS, TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
-import { EQUIPMENT_LABELS } from '@/data/equipmentTypes';
+import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
 import { lessonHasMedia } from '@/utils/lessonCover';
+import { equipmentLabel, levelLabel, trainingLabel, useI18n } from '@/i18n';
 
 export function LessonDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getLessonById, instructor, deleteCreatedLesson } = useApp();
+  const { t } = useI18n();
 
   const lesson = id ? getLessonById(id) : undefined;
-  if (!lesson) return <div className="page"><p>Lesson not found</p></div>;
+  if (!lesson) return <div className="page"><p>{t('detail.notFound')}</p></div>;
 
   const hasVideo = Boolean(lesson.coverVideo);
 
   const handleDelete = () => {
-    const ok = window.confirm(`Delete "${lesson.title}"? This cannot be undone.`);
+    const ok = window.confirm(t('detail.deleteConfirm', { title: lesson.title }));
     if (!ok) return;
     deleteCreatedLesson(lesson.id);
     navigate('/library');
@@ -27,7 +28,7 @@ export function LessonDetailPage() {
 
   return (
     <div className="page fade-in">
-      <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
+      <button className="back-btn" onClick={() => navigate(-1)}>{t('common.back')}</button>
 
       {lessonHasMedia(lesson) && (
         <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
@@ -47,7 +48,7 @@ export function LessonDetailPage() {
           name={instructor.name}
           size="sm"
         />
-        <p style={{ color: '#94a3b8' }}>By {instructor.name}</p>
+        <p style={{ color: '#94a3b8' }}>{t('detail.by', { name: instructor.name })}</p>
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -62,7 +63,7 @@ export function LessonDetailPage() {
             color: TRAINING_TYPE_COLORS[lesson.trainingType].text,
           }}
         >
-          {TRAINING_TYPE_LABELS[lesson.trainingType]}
+          {trainingLabel(lesson.trainingType, t)}
         </span>
         <span
           style={{
@@ -75,7 +76,7 @@ export function LessonDetailPage() {
             color: '#cbd5e1',
           }}
         >
-          {EQUIPMENT_LABELS[lesson.equipment]}
+          {equipmentLabel(lesson.equipment, t)}
         </span>
         {lesson.tags.map((tag) => (
           <span key={tag} className="tag">{tag}</span>
@@ -83,22 +84,22 @@ export function LessonDetailPage() {
       </div>
 
       <div style={{ display: 'flex', gap: 20, marginBottom: 20, fontSize: 14, color: '#94a3b8' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Star size={16} fill="#fbbf24" color="#fbbf24" /> {lesson.rating} ({lesson.reviews})</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={16} /> {lesson.duration} min</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><BarChart3 size={16} /> {lesson.level}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Star size={16} fill="#fbbf24" color="#fbbf24" /> {t('detail.reviews', { rating: lesson.rating, reviews: lesson.reviews })}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={16} /> {lesson.duration} {t('common.min')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><BarChart3 size={16} /> {levelLabel(lesson.level, t)}</span>
       </div>
 
       <div className="card">
-        <p className="section-title">Description</p>
+        <p className="section-title">{t('detail.description')}</p>
         <p style={{ fontSize: 14, lineHeight: 1.6, color: '#cbd5e1' }}>{lesson.description}</p>
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <p className="section-title">Lesson plan</p>
+        <p className="section-title">{t('detail.plan')}</p>
         {lesson.sections.map((section) => (
           <div key={section.id} style={{ marginBottom: 16 }}>
             <p style={{ fontWeight: 600, color: '#a78bfa', marginBottom: 8 }}>
-              {section.title} ({section.duration} min)
+              {section.title} ({section.duration} {t('common.min')})
             </p>
             {section.exercises.map((ex) => (
               <div
@@ -113,7 +114,7 @@ export function LessonDetailPage() {
               >
                 <ExerciseVideo exercise={ex} size="row" />
                 <span style={{ flex: 1 }}>{ex.nameHe}</span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>{ex.duration} min</span>
+                <span style={{ fontSize: 12, color: '#64748b' }}>{ex.duration} {t('common.min')}</span>
               </div>
             ))}
           </div>
@@ -126,7 +127,7 @@ export function LessonDetailPage() {
         style={{ marginTop: 12 }}
         onClick={() => navigate(`/builder?lessonId=${lesson.id}`)}
       >
-        Edit lesson plan
+        {t('detail.edit')}
       </button>
       <button
         type="button"
@@ -134,7 +135,7 @@ export function LessonDetailPage() {
         style={{ marginTop: 8 }}
         onClick={() => navigate(`/analytics/${lesson.id}`)}
       >
-        Client ratings
+        {t('detail.ratings')}
       </button>
       <button
         type="button"
@@ -142,7 +143,7 @@ export function LessonDetailPage() {
         style={{ marginTop: 8, color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.35)' }}
         onClick={handleDelete}
       >
-        <Trash2 size={16} /> Delete lesson
+        <Trash2 size={16} /> {t('detail.delete')}
       </button>
     </div>
   );
