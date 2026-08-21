@@ -11,3 +11,4 @@ This repo must use GitHub account **oris7003** only.
 - Never use account **oris77** (no `gh` as oris77, no `oris77/FITback`, no origin pointing at oris77).
 - If `gh` is on oris77, switch first: `gh auth switch --user oris7003`
 - Do not change git `user.name` / `user.email`.
+- Never add Cursor or any agent as a commit author, co-author, or GitHub contributor.

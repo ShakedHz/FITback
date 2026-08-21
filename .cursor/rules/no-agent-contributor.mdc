@@ -1,0 +1,14 @@
+---
+description: Never add Cursor or any agent as a GitHub contributor
+alwaysApply: true
+---
+
+# No agent contributor
+
+Never add Cursor, an agent, or any AI identity as a contributor on this repo.
+
+- Do not put `Co-authored-by: Cursor` (or `cursoragent`, or any agent email) in commit messages.
+- Do not set commit author or committer to Cursor.
+- Do not add Cursor as a GitHub collaborator.
+- Commits must be authored only by the human user.
+- If a commit already has an agent trailer, strip it before push.
