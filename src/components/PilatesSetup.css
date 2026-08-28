@@ -48,7 +48,7 @@
 .spring-picker__btn.is-set,
 .spring-picker__btn.is-open {
   border-color: rgba(139, 92, 246, 0.3);
-  background: rgba(26, 18, 40, 0.55);
+  background: var(--color-card);
 }
 
 .spring-picker__btn:hover,
@@ -71,7 +71,7 @@
   z-index: 12;
   padding: 8px;
   border-radius: 14px;
-  background: #241834;
+  background: var(--color-card-hover);
   border: 1px solid rgba(139, 92, 246, 0.35);
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
 }
@@ -91,12 +91,12 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(15, 10, 26, 0.55);
+  background: rgba(var(--color-bg-rgb), 0.55);
   cursor: pointer;
 }
 
 .spring-pop__peg.is-on {
-  background: color-mix(in srgb, var(--spring) 22%, rgba(15, 10, 26, 0.7));
+  background: color-mix(in srgb, var(--spring) 22%, rgba(var(--color-bg-rgb), 0.7));
 }
 
 .spring-pop__peg.is-blocked {
@@ -126,9 +126,9 @@
   height: 14px;
   padding: 0 3px;
   border-radius: 999px;
-  background: #1a1228;
+  background: var(--color-card);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #f8fafc;
+  color: var(--color-text);
   font-size: 9px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -143,14 +143,14 @@
   padding: 3px;
   border-radius: 12px;
   border: 1px solid rgba(139, 92, 246, 0.25);
-  background: rgba(26, 18, 40, 0.6);
+  background: var(--color-card-hover);
 }
 
 .pilates-segment__opt {
   border: none;
   border-radius: 9px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-family: inherit;
   font-size: 13px;
   font-weight: 650;
@@ -159,7 +159,7 @@
 
 .pilates-segment__opt.is-on {
   background: rgba(139, 92, 246, 0.28);
-  color: #f8fafc;
+  color: var(--color-text);
   box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25);
 }
 
@@ -183,8 +183,8 @@
   padding: 6px 2px;
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 12px;
-  background: rgba(26, 18, 40, 0.45);
-  color: #94a3b8;
+  background: var(--color-card-hover);
+  color: var(--color-text-muted);
   font-family: inherit;
   font-size: 10px;
   font-weight: 600;
@@ -194,7 +194,7 @@
 .pilates-prop.is-on {
   border-color: rgba(139, 92, 246, 0.45);
   background: rgba(139, 92, 246, 0.18);
-  color: #e9d5ff;
+  color: var(--color-primary-bright);
 }
 
 .pilates-props-glance {
@@ -213,7 +213,7 @@
   padding: 4px 8px;
   border-radius: 999px;
   background: rgba(139, 92, 246, 0.14);
-  color: #c4b5fd;
+  color: var(--color-primary-bright);
   font-size: 11px;
   font-weight: 650;
 }

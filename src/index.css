@@ -60,7 +60,7 @@
   --color-card-hover: #252030;
   --color-primary: #6d28d9;
   --color-primary-deep: #5b21b6;
-  --color-primary-bright: #c4b5fd;
+  --color-primary-bright: var(--color-primary-bright);
   --color-primary-rgb: 109, 40, 217;
   --color-on-primary: #ffffff;
   --color-accent: #d97706;
@@ -106,10 +106,8 @@ html, body, #root {
   height: 100dvh;
 }
 
-/* Keeps native controls (pickers, selects, checkboxes) on the app palette. */
 html {
-  color-scheme: dark;
-  accent-color: #8b5cf6;
+  accent-color: var(--color-ring);
 }
 
 ::selection {

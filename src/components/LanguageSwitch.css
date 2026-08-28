@@ -14,7 +14,7 @@
   background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: #e2e8f0;
+  color: var(--color-text-secondary);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -90,7 +90,7 @@
   border: none;
   border-radius: 12px;
   background: transparent;
-  color: #cbd5e1;
+  color: var(--color-text-secondary);
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -111,7 +111,7 @@
   display: grid;
   place-items: center;
   width: 18px;
-  color: #a78bfa;
+  color: var(--color-primary-bright);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -140,7 +140,7 @@
   margin-bottom: 12px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(15, 10, 26, 0.45);
+  background: rgba(var(--color-bg-rgb), 0.45);
   border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
@@ -148,5 +148,5 @@
   margin: 0;
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
