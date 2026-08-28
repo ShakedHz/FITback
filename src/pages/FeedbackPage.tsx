@@ -84,7 +84,7 @@ export function FeedbackPage() {
       >
         <CheckCircle2 size={48} color="#34d399" />
         <h2 style={{ marginTop: 8 }}>{t('feedback.thanks')}</h2>
-        <p style={{ color: '#94a3b8' }}>
+        <p style={{ color: 'var(--color-text-muted)' }}>
           {t('feedback.saved', {
             rating: savedRating,
             note: improve.trim() ? t('feedback.withNote') : '',
@@ -103,7 +103,7 @@ export function FeedbackPage() {
   return (
     <div className="page fade-in">
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <Star size={40} color="#a78bfa" strokeWidth={1.5} />
+        <Star size={40} color="var(--color-primary-bright)" strokeWidth={1.5} />
         <h1 className="page-title" style={{ marginTop: 12 }}>{t('feedback.title')}</h1>
         <p className="page-subtitle">
           {classEvent
@@ -136,9 +136,9 @@ export function FeedbackPage() {
                 width: 52,
                 height: 52,
                 borderRadius: 14,
-                border: rating === n ? '2px solid #fbbf24' : '1px solid rgba(148,163,184,0.25)',
-                background: rating === n ? 'rgba(251,191,36,0.18)' : 'rgba(15,10,26,0.5)',
-                color: rating === n ? '#fbbf24' : '#94a3b8',
+                border: rating === n ? '2px solid var(--color-accent)' : '1px solid rgba(148,163,184,0.25)',
+                background: rating === n ? 'rgba(224, 168, 106, 0.18)' : 'rgba(var(--color-bg-rgb),0.5)',
+                color: rating === n ? 'var(--color-accent)' : 'var(--color-text-muted)',
                 fontSize: 20,
                 fontWeight: 800,
                 fontFamily: 'inherit',
@@ -149,14 +149,14 @@ export function FeedbackPage() {
             </button>
           ))}
         </div>
-        <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 12 }}>
+        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 12 }}>
           {rating > 0 ? t('feedback.selected', { rating }) : t('feedback.tapNumber')}
         </p>
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 8 }}>
-          {t('feedback.improve')} <span style={{ color: '#64748b' }}>({t('common.optional')})</span>
+        <label style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'block', marginBottom: 8 }}>
+          {t('feedback.improve')} <span style={{ color: 'var(--color-text-subtle)' }}>({t('common.optional')})</span>
         </label>
         <textarea
           className="input"
@@ -169,7 +169,7 @@ export function FeedbackPage() {
       </div>
 
       {error && (
-        <p role="alert" style={{ color: '#fca5a5', fontSize: 13, marginTop: 12 }}>
+        <p role="alert" style={{ color: 'var(--color-danger)', fontSize: 13, marginTop: 12 }}>
           {error}
         </p>
       )}

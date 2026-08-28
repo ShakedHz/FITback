@@ -9,6 +9,7 @@ import {
 } from '@/services/classFeedback';
 import { dispatchClassFeedback } from '@/services/autoFeedbackDispatch';
 import { isMobileDevice, openSms } from '@/utils/sms';
+import { useI18n } from '@/i18n';
 import './AutoClassFeedbackSender.css';
 
 type Toast =
@@ -36,6 +37,7 @@ export function AutoClassFeedbackSender() {
     markEventFeedbackSent,
     isLoggedIn,
   } = useApp();
+  const { t } = useI18n();
   const [toast, setToast] = useState<Toast | null>(null);
   const processingRef = useRef<Set<string>>(new Set());
   const nativeQueueRef = useRef<NativeQueue | null>(null);
@@ -87,7 +89,7 @@ export function AutoClassFeedbackSender() {
 
   const startNativeSend = useCallback(
     (event: (typeof scheduleEvents)[0], phones: string[]) => {
-      const message = buildClassFeedbackMessage(event);
+      const message = buildClassFeedbackMessage(event, t);
       nativeQueueRef.current = {
         eventId: event.id,
         eventTitle: event.title,
@@ -102,7 +104,7 @@ export function AutoClassFeedbackSender() {
       openNativeSms(nativeQueueRef.current);
       nativeQueueRef.current.index = 1;
     },
-    [openNativeSms, showToast]
+    [openNativeSms, showToast, t]
   );
 
   const processQueue = useCallback(async () => {

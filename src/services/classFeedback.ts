@@ -1,5 +1,6 @@
 import type { ArboxConnection, ScheduleAttendee, ScheduleEvent } from '@/data/scheduleTypes';
 import { getEventEndTime, isOwnEvent } from '@/data/scheduleTypes';
+import type { TranslateFn } from '@/i18n/LocaleContext';
 import { isValidPhone } from '@/utils/sms';
 
 export interface FeedbackScope {
@@ -43,8 +44,42 @@ export function getAttendeesWithPhone(event: ScheduleEvent): ScheduleAttendee[] 
   return (event.attendees ?? []).filter((a) => a.phone && isValidPhone(a.phone));
 }
 
+export function isClassStarted(event: ScheduleEvent, now = new Date()): boolean {
+  return new Date(event.start).getTime() <= now.getTime();
+}
+
 export function isClassEnded(event: ScheduleEvent, now = new Date()): boolean {
   return getEventEndTime(event).getTime() <= now.getTime();
+}
+
+function isPrivateIPv4(hostname: string): boolean {
+  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(hostname);
+  if (!match) return false;
+  const a = Number(match[1]);
+  const b = Number(match[2]);
+  if (a === 10 || a === 127 || a === 0) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  return false;
+}
+
+/** Clients can open the survey only when FITback is served from a public host. */
+export function isPublicSurveyOrigin(origin?: string): boolean {
+  const value =
+    origin ?? (typeof window !== 'undefined' ? window.location.origin : '');
+  if (!value) return false;
+  try {
+    const { hostname } = new URL(value);
+    const host = hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') {
+      return false;
+    }
+    if (host.endsWith('.local') || host.endsWith('.localhost')) return false;
+    if (isPrivateIPv4(host)) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Class ended, has phones, survey not sent yet. */
@@ -76,13 +111,17 @@ export function buildClassSurveyUrl(event: ScheduleEvent): string {
   return `${origin}/feedback/${event.id}?${params.toString()}`;
 }
 
-export function buildClassFeedbackMessage(event: ScheduleEvent): string {
+export function buildClassFeedbackMessage(event: ScheduleEvent, t: TranslateFn): string {
   const surveyUrl = buildClassSurveyUrl(event);
   const instructor = event.instructor?.trim();
-  const thanks = instructor
-    ? `Hi! Thanks for joining "${event.title}" with ${instructor} today.`
-    : `Hi! Thanks for joining "${event.title}" today.`;
-  return `${thanks} We'd love your feedback — it only takes a minute: ${surveyUrl}`;
+  if (instructor) {
+    return t('schedule.whatsappMessageWithInstructor', {
+      title: event.title,
+      instructor,
+      url: surveyUrl,
+    });
+  }
+  return t('schedule.whatsappMessage', { title: event.title, url: surveyUrl });
 }
 
 export function hasLiveArboxMessaging(): boolean {

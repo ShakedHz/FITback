@@ -19,6 +19,96 @@ import { connectLiveArbox, fetchLiveArboxSchedule, hasArboxProxy } from '@/servi
 
 const STORAGE_KEY = 'movana_arbox_v1';
 
+let arboxOwnerId: string | null = null;
+let arboxClubScope: string | null = null;
+
+function userStorageKey(userId: string): string {
+  return `${STORAGE_KEY}:${userId}`;
+}
+
+function clubStorageKey(userId: string, clubId: string): string {
+  return `${STORAGE_KEY}:${userId}:${clubId}`;
+}
+
+function activeStorageKey(): string {
+  if (arboxOwnerId && arboxClubScope) return clubStorageKey(arboxOwnerId, arboxClubScope);
+  if (arboxOwnerId) return userStorageKey(arboxOwnerId);
+  return STORAGE_KEY;
+}
+
+function copyStorage(fromKey: string, toKey: string): boolean {
+  if (fromKey === toKey) return Boolean(localStorage.getItem(toKey));
+  if (localStorage.getItem(toKey)) return true;
+  const raw = localStorage.getItem(fromKey);
+  if (!raw) return false;
+  localStorage.setItem(toKey, raw);
+  return true;
+}
+
+function readStorageRaw(key: string): StoredArboxState | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as StoredArboxState;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Bind subsequent Arbox reads/writes to this FITback user (and optional studio).
+ * When `migrateLegacy` is true (Arbox login), copy the pre-bind pending blob
+ * into the user-scoped key so older installs keep their studio connection.
+ */
+export function setArboxStorageOwner(
+  userId: string | null,
+  options?: { migrateLegacy?: boolean; clubId?: string }
+): void {
+  arboxOwnerId = userId;
+  arboxClubScope = options?.clubId || null;
+  if (!userId) return;
+
+  if (arboxClubScope) {
+    const clubKey = clubStorageKey(userId, arboxClubScope);
+    const existing = readStorageRaw(clubKey);
+    if (!existing) {
+      const legacy = readStorageRaw(userStorageKey(userId));
+      if (legacy?.connection.clubId === arboxClubScope) {
+        copyStorage(userStorageKey(userId), clubKey);
+      }
+    }
+  }
+
+  if (!options?.migrateLegacy) return;
+  const dest = arboxClubScope
+    ? clubStorageKey(userId, arboxClubScope)
+    : userStorageKey(userId);
+  if (localStorage.getItem(dest)) return;
+  const pending = localStorage.getItem(STORAGE_KEY);
+  if (!pending) return;
+  localStorage.setItem(dest, pending);
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+export function bindPendingArboxToUser(userId: string, clubId?: string): void {
+  const pending = readStorageRaw(STORAGE_KEY);
+  const resolvedClubId = clubId || pending?.connection.clubId || undefined;
+  setArboxStorageOwner(userId, { migrateLegacy: true, clubId: resolvedClubId });
+}
+
+/** Move a temporary Arbox blob (e.g. `_adding`) onto the real club id. */
+export function moveArboxScope(userId: string, fromClub: string, toClub: string): void {
+  const from = clubStorageKey(userId, fromClub);
+  const to = clubStorageKey(userId, toClub);
+  const raw = localStorage.getItem(from);
+  if (raw) {
+    localStorage.setItem(to, raw);
+    localStorage.removeItem(from);
+  }
+  arboxOwnerId = userId;
+  arboxClubScope = toClub;
+}
+
 interface WeeklySurveyRecord {
   weekKey: string;
   sentAt: string;
@@ -147,17 +237,11 @@ function buildWeekEvents(
 }
 
 function loadState(): StoredArboxState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as StoredArboxState;
-  } catch {
-    return null;
-  }
+  return readStorageRaw(activeStorageKey());
 }
 
 function saveState(state: StoredArboxState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(activeStorageKey(), JSON.stringify(state));
 }
 
 function delay(ms: number) {
@@ -169,13 +253,13 @@ function delay(ms: number) {
  */
 async function tryLiveArboxConnect(
   apiKey: string,
-  role: StudioRole,
-  weekStart: Date
+  weekStart: Date,
+  linkedInstructorId?: string
 ): Promise<ConnectResult | null> {
   if (!hasArboxProxy()) return null;
 
   try {
-    const result = await connectLiveArbox(apiKey, role, weekStart);
+    const result = await connectLiveArbox(apiKey, weekStart, linkedInstructorId);
     return {
       connection: result.connection,
       events: result.events,
@@ -233,6 +317,23 @@ function resolveLinkedInstructorId(
   return undefined;
 }
 
+function applyStaffIdentity(
+  connection: ArboxConnection,
+  staffId?: string
+): ArboxConnection {
+  const id = staffId || connection.linkedInstructorId;
+  if (!id) return connection;
+  const member = connection.team.find((m) => m.id === id);
+  if (!member) return connection;
+  return {
+    ...connection,
+    linkedInstructorId: member.id,
+    staffId: member.id,
+    staffName: member.name,
+    role: member.role,
+  };
+}
+
 function withLinkedInstructor(
   connection: ArboxConnection,
   previous?: ArboxConnection | null
@@ -240,7 +341,8 @@ function withLinkedInstructor(
   const team = connection.team.length ? connection.team : previous?.team ?? [];
   const base = team.length ? { ...connection, team } : connection;
   const linkedInstructorId = resolveLinkedInstructorId(base, previous);
-  return linkedInstructorId ? { ...base, linkedInstructorId } : base;
+  if (!linkedInstructorId) return base;
+  return applyStaffIdentity({ ...base, linkedInstructorId }, linkedInstructorId);
 }
 
 export function refreshArboxConnection(
@@ -258,8 +360,9 @@ export function refreshArboxConnection(
 
 export async function connectArboxAccount(
   apiKey: string,
-  roleOverride?: StudioRole,
-  weekStartOverride?: Date
+  _roleOverride?: StudioRole,
+  weekStartOverride?: Date,
+  options?: { linkedInstructorId?: string }
 ): Promise<ConnectResult> {
   const key = apiKey.trim();
   if (!validateArboxApiKey(key)) {
@@ -270,7 +373,15 @@ export async function connectArboxAccount(
 
   const weekStart = weekStartOverride ?? getDefaultWeekStart();
   const prev = loadState();
-  const live = await tryLiveArboxConnect(key, roleOverride ?? inferRoleFromKey(key), weekStart);
+  const previousConnection: ArboxConnection | undefined = prev?.connection
+    ? {
+        ...prev.connection,
+        ...(options?.linkedInstructorId
+          ? { linkedInstructorId: options.linkedInstructorId }
+          : {}),
+      }
+    : undefined;
+  const live = await tryLiveArboxConnect(key, weekStart, options?.linkedInstructorId);
   if (live) {
     const state: StoredArboxState = {
       connection: refreshArboxConnection(
@@ -279,9 +390,12 @@ export async function connectArboxAccount(
           autoFeedbackEnabled: false,
           dataSource: 'live',
           scheduleDebug: live.debug,
+          ...(options?.linkedInstructorId
+            ? { linkedInstructorId: options.linkedInstructorId }
+            : {}),
         },
         live.events,
-        prev?.connection
+        previousConnection
       ),
       events: live.events,
       clients: live.clients,
@@ -308,24 +422,24 @@ export async function connectArboxAccount(
     throw new Error('Arbox proxy is not running. Start the app with npm run dev.');
   }
 
-  const role = roleOverride ?? inferRoleFromKey(key);
-  const staff = role === 'studio_manager'
-    ? MANAGER
-    : STUDIO_TEAM.find((s) => s.id === 'staff-maya')!;
-
-  const connection: ArboxConnection = {
-    connected: true,
-    apiKey: key,
-    lastSyncedAt: null,
-    clubName: "Maya's Studio",
-    clubId: 'club-maya-001',
-    role,
-    staffId: staff.id,
-    staffName: staff.name,
-    team: role === 'studio_manager' ? STUDIO_TEAM : STUDIO_TEAM.filter((s) => s.id === staff.id),
-    autoFeedbackEnabled: false,
-    dataSource: 'demo',
-  };
+  const demoTeam = [MANAGER, ...STUDIO_TEAM];
+  const connection: ArboxConnection = withLinkedInstructor(
+    {
+      connected: true,
+      apiKey: key,
+      lastSyncedAt: null,
+      clubName: "Maya's Studio",
+      clubId: 'club-maya-001',
+      role: 'instructor',
+      staffId: MANAGER.id,
+      staffName: MANAGER.name,
+      team: demoTeam,
+      autoFeedbackEnabled: false,
+      dataSource: 'demo',
+      ...(options?.linkedInstructorId ? { linkedInstructorId: options.linkedInstructorId } : {}),
+    },
+    previousConnection ?? null
+  );
 
   const events = buildWeekEvents(
     new Date(),
@@ -424,9 +538,10 @@ export function restoreArboxSession(): StoredArboxState | null {
 }
 
 export function disconnectArboxAccount() {
+  const key = activeStorageKey();
   const prev = loadState();
   if (!prev) {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(key);
     return;
   }
   saveState({
@@ -466,7 +581,10 @@ export function attachPlanToArboxEvent(
 export function setLinkedInstructor(instructorId: string): ArboxConnection | null {
   const prev = loadState();
   if (!prev) return null;
-  const connection = { ...prev.connection, linkedInstructorId: instructorId };
+  const connection = applyStaffIdentity(
+    { ...prev.connection, linkedInstructorId: instructorId },
+    instructorId
+  );
   saveState({ ...prev, connection });
   return connection;
 }

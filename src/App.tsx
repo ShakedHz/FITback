@@ -20,7 +20,12 @@ import { LessonAnalyticsPage } from '@/pages/LessonAnalyticsPage';
 import { SchedulePage } from '@/pages/SchedulePage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { StudioTeamPage } from '@/pages/StudioTeamPage';
+import { JoinStudioPage } from '@/pages/JoinStudioPage';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { PostClassFeedbackModal } from '@/components/PostClassFeedbackModal';
+import { ThemeProvider } from '@/theme';
 
 function Guard({ children }: { children: React.ReactNode }) {
   return <ProtectedRoute>{children}</ProtectedRoute>;
@@ -38,6 +43,7 @@ function AppLayout() {
           <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
           <Route path="/feedback/:id?" element={<FeedbackPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/join" element={<JoinStudioPage />} />
 
           <Route path="/dashboard" element={<Guard><DashboardPage /></Guard>} />
           <Route path="/schedule" element={<Guard><SchedulePage /></Guard>} />
@@ -51,11 +57,14 @@ function AppLayout() {
           <Route path="/exercises" element={<Guard><ExerciseLibraryPage /></Guard>} />
           <Route path="/exercises/new" element={<Guard><AddExercisePage /></Guard>} />
           <Route path="/profile" element={<Guard><ProfilePage /></Guard>} />
+          <Route path="/settings" element={<Guard><SettingsPage /></Guard>} />
+          <Route path="/studio" element={<Guard><StudioTeamPage /></Guard>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
       <BottomNav />
+      <PostClassFeedbackModal />
     </div>
   );
 }
@@ -63,13 +72,15 @@ function AppLayout() {
 export default function App() {
   return (
     <LocaleProvider>
-      <AuthProvider>
-        <AppProvider>
-          <BrowserRouter>
-            <AppLayout />
-          </BrowserRouter>
-        </AppProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppProvider>
+            <BrowserRouter>
+              <AppLayout />
+            </BrowserRouter>
+          </AppProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </LocaleProvider>
   );
 }

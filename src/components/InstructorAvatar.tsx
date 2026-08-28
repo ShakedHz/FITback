@@ -10,16 +10,16 @@ interface InstructorAvatarProps {
 const sizes = { sm: 36, md: 44, lg: 56, xl: 88 };
 
 const AVATAR_COLORS = [
-  '#8b5cf6',
-  '#ec4899',
-  '#06b6d4',
-  '#10b981',
-  '#f59e0b',
-  '#6366f1',
-  '#f43f5e',
-  '#14b8a6',
-  '#a855f7',
-  '#3b82f6',
+  '#7C3AED',
+  '#8B5CF6',
+  '#6D28D9',
+  '#A78BFA',
+  '#5B21B6',
+  '#C4B5FD',
+  '#7C3AED',
+  '#9333EA',
+  '#4C1D95',
+  '#A855F7',
 ];
 
 /** Stable color from a name — same person always gets the same color. */

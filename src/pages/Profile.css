@@ -18,7 +18,7 @@
 }
 
 .profile-avatar__btn:focus-visible {
-  outline: 2px solid #a78bfa;
+  outline: 2px solid var(--color-primary-bright);
   outline-offset: 3px;
 }
 
@@ -29,17 +29,17 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 2px solid #1a0f2e;
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-  color: #fff;
+  border: 2px solid var(--color-card);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   display: grid;
   place-items: center;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.45);
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.45);
 }
 
 .profile-avatar__error {
   margin: 8px 0 0;
-  color: #fca5a5;
+  color: var(--color-danger);
   font-size: 13px;
 }

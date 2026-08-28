@@ -1,6 +1,6 @@
 export type { Locale } from './locale';
 export { applyDocumentLocale, readStoredLocale } from './locale';
-export { LocaleProvider, useI18n } from './LocaleContext';
+export { LocaleProvider, useI18n, type TranslateFn } from './LocaleContext';
 export { translateError } from './errors';
 export {
   categoryLabel,

@@ -16,7 +16,7 @@
   border-radius: 20px;
   display: grid;
   place-items: center;
-  background: rgba(139, 92, 246, 0.18);
+  background: rgba(var(--color-primary-rgb), 0.18);
   border: 1px solid rgba(167, 139, 250, 0.35);
 }
 
@@ -31,7 +31,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #a78bfa;
+  background: var(--color-primary-bright);
   animation: ai-dot 1.2s ease-in-out infinite;
 }
 
@@ -51,8 +51,8 @@
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
-  color: #ddd6fe;
-  background: rgba(139, 92, 246, 0.2);
+  color: var(--color-primary-bright);
+  background: rgba(var(--color-primary-rgb), 0.2);
   border: 1px solid rgba(167, 139, 250, 0.35);
   margin-bottom: 10px;
 }
@@ -70,10 +70,10 @@
   gap: 6px;
   padding: 7px 10px;
   border-radius: 12px;
-  background: rgba(26, 18, 40, 0.8);
-  border: 1px solid rgba(139, 92, 246, 0.16);
+  background: rgba(var(--color-card-rgb), 0.8);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.16);
   font-size: 12px;
-  color: #cbd5e1;
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
@@ -102,20 +102,20 @@
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--color-text);
 }
 
 .ai-lesson-hero__meta {
   margin: 6px 0 0;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .ai-lesson-rationale {
   margin-bottom: 16px;
   padding: 14px;
   border-color: rgba(167, 139, 250, 0.28);
-  background: linear-gradient(160deg, rgba(139, 92, 246, 0.14), rgba(26, 18, 40, 0.92));
+  background: linear-gradient(160deg, rgba(var(--color-primary-rgb), 0.14), rgba(var(--color-card-rgb), 0.92));
 }
 
 .ai-lesson-rationale__head {
@@ -129,14 +129,14 @@
   margin: 0;
   font-size: 14px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--color-text);
 }
 
 .ai-lesson-rationale p {
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: #e9d5ff;
+  color: var(--color-text);
 }
 
 .ai-lesson-themes {
@@ -159,7 +159,7 @@
 .ai-lesson-signals {
   margin: 0;
   padding-left: 18px;
-  color: #cbd5e1;
+  color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.55;
 }

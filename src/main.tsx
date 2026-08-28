@@ -2,10 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { applyDocumentLocale, readStoredLocale } from '@/i18n';
+import { applyDocumentTheme, readStoredTheme } from '@/theme/theme';
 import './index.css';
 import './iphone.css';
 
 applyDocumentLocale(readStoredLocale());
+applyDocumentTheme(readStoredTheme());
 
 function setAppHeight() {
   const layoutH = window.innerHeight;

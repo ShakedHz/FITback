@@ -12,8 +12,8 @@
 .post-feedback-modal {
   position: relative;
   width: min(100%, 360px);
-  background: #1a1228;
-  border: 1px solid rgba(139, 92, 246, 0.28);
+  background: var(--color-card);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.28);
   border-radius: 18px;
   padding: 22px 18px 16px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
@@ -23,10 +23,10 @@
 .post-feedback-modal__close {
   position: absolute;
   top: 10px;
-  right: 10px;
+  inset-inline-end: 10px;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   padding: 6px;
   cursor: pointer;
 }
@@ -38,38 +38,46 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: rgba(139, 92, 246, 0.16);
+  background: rgba(37, 211, 102, 0.16);
+  color: #128c7e;
 }
 
 .post-feedback-modal__title {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--color-text);
 }
 
 .post-feedback-modal__class {
   margin: 6px 0 0;
   font-size: 14px;
   font-weight: 600;
-  color: #c4b5fd;
+  color: var(--color-primary-bright);
 }
 
 .post-feedback-modal__text {
   margin: 10px 0 14px;
   font-size: 13px;
   line-height: 1.45;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .post-feedback-modal__text strong {
-  color: #e2e8f0;
+  color: var(--color-text);
 }
 
 .post-feedback-modal__progress {
   margin: -6px 0 12px;
   font-size: 12px;
-  color: #a78bfa;
+  color: var(--color-primary-bright);
+}
+
+.post-feedback-modal__warn {
+  margin: -4px 0 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
 }
 
 .post-feedback-modal .btn-primary {
@@ -79,5 +87,5 @@
 .post-feedback-modal__later {
   width: 100%;
   margin-top: 6px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }

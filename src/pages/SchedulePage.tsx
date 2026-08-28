@@ -16,11 +16,13 @@ import {
   CalendarPlus,
   MessageSquare,
   BookOpen,
+  Unlink,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { type SurveyClient } from '@/services/surveyClients';
 import { ClientPicker } from '@/components/ClientPicker';
+import { ClassFeedbackAttendees } from '@/components/ClassFeedbackAttendees';
 import { IconButton, IconToolbar } from '@/components/IconToolbar';
 import {
   addDays,
@@ -78,6 +80,7 @@ export function SchedulePage() {
     updateScheduleEvent,
     removeScheduleEvent,
     attachLessonPlan,
+    detachLessonPlan,
     schedulableLessons,
     setLinkedInstructor,
     rosterClients,
@@ -857,44 +860,11 @@ export function SchedulePage() {
               )}
             </div>
 
-            <div className="schedule-attendees">
-              <p className="schedule-sheet__label">{t('schedule.participants')}</p>
-
-              {selectedEvent.source === 'arbox' ? (
-                <>
-                  <p className="schedule-attendees__hint">
-                    {t('schedule.arboxEnrolledHint')}
-                  </p>
-                  {(selectedEvent.attendees ?? []).length > 0 ? (
-                    <ul className="schedule-attendees__roster">
-                      {(selectedEvent.attendees ?? []).map((attendee) => (
-                        <li key={attendee.id} className="schedule-attendees__roster-item">
-                          <span className="schedule-attendees__name">{attendee.name}</span>
-                          {attendee.phone && (
-                            <span className="schedule-attendees__phone">{attendee.phone}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="schedule-attendees__empty">{t('schedule.noEnrolled')}</p>
-                  )}
-                  {selectedEvent.feedbackSentAt && (
-                    <p className="schedule-attendees__selected">{t('schedule.feedbackAlready')}</p>
-                  )}
-                </>
-              ) : (selectedEvent.attendees ?? []).length > 0 ? (
-                <ul className="schedule-attendees__roster">
-                  {(selectedEvent.attendees ?? []).map((attendee) => (
-                    <li key={attendee.id} className="schedule-attendees__roster-item">
-                      <span className="schedule-attendees__name">{attendee.name}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="schedule-attendees__empty">{t('schedule.noneOnClass')}</p>
-              )}
-            </div>
+            <ClassFeedbackAttendees
+              key={selectedEvent.id}
+              event={selectedEvent}
+              onCloseSheet={() => setSelectedEvent(null)}
+            />
 
             {editingEvent && canAttachPlanToEvent(selectedEvent, arboxConnection) && (
               <button
@@ -905,6 +875,18 @@ export function SchedulePage() {
               >
                 <BookOpen size={16} />
                 {selectedEvent.lessonPlanId ? t('schedule.changePlan') : t('schedule.attachPlan')}
+              </button>
+            )}
+
+            {editingEvent && selectedEvent.lessonPlanId && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ marginTop: 8 }}
+                onClick={() => detachLessonPlan(selectedEvent.id)}
+              >
+                <Unlink size={16} />
+                {t('schedule.removePlan')}
               </button>
             )}
 

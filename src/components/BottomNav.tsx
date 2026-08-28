@@ -27,14 +27,18 @@ const tabs: Tab[] = [
 function NavTab({ path, icon: Icon, labelKey, matchPrefix }: Tab) {
   const location = useLocation();
   const { t } = useI18n();
+  const current = location.pathname;
 
   return (
     <NavLink
       to={path}
       className={({ isActive }) => {
-        const active = matchPrefix
-          ? location.pathname === path || location.pathname.startsWith(`${path}/`)
+        let active = matchPrefix
+          ? current === path || current.startsWith(`${path}/`)
           : isActive;
+        if (path === '/profile' && (current === '/settings' || current.startsWith('/studio'))) {
+          active = true;
+        }
         return `nav-item ${active ? 'active' : ''}`;
       }}
     >
@@ -53,7 +57,8 @@ export function BottomNav() {
     path === '/register' ||
     path === '/onboarding' ||
     path.startsWith('/feedback') ||
-    path.startsWith('/auth/');
+    path.startsWith('/auth/') ||
+    path.startsWith('/join');
 
   if (hidden) return null;
 

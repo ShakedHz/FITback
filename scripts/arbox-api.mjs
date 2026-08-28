@@ -365,8 +365,11 @@ function parseArboxRoleTokens(userRole) {
 function mapArboxStaffRole(userRole) {
   const roles = parseArboxRoleTokens(userRole);
   if (roles.includes('BOXADMIN')) return 'studio_manager';
-  if (roles.includes('COACH')) return 'instructor';
   if (roles.includes('BASICMANAGER')) return 'studio_manager';
+  if (roles.includes('SYSTEMADMIN')) return 'studio_manager';
+  if (roles.includes('SUPERADMIN')) return 'studio_manager';
+  if (roles.includes('COACH')) return 'instructor';
+  if (roles.includes('INSTRUCTOR')) return 'instructor';
   return 'instructor';
 }
 
@@ -398,23 +401,18 @@ function mergeTeams(staffTeam, scheduleTeam) {
   return [...byId.values()];
 }
 
-function pickPrimaryStaff(team, role) {
-  const managers = team.filter((m) => m.role === 'studio_manager');
-  const instructors = team.filter((m) => m.role === 'instructor');
-
-  if (role === 'studio_manager') {
-    const manager = managers[0] ?? team[0];
-    if (manager) {
-      return { role: 'studio_manager', staffId: manager.id, staffName: manager.name };
-    }
-    return { role: 'studio_manager', staffId: 'arbox-manager', staffName: 'Studio' };
+function pickPrimaryStaff(team, preferredId) {
+  const preferred = preferredId
+    ? team.find((m) => String(m.id) === String(preferredId))
+    : undefined;
+  if (preferred) {
+    return { role: preferred.role, staffId: preferred.id, staffName: preferred.name };
   }
-
-  const instructor = instructors[0] ?? team[0];
-  if (instructor) {
-    return { role: 'instructor', staffId: instructor.id, staffName: instructor.name };
+  if (team.length === 1) {
+    const member = team[0];
+    return { role: member.role, staffId: member.id, staffName: member.name };
   }
-  return { role: 'instructor', staffId: '', staffName: '' };
+  return { role: 'instructor', staffId: '', staffName: 'Studio' };
 }
 
 async function fetchArboxStaffMembers(apiKey) {
@@ -735,7 +733,7 @@ async function probeKey(apiKey) {
   };
 }
 
-function buildConnection(apiKey, role, locationsPayload, events, staffTeam) {
+function buildConnection(apiKey, locationsPayload, events, staffTeam, preferredStaffId) {
   const locations = pickArray(locationsPayload);
   const clubName =
     str(
@@ -746,7 +744,7 @@ function buildConnection(apiKey, role, locationsPayload, events, staffTeam) {
     ) || 'Arbox Studio';
   const clubId = str(locations[0]?.location_id ?? locations[0]?.box_id ?? locations[0]?.id ?? 'arbox-live');
   const team = mergeTeams(staffTeam, buildTeamFromEvents(events));
-  const primary = pickPrimaryStaff(team, role);
+  const primary = pickPrimaryStaff(team, preferredStaffId);
 
   return {
     connected: true,
@@ -788,10 +786,10 @@ async function handleConnect(body) {
 
   const connection = buildConnection(
     apiKey,
-    body.role ?? 'studio_manager',
     locationsRes.data,
     scheduleResult.events,
-    staffTeam
+    staffTeam,
+    body.linkedInstructorId ?? body.staffId
   );
 
   return {

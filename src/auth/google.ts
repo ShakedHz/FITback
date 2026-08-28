@@ -1,9 +1,6 @@
-export interface GoogleProfile {
-  email: string;
-  name: string;
-  picture?: string;
-  sub: string;
-}
+import { createOAuthNonce, verifyGoogleIdToken, type GoogleIdClaims } from './verifyIdToken';
+
+export type GoogleProfile = GoogleIdClaims;
 
 declare global {
   interface Window {
@@ -58,31 +55,16 @@ function loadGoogleScript(): Promise<void> {
   });
 }
 
-export function decodeGoogleCredential(credential: string): GoogleProfile {
-  const payload = credential.split('.')[1];
-  const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-  const data = JSON.parse(json) as {
-    email: string;
-    name?: string;
-    picture?: string;
-    sub: string;
-    given_name?: string;
-    family_name?: string;
-  };
-
-  return {
-    email: data.email,
-    name: data.name || [data.given_name, data.family_name].filter(Boolean).join(' ') || data.email,
-    picture: data.picture,
-    sub: data.sub,
-  };
+async function profileFromCredential(
+  credential: string,
+  clientId: string,
+  nonce: string
+): Promise<GoogleProfile> {
+  return verifyGoogleIdToken(credential, clientId, nonce);
 }
 
-function oauthPopup(clientId: string): Promise<GoogleProfile> {
+function oauthPopup(clientId: string, nonce: string): Promise<GoogleProfile> {
   const redirectUri = `${window.location.origin}/auth/google/callback`;
-  const nonceBytes = new Uint8Array(16);
-  crypto.getRandomValues(nonceBytes);
-  const nonce = [...nonceBytes].map((b) => b.toString(16).padStart(2, '0')).join('');
   localStorage.removeItem(RESULT_KEY);
 
   const params = new URLSearchParams({
@@ -110,20 +92,22 @@ function oauthPopup(clientId: string): Promise<GoogleProfile> {
       if (raw) {
         localStorage.removeItem(RESULT_KEY);
         window.clearInterval(timer);
-        try {
-          const data = JSON.parse(raw) as { credential?: string; error?: string };
-          if (data.error) {
-            reject(new Error(data.error));
-            return;
+        void (async () => {
+          try {
+            const data = JSON.parse(raw) as { credential?: string; error?: string };
+            if (data.error) {
+              reject(new Error(data.error));
+              return;
+            }
+            if (!data.credential) {
+              reject(new Error('Google sign-in failed'));
+              return;
+            }
+            resolve(await profileFromCredential(data.credential, clientId, nonce));
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error('Google sign-in failed'));
           }
-          if (!data.credential) {
-            reject(new Error('Google sign-in failed'));
-            return;
-          }
-          resolve(decodeGoogleCredential(data.credential));
-        } catch {
-          reject(new Error('Google sign-in failed'));
-        }
+        })();
         return;
       }
 
@@ -139,41 +123,26 @@ function oauthPopup(clientId: string): Promise<GoogleProfile> {
  * Real Google Sign-In via Google Identity Services + OAuth popup fallback.
  * Requires VITE_GOOGLE_CLIENT_ID and authorized JavaScript origins in Google Cloud Console.
  */
-export async function signInWithGoogle(): Promise<GoogleProfile> {
-  const clientId = getGoogleClientId();
-  if (!clientId) {
-    throw new Error('Google Sign-In is not configured. Add VITE_GOOGLE_CLIENT_ID to your .env file.');
-  }
-
-  await loadGoogleScript();
-
-  return new Promise((resolve, reject) => {
-    let settled = false;
-
-    const done = (profile: GoogleProfile) => {
-      if (settled) return;
-      settled = true;
+function tryGisPrompt(clientId: string, nonce: string): Promise<GoogleProfile | null> {
+  return new Promise((resolve) => {
+    let finished = false;
+    const finish = (profile: GoogleProfile | null) => {
+      if (finished) return;
+      finished = true;
       resolve(profile);
-    };
-
-    const fail = (message: string) => {
-      if (settled) return;
-      settled = true;
-      reject(new Error(message));
     };
 
     window.google!.accounts.id.initialize({
       client_id: clientId,
+      nonce,
       callback: (response: { credential?: string }) => {
         if (!response.credential) {
-          fail('Google sign-in was cancelled');
+          finish(null);
           return;
         }
-        try {
-          done(decodeGoogleCredential(response.credential));
-        } catch {
-          fail('Could not read Google account');
-        }
+        void profileFromCredential(response.credential, clientId, nonce)
+          .then(finish)
+          .catch(() => finish(null));
       },
       auto_select: false,
       cancel_on_tap_outside: true,
@@ -182,14 +151,25 @@ export async function signInWithGoogle(): Promise<GoogleProfile> {
 
     window.google!.accounts.id.prompt((notification) => {
       if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        oauthPopup(clientId).then(done).catch((err: Error) => fail(err.message));
+        finish(null);
       }
     });
 
-    window.setTimeout(() => {
-      if (!settled) {
-        oauthPopup(clientId).then(done).catch((err: Error) => fail(err.message));
-      }
-    }, 1500);
+    window.setTimeout(() => finish(null), 2500);
   });
+}
+
+export async function signInWithGoogle(): Promise<GoogleProfile> {
+  const clientId = getGoogleClientId();
+  if (!clientId) {
+    throw new Error('Google Sign-In is not configured. Add VITE_GOOGLE_CLIENT_ID to your .env file.');
+  }
+
+  await loadGoogleScript();
+  const promptNonce = createOAuthNonce();
+  const fromPrompt = await tryGisPrompt(clientId, promptNonce);
+  if (fromPrompt) return fromPrompt;
+
+  window.google?.accounts.id.cancel();
+  return oauthPopup(clientId, createOAuthNonce());
 }

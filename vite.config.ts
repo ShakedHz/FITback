@@ -30,6 +30,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/sms/, ''),
       },
+      '/api/whatsapp': {
+        target: 'http://127.0.0.1:5202',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/whatsapp/, ''),
+      },
     },
   },
   preview: {
@@ -47,6 +52,11 @@ export default defineConfig({
         target: 'http://127.0.0.1:5200',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/sms/, ''),
+      },
+      '/api/whatsapp': {
+        target: 'http://127.0.0.1:5202',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/whatsapp/, ''),
       },
     },
   },

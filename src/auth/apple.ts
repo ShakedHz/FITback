@@ -1,7 +1,10 @@
+import { createOAuthNonce, verifyAppleIdToken } from './verifyIdToken';
+
 export interface AppleProfile {
   email: string;
   name: string;
   sub: string;
+  emailFromApple: boolean;
 }
 
 declare global {
@@ -51,16 +54,13 @@ function loadAppleScript(): Promise<void> {
   });
 }
 
-function decodeJwtPayload(token: string): { email?: string; sub: string } {
-  const payload = token.split('.')[1];
-  const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-  return JSON.parse(json) as { email?: string; sub: string };
-}
-
 /**
  * Real Sign in with Apple (popup).
  * Requires VITE_APPLE_CLIENT_ID (Services ID) configured in Apple Developer,
  * with the current origin as Return URL.
+ *
+ * Name and email are only returned on the first authorize. Later logins
+ * must be matched by `sub`.
  */
 export async function signInWithApple(): Promise<AppleProfile> {
   const clientId = getAppleClientId();
@@ -73,32 +73,34 @@ export async function signInWithApple(): Promise<AppleProfile> {
   const redirectURI =
     (import.meta.env.VITE_APPLE_REDIRECT_URI as string | undefined)?.trim() ||
     window.location.origin;
+  const nonce = createOAuthNonce();
 
   window.AppleID!.auth.init({
     clientId,
     scope: 'name email',
     redirectURI,
+    nonce,
     usePopup: true,
   });
 
   try {
     const response = await window.AppleID!.auth.signIn();
-    const claims = decodeJwtPayload(response.authorization.id_token);
-    const email =
-      response.user?.email ||
-      claims.email ||
-      `${claims.sub}@privaterelay.appleid.com`;
-
+    const claims = await verifyAppleIdToken(response.authorization.id_token, clientId, nonce);
+    const emailFromResponse = response.user?.email || claims.email;
     const nameFromApple = response.user?.name
       ? [response.user.name.firstName, response.user.name.lastName].filter(Boolean).join(' ')
       : '';
 
     return {
-      email,
-      name: nameFromApple || email.split('@')[0],
+      email: emailFromResponse || '',
+      name: nameFromApple,
       sub: claims.sub,
+      emailFromApple: Boolean(emailFromResponse),
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && /nonce|Apple sign-in failed|Could not read/.test(err.message)) {
+      throw err;
+    }
     throw new Error('Apple sign-in was cancelled or failed');
   }
 }
