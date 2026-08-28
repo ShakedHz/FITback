@@ -1,5 +1,8 @@
-import { Building2, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/auth/AuthContext';
+import { BackButton } from '@/components/IconToolbar';
+import { StudioViewSwitcher } from '@/components/StudioViewSwitcher';
 import { useApp } from '@/context/AppContext';
 import { useI18n, type Locale } from '@/i18n';
 import { useTheme } from '@/theme/ThemeContext';
@@ -39,10 +42,12 @@ function Segmented<T extends string>({
 }
 
 export function SettingsPage() {
-  const navigate = useNavigate();
   const { t, locale, setLocale } = useI18n();
   const { preference, setPreference } = useTheme();
   const { autoClassFeedbackEnabled, setAutoClassFeedbackEnabled } = useApp();
+  const { user, isActiveStudioManager } = useAuth();
+
+  const memberships = user?.memberships ?? [];
 
   const languageOptions: { value: Locale; label: string }[] = [
     { value: 'he', label: t('lang.he') },
@@ -57,13 +62,32 @@ export function SettingsPage() {
 
   return (
     <div className="page fade-in">
-      <button type="button" className="back-btn" onClick={() => navigate('/profile')}>
-        {t('common.back')}
-      </button>
+      <BackButton to="/profile" label={t('common.back')} />
 
       <header className="page-header">
         <h1 className="page-title">{t('settings.title')}</h1>
+        <p className="page-subtitle">{user?.email}</p>
       </header>
+
+      <p className="settings-section__label">{t('settings.switchView')}</p>
+      <div className="card settings-group settings-view">
+        <StudioViewSwitcher memberships={memberships} stayOnPage />
+
+        {memberships.length > 0 && (
+          <div className="settings-studio__links">
+            {isActiveStudioManager && (
+              <Link to="/studio/overview" className="settings-studio__link">
+                {t('studio.viewOverview')}
+                <ChevronRight className="rtl-flip" size={16} aria-hidden />
+              </Link>
+            )}
+            <Link to="/studio" className="settings-studio__link">
+              {t('settings.manageStudio')}
+              <ChevronRight className="rtl-flip" size={16} aria-hidden />
+            </Link>
+          </div>
+        )}
+      </div>
 
       <p className="settings-section__label">{t('settings.appearance')}</p>
       <div className="card settings-group">
@@ -109,19 +133,6 @@ export function SettingsPage() {
           </span>
         </button>
       </div>
-
-      <p className="settings-section__label">{t('settings.studio')}</p>
-      <button
-        type="button"
-        className="card settings-group settings-link"
-        onClick={() => navigate('/studio')}
-      >
-        <span className="settings-link__icon" aria-hidden>
-          <Building2 size={18} />
-        </span>
-        <span className="settings-link__label">{t('profile.studios')}</span>
-        <ChevronRight className="rtl-flip settings-link__chevron" size={18} aria-hidden />
-      </button>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { findStoredAccount } from './accountLookup';
 import type { AuthProvider, AuthSession, AuthUser, StoredAccount } from './types';
-import { membershipsFromAccount } from '@/data/studioOrg';
+import { activeStudioRole, membershipsFromAccount } from '@/data/studioOrg';
 
 const USERS_KEY = 'movana_auth_users_v1';
 const SESSION_KEY = 'movana_auth_session_v1';
@@ -55,6 +55,54 @@ export function saveAccount(account: StoredAccount): StoredAccount {
   return account;
 }
 
+/** Drop instructor membership for a studio (managers are never removed here). */
+export function removeStudioMembershipFromAccounts(
+  clubId: string,
+  match: { email?: string; staffId?: string }
+): void {
+  const normalizedEmail = match.email?.trim().toLowerCase();
+  const users = readUsers().map((account) => {
+    const memberships = membershipsFromAccount(account);
+    const shouldRemove = memberships.some((m) => {
+      if (m.clubId !== clubId || m.role !== 'instructor') return false;
+      if (match.staffId && m.staffId === match.staffId) return true;
+      if (normalizedEmail && account.email.trim().toLowerCase() === normalizedEmail) return true;
+      return false;
+    });
+    if (!shouldRemove) return account;
+
+    const nextMemberships = memberships.filter((m) => {
+      if (m.clubId !== clubId || m.role !== 'instructor') return true;
+      if (match.staffId && m.staffId === match.staffId) return false;
+      if (normalizedEmail && account.email.trim().toLowerCase() === normalizedEmail) return false;
+      return true;
+    });
+
+    const next: StoredAccount = {
+      ...account,
+      memberships: nextMemberships,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (account.activeStudioId === clubId) {
+      const fallback = nextMemberships[0];
+      if (fallback) {
+        next.activeStudioId = fallback.clubId;
+        next.role = fallback.role;
+        next.arboxClubId = fallback.clubId;
+        next.arboxStaffId = fallback.staffId;
+      } else {
+        delete next.activeStudioId;
+        delete next.arboxClubId;
+        delete next.arboxStaffId;
+      }
+    }
+
+    return next;
+  });
+  writeUsers(users);
+}
+
 export function accountToUser(account: StoredAccount): AuthUser {
   const memberships = membershipsFromAccount(account);
   return {
@@ -65,7 +113,7 @@ export function accountToUser(account: StoredAccount): AuthUser {
     bio: account.bio,
     specialties: account.specialties,
     provider: account.provider,
-    role: account.role,
+    role: activeStudioRole(account),
     arboxLinked: account.arboxLinked,
     googleSub: account.googleSub,
     appleSub: account.appleSub,

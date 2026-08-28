@@ -148,6 +148,49 @@
   border-bottom-color: var(--color-primary);
 }
 
+.auth-role-pick {
+  margin-bottom: 12px;
+}
+
+.auth-role-pick__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.auth-role-pick__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.auth-role-pick__btn {
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-card);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-role-pick__btn.active {
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: var(--color-primary-bright);
+}
+
+.auth-role-pick__hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
 .auth-social {
   display: flex;
   flex-wrap: wrap;

@@ -45,7 +45,9 @@ export function BackButton({
     <button
       type="button"
       className="back-btn"
-      onClick={onClick ?? (() => (to ? navigate(to) : navigate(-1)))}
+      onClick={onClick ?? (() => {
+        if (to) navigate(to);
+      })}
     >
       <ChevronLeft className="rtl-flip" size={18} />
       {label}

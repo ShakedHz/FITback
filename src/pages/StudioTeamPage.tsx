@@ -1,16 +1,18 @@
 import { FormEvent, useMemo, useState } from 'react';
-import { Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CalendarDays, ChevronRight, Settings, Trash2, Users } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import {
   createStudioInvite,
   openMailtoInvite,
 } from '@/auth/studioInvite';
 import { findAccountByEmail } from '@/auth/userStore';
-import { StudioSwitcher } from '@/components/StudioSwitcher';
+import { IconButton, IconToolbar } from '@/components/IconToolbar';
 import { useApp } from '@/context/AppContext';
 import type { StudioRole } from '@/data/scheduleTypes';
 import {
   getStaffEmail,
+  isStaffRemovedFromStudio,
   listInvitesForStudio,
   membershipsFromAccount,
   resolveMemberStatus,
@@ -52,13 +54,21 @@ function statusLabel(status: TeamMemberStatus, t: (key: string) => string): stri
 }
 
 export function StudioTeamPage() {
-  const { user, isLoading, addStudioWithArbox } = useAuth();
+  const {
+    user,
+    isLoading,
+    addStudioWithArbox,
+    createLocalStudio,
+    isActiveStudioManager,
+    activeMembership,
+    removeStudioInstructor,
+  } = useAuth();
   const { arboxConnection } = useApp();
   const { t } = useI18n();
 
   const memberships = user?.memberships ?? [];
-  const active = memberships.find((m) => m.clubId === user?.activeStudioId) ?? memberships[0];
-  const isManager = active?.role === 'studio_manager';
+  const active = activeMembership ?? memberships[0];
+  const isManager = isActiveStudioManager;
   const clubId = active?.clubId || arboxConnection.clubId;
   const clubName = active?.clubName || arboxConnection.clubName;
 
@@ -69,11 +79,16 @@ export function StudioTeamPage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [showAddStudio, setShowAddStudio] = useState(false);
   const [studioKey, setStudioKey] = useState('');
+  const [localStudioName, setLocalStudioName] = useState('');
   const [pickTeam, setPickTeam] = useState<{ id: string; name: string; role: StudioRole }[] | null>(null);
+  const [teamRevision, setTeamRevision] = useState(0);
 
   const teamRows = useMemo(() => {
     if (!clubId) return [];
-    const staff = arboxConnection.team ?? [];
+    const staff = (arboxConnection.team ?? []).filter(
+      (member) =>
+        member.role !== 'instructor' || !isStaffRemovedFromStudio(clubId, member.id)
+    );
     const invites = listInvitesForStudio(clubId);
     const rows: StudioTeamRow[] = staff.map((member) => {
       const email = (emails[member.id] ?? getStaffEmail(clubId, member.id)).trim().toLowerCase();
@@ -120,7 +135,27 @@ export function StudioTeamPage() {
       });
     }
     return rows;
-  }, [arboxConnection.team, clubId, emails, user?.email]);
+  }, [arboxConnection.team, clubId, emails, user?.email, user?.arboxStaffId, teamRevision]);
+
+  const handleRemoveInstructor = (row: StudioTeamRow) => {
+    if (!clubId) return;
+    const ok = window.confirm(t('studio.removeConfirm', { name: row.name }));
+    if (!ok) return;
+    setLocalError(null);
+    try {
+      removeStudioInstructor({
+        clubId,
+        name: row.name,
+        email: emails[row.staffId ?? row.key] ?? row.email,
+        staffId: row.staffId,
+        inviteId: row.staffId ? undefined : row.key,
+      });
+      setFlash(t('studio.removed', { name: row.name }));
+      setTeamRevision((v) => v + 1);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : t('errors.loginFailed'));
+    }
+  };
 
   const sendInvite = async (input: {
     email: string;
@@ -226,6 +261,14 @@ export function StudioTeamPage() {
     }
   };
 
+  const onCreateLocalStudio = (e: FormEvent) => {
+    e.preventDefault();
+    setLocalError(null);
+    void createLocalStudio(localStudioName || user?.name || 'My Studio').catch((err) => {
+      setLocalError(err instanceof Error ? err.message : t('errors.arboxFailed'));
+    });
+  };
+
   return (
     <div className="page fade-in studio-page">
       <div className="page-header">
@@ -233,10 +276,47 @@ export function StudioTeamPage() {
         <p className="page-subtitle">{clubName || t('studio.noStudio')}</p>
       </div>
 
-      <StudioSwitcher memberships={memberships} />
+      {memberships.length > 1 && (
+        <Link to="/settings" className="studio-switch-view-link">
+          <Settings size={16} aria-hidden />
+          {t('profile.switchViewInSettings')}
+          <ChevronRight className="rtl-flip" size={16} aria-hidden />
+        </Link>
+      )}
+
+      {active && (
+        <p className="studio-section__hint studio-role-banner">
+          {t('studio.roleHere', { role: roleLabel(active.role, t) })}
+        </p>
+      )}
+
+      {isManager && clubId && (
+        <section className="studio-section">
+          <Link to="/studio/overview" className="btn btn-secondary studio-overview-link">
+            <CalendarDays size={18} /> {t('studio.viewOverview')}
+          </Link>
+        </section>
+      )}
 
       {!active && (
-        <p className="studio-empty">{t('studio.noStudio')}</p>
+        <section className="studio-section card studio-setup">
+          <h2 className="studio-section__title">{t('studio.setupTitle')}</h2>
+          <p className="studio-section__hint">{t('studio.setupHint')}</p>
+          {localError && <p className="studio-error">{translateError(t, localError)}</p>}
+          <form className="studio-local-form" onSubmit={onCreateLocalStudio}>
+            <input
+              className="input"
+              type="text"
+              placeholder={t('studio.localNamePlaceholder')}
+              value={localStudioName}
+              onChange={(e) => setLocalStudioName(e.target.value)}
+            />
+            <button type="submit" className="btn btn-primary" disabled={isLoading}>
+              {t('studio.createWithoutArbox')}
+            </button>
+          </form>
+          <p className="studio-section__hint">{t('studio.connectArboxLaterHint')}</p>
+        </section>
       )}
 
       {isManager && clubId && (
@@ -261,6 +341,17 @@ export function StudioTeamPage() {
                         {roleLabel(row.role, t)} · {statusLabel(row.status, t)}
                       </p>
                     </div>
+                    {row.role === 'instructor' && row.status !== 'you' && (
+                      <IconToolbar>
+                        <IconButton
+                          danger
+                          onClick={() => handleRemoveInstructor(row)}
+                          aria-label={t('studio.removeInstructor', { name: row.name })}
+                        >
+                          <Trash2 size={18} />
+                        </IconButton>
+                      </IconToolbar>
+                    )}
                   </div>
                   {row.status !== 'you' && (
                     <>
@@ -352,6 +443,7 @@ export function StudioTeamPage() {
         {showAddStudio && (
           <div className="card studio-add">
             <p className="studio-section__hint">{t('studio.addStudioHint')}</p>
+            <p className="studio-section__hint">{t('studio.demoKeyHint')}</p>
             {pickTeam && pickTeam.length > 1 ? (
               <div className="studio-pick">
                 {pickTeam.map((member) => (
