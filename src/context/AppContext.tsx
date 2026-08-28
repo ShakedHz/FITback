@@ -8,7 +8,7 @@ import {
   useEffect,
 } from 'react';
 import { useAuth } from '@/auth/AuthContext';
-import { currentInstructor, lessons, exercises as defaultExercises, Lesson, Exercise } from '@/data/mockData';
+import { currentInstructor, lessons, exercises as defaultExercises, Lesson, Exercise, type LessonLevel, type ExercisePlanNotes } from '@/data/mockData';
 import { COIN_PACKAGES, getTotalCoins } from '@/data/coinPackages';
 import type {
   ScheduleEvent,
@@ -62,9 +62,10 @@ import {
 } from '@/services/surveyClients';
 import type { TrainingType } from '@/data/trainingTypes';
 import { bioFromSpecialties, trainingTypeToEventCategory } from '@/data/trainingTypes';
-import { buildLessonsForSpecialties } from '@/data/instructorLessons';
+import { defaultPlanEquipment, type EquipmentType } from '@/data/equipmentTypes';
+import { isSpringSetupEmpty, type PilatesPropId } from '@/data/pilatesSetup';
 import { getLessonTemplate } from '@/data/lessonTemplates';
-import { durationsFromExercises } from '@/utils/lessonDuration';
+import { durationsFromExercises, DEFAULT_CLASS_DURATION } from '@/utils/lessonDuration';
 
 export interface CoinTransaction {
   id: string;
@@ -86,6 +87,7 @@ export interface LessonDraftSection {
   title: string;
   duration: number;
   exerciseIds: string[];
+  notes?: Record<string, ExercisePlanNotes>;
 }
 
 export interface LessonDraft {
@@ -93,6 +95,10 @@ export interface LessonDraft {
   description: string;
   duration: number;
   trainingType: TrainingType;
+  equipment: EquipmentType;
+  props?: PilatesPropId[];
+  level: LessonLevel;
+  focus: string;
   coverVideo: string | null;
   albumImages: string[];
   exerciseIds: string[];
@@ -102,20 +108,25 @@ export interface LessonDraft {
   sourceLessonId?: string;
 }
 
-function draftForTrainingType(trainingType: TrainingType, title = 'New lesson'): LessonDraft {
+function draftForTrainingType(trainingType: TrainingType, title = ''): LessonDraft {
   const template = getLessonTemplate(trainingType);
   const baseSections = template.map((s) => ({
     id: s.id,
     title: s.title,
+    duration: s.duration,
     exerciseIds: [...s.exerciseIds],
   }));
-  const { sections, duration, exerciseIds } = durationsFromExercises(baseSections, defaultExercises);
+  const { sections, exerciseIds } = durationsFromExercises(baseSections, defaultExercises);
 
   return {
     title,
     description: '',
-    duration,
+    duration: DEFAULT_CLASS_DURATION,
     trainingType,
+    equipment: defaultPlanEquipment(trainingType),
+    props: [],
+    level: 'Intermediate',
+    focus: '',
     coverVideo: null,
     albumImages: [],
     exerciseIds,
@@ -131,10 +142,14 @@ function blankDraftForTrainingType(trainingType: TrainingType): LessonDraft {
     { id: 's3', title: 'Cool-down', duration: 0, exerciseIds: [] },
   ];
   return {
-    title: 'New lesson',
+    title: '',
     description: '',
-    duration: 0,
+    duration: DEFAULT_CLASS_DURATION,
     trainingType,
+    equipment: defaultPlanEquipment(trainingType),
+    props: [],
+    level: 'Intermediate',
+    focus: '',
     coverVideo: null,
     albumImages: [],
     exerciseIds: [],
@@ -161,7 +176,12 @@ interface AppState {
   purchaseCoinPackage: (packageId: string, coins: number, price: number) => boolean;
   addCoins: (amount: number) => void;
   addCreatedLesson: (lesson: Lesson) => void;
+  updateCreatedLesson: (lesson: Lesson) => void;
   deleteCreatedLesson: (lessonId: string) => void;
+  favoriteLessonIds: string[];
+  isFavoriteLesson: (lessonId: string) => boolean;
+  toggleFavoriteLesson: (lessonId: string) => void;
+  duplicateCreatedLesson: (lesson: Lesson, title: string) => Lesson;
   addCustomExercise: (exercise: Omit<Exercise, 'id' | 'isCustom' | 'createdBy'>) => Exercise;
   getLessonById: (id: string) => Lesson | undefined;
   weekStart: Date;
@@ -188,9 +208,20 @@ interface AppState {
     lessonId: string,
     dateKey: string,
     time: string,
-    options?: { endedRecently?: boolean; rosterClients?: SurveyClient[] }
+    options?: { endedRecently?: boolean; rosterClients?: SurveyClient[]; capacity?: number }
   ) => string | null;
   moveScheduleEvent: (eventId: string, dateKey: string, time: string) => void;
+  /** Edit a class created here: plan, time, capacity and roster in one go. */
+  updateScheduleEvent: (
+    eventId: string,
+    updates: {
+      lessonId?: string;
+      dateKey?: string;
+      time?: string;
+      rosterClients?: SurveyClient[];
+      capacity?: number;
+    }
+  ) => void;
   removeScheduleEvent: (eventId: string) => void;
   addEventAttendee: (eventId: string, input: { id?: string; name: string; phone: string }) => boolean;
   removeEventAttendee: (eventId: string, attendeeId: string) => void;
@@ -216,6 +247,8 @@ interface AppState {
 const FLOW_EVENTS_KEY = 'movana_flow_events_v1';
 const USER_LESSONS_KEY = 'movana_user_lessons_v1';
 const DELETED_LESSONS_KEY = 'movana_deleted_lessons_v1';
+const FAVORITE_LESSONS_KEY = 'movana_favorite_lessons_v1';
+const CUSTOM_EXERCISES_KEY = 'movana_custom_exercises_v1';
 
 function loadFlowEvents(): ScheduleEvent[] {
   try {
@@ -262,6 +295,36 @@ function saveDeletedLessonIds(ids: string[]): void {
   localStorage.setItem(DELETED_LESSONS_KEY, JSON.stringify(ids));
 }
 
+function loadFavoriteLessonIds(): string[] {
+  try {
+    const raw = localStorage.getItem(FAVORITE_LESSONS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavoriteLessonIds(ids: string[]): void {
+  localStorage.setItem(FAVORITE_LESSONS_KEY, JSON.stringify(ids));
+}
+
+function loadCustomExercises(): Exercise[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_EXERCISES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Exercise[];
+    return Array.isArray(parsed) ? parsed.filter((e) => e?.id && e?.nameHe) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomExercises(items: Exercise[]): void {
+  localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(items));
+}
+
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -272,7 +335,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /** Lessons the instructor created in-app (not seed plans). */
   const [userLessons, setUserLessons] = useState<Lesson[]>(() => loadUserLessons());
   const [deletedLessonIds, setDeletedLessonIds] = useState<string[]>(() => loadDeletedLessonIds());
-  const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
+  const [favoriteLessonIds, setFavoriteLessonIds] = useState<string[]>(() => loadFavoriteLessonIds());
+  const [customExercises, setCustomExercises] = useState<Exercise[]>(() => loadCustomExercises());
   const [lessonDraft, setLessonDraftState] = useState<LessonDraft>(() =>
     blankDraftForTrainingType('pilates')
   );
@@ -377,6 +441,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveDeletedLessonIds(deletedLessonIds);
   }, [deletedLessonIds]);
 
+  useEffect(() => {
+    saveFavoriteLessonIds(favoriteLessonIds);
+  }, [favoriteLessonIds]);
+
+  useEffect(() => {
+    saveCustomExercises(customExercises);
+  }, [customExercises]);
+
   const setAutoClassFeedbackEnabled = useCallback((enabled: boolean) => {
     saveAutoClassFeedbackEnabled(enabled);
     setAutoClassFeedbackEnabledState(enabled);
@@ -401,7 +473,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const createdLessons = useMemo(() => {
-    const seeded = buildLessonsForSpecialties(specialties, instructorMeta);
     const extras = userLessons
       .filter((l) => specialties.length === 0 || specialties.includes(l.trainingType))
       .map((l) => ({
@@ -412,10 +483,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isOwned: true,
       }));
 
-    const byId = new Map<string, Lesson>();
-    [...seeded, ...extras].forEach((l) => byId.set(l.id, l));
     const deleted = new Set(deletedLessonIds);
-    return [...byId.values()].filter((l) => !deleted.has(l.id));
+    return extras.filter((l) => !deleted.has(l.id));
   }, [specialties, instructorMeta, userLessons, deletedLessonIds]);
 
   const schedulableLessons = useMemo(() => createdLessons, [createdLessons]);
@@ -446,13 +515,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [specialties]);
 
   const loadLessonDraft = useCallback((lesson: Lesson) => {
-    const baseSections = lesson.sections.map((s) => ({
-      id: s.id,
-      title: s.title,
-      exerciseIds: s.exercises.map((e) => e.id),
-    }));
+    const baseSections = lesson.sections.map((s) => {
+      const notes: Record<string, ExercisePlanNotes> = {};
+      s.exercises.forEach((e) => {
+        const springs = isSpringSetupEmpty(e.springs) ? undefined : e.springs;
+        if (e.reps || e.cue || springs) notes[e.id] = { reps: e.reps, cue: e.cue, springs };
+      });
+      return {
+        id: s.id,
+        title: s.title,
+        duration: s.duration,
+        exerciseIds: s.exercises.map((e) => e.id),
+        notes: Object.keys(notes).length ? notes : undefined,
+      };
+    });
     const exercisePool = [
       ...defaultExercises,
+      ...customExercises,
       ...lesson.sections.flatMap((s) => s.exercises),
     ];
     const timed = durationsFromExercises(baseSections, exercisePool);
@@ -460,15 +539,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLessonDraftState({
       title: lesson.title,
       description: lesson.description ?? '',
-      duration: timed.duration,
+      duration: lesson.duration || DEFAULT_CLASS_DURATION,
       trainingType: lesson.trainingType,
+      equipment: lesson.equipment ?? defaultPlanEquipment(lesson.trainingType),
+      props: lesson.props ?? [],
+      level: lesson.level ?? 'Intermediate',
+      focus: lesson.focus ?? '',
       coverVideo: lesson.coverVideo ?? null,
       albumImages: [],
       exerciseIds: timed.exerciseIds,
       sections: timed.sections,
       sourceLessonId: lesson.id,
     });
-  }, []);
+  }, [customExercises]);
 
   const getLessonById = useCallback((id: string) => {
     return createdLessons.find((l) => l.id === id) ?? lessons.find((l) => l.id === id);
@@ -513,9 +596,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addCreatedLesson = useCallback((lesson: Lesson) => {
-    setUserLessons((prev) => [...prev, lesson]);
+    setUserLessons((prev) => [...prev, { ...lesson, isStarter: false }]);
     setOwnedLessonIds((ids) => (ids.includes(lesson.id) ? ids : [...ids, lesson.id]));
     setDeletedLessonIds((ids) => ids.filter((id) => id !== lesson.id));
+  }, []);
+
+  const updateCreatedLesson = useCallback((lesson: Lesson) => {
+    const stored: Lesson = { ...lesson, isStarter: false };
+    setUserLessons((prev) => {
+      const idx = prev.findIndex((l) => l.id === stored.id);
+      if (idx >= 0) return prev.map((l) => (l.id === stored.id ? stored : l));
+      return [...prev, stored];
+    });
+    setFlowEvents((events) =>
+      events.map((e) =>
+        e.lessonId === lesson.id || e.lessonPlanId === lesson.id
+          ? {
+              ...e,
+              title: lesson.title,
+              duration: lesson.duration,
+              lessonId: lesson.id,
+              lessonPlanId: lesson.id,
+              lessonPlanTitle: lesson.title,
+            }
+          : e
+      )
+    );
+  }, []);
+
+  const duplicateCreatedLesson = useCallback((lesson: Lesson, title: string) => {
+    const stamp = Date.now();
+    const copy: Lesson = {
+      ...lesson,
+      id: `l-${stamp}`,
+      title,
+      isStarter: false,
+      isCreated: true,
+      isOwned: true,
+      rating: 0,
+      reviews: 0,
+      likes: 0,
+      comments: 0,
+      sections: lesson.sections.map((section, i) => ({
+        ...section,
+        id: `sec-${stamp}-${i}`,
+        exercises: section.exercises.map((e) => ({ ...e })),
+      })),
+    };
+    setUserLessons((prev) => [...prev, copy]);
+    setOwnedLessonIds((ids) => (ids.includes(copy.id) ? ids : [...ids, copy.id]));
+    return copy;
   }, []);
 
   const deleteCreatedLesson = useCallback((lessonId: string) => {
@@ -527,6 +657,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return prev.filter((l) => l.id !== lessonId);
     });
     setDeletedLessonIds((ids) => (ids.includes(lessonId) ? ids : [...ids, lessonId]));
+    setFavoriteLessonIds((ids) => ids.filter((id) => id !== lessonId));
     setOwnedLessonIds((ids) => ids.filter((id) => id !== lessonId));
     setFlowEvents((events) =>
       events.map((e) =>
@@ -537,16 +668,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const isFavoriteLesson = useCallback(
+    (lessonId: string) => favoriteLessonIds.includes(lessonId),
+    [favoriteLessonIds]
+  );
+
+  const toggleFavoriteLesson = useCallback((lessonId: string) => {
+    setFavoriteLessonIds((ids) =>
+      ids.includes(lessonId) ? ids.filter((id) => id !== lessonId) : [...ids, lessonId]
+    );
+  }, []);
+
   const addCustomExercise = useCallback((data: Omit<Exercise, 'id' | 'isCustom' | 'createdBy'>) => {
     const exercise: Exercise = {
       ...data,
       id: `custom-${Date.now()}`,
       isCustom: true,
-      createdBy: currentInstructor.id,
+      createdBy: instructorMeta.id,
     };
     setCustomExercises((prev) => [...prev, exercise]);
     return exercise;
-  }, []);
+  }, [instructorMeta.id]);
 
   const connectArbox = useCallback(async (apiKey: string, role?: StudioRole) => {
     if (!validateArboxApiKey(apiKey)) {
@@ -766,17 +908,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     lessonId: string,
     dateKey: string,
     time: string,
-    options?: { endedRecently?: boolean; rosterClients?: SurveyClient[] }
+    options?: { endedRecently?: boolean; rosterClients?: SurveyClient[]; capacity?: number }
   ): string | null => {
     const lesson = lessons.find((l) => l.id === lessonId) ?? createdLessons.find((l) => l.id === lessonId);
     if (!lesson) return null;
 
-    const instructorId = arboxConnection.connected ? arboxConnection.staffId : currentInstructor.id;
-    const instructorName = arboxConnection.connected ? arboxConnection.staffName : currentInstructor.name;
+    const instructorId = arboxConnection.connected
+      ? arboxConnection.staffId
+      : user?.id ?? currentInstructor.id;
+    const instructorName =
+      user?.name ||
+      (arboxConnection.connected ? arboxConnection.staffName : currentInstructor.name);
 
-    const attendees: ScheduleAttendee[] = (options?.rosterClients ?? [])
-      .filter((c) => isValidPhone(c.phone))
-      .map((c) => ({ id: c.id, name: c.name, phone: c.phone.trim() }));
+    // Arbox clients can be on file without a phone — keep them on the roster,
+    // the SMS layer skips anyone without a valid number.
+    const attendees: ScheduleAttendee[] = (options?.rosterClients ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      phone: isValidPhone(c.phone) ? c.phone.trim() : undefined,
+    }));
 
     const start = options?.endedRecently
       ? startTimeForJustEndedClass(lesson.duration)
@@ -792,17 +942,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       duration: lesson.duration,
       source: 'flowpilates',
       category: trainingTypeToEventCategory(lesson.trainingType),
-      location: 'FITback',
       instructorId,
       instructor: instructorName,
       attendees,
       enrolled: attendees.length,
+      capacity: options?.capacity,
       feedbackSentAt: null,
     };
     setFlowEvents((prev) => [...prev, event]);
     window.setTimeout(() => requestFeedbackCheck(), 200);
     return event.id;
-  }, [createdLessons, arboxConnection]);
+  }, [createdLessons, arboxConnection, user]);
 
   const moveScheduleEvent = useCallback((eventId: string, dateKey: string, time: string) => {
     const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
@@ -817,6 +967,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
     );
   }, [arboxConnection, arboxEvents, flowEvents]);
+
+  const updateScheduleEvent = useCallback((
+    eventId: string,
+    updates: {
+      lessonId?: string;
+      dateKey?: string;
+      time?: string;
+      rosterClients?: SurveyClient[];
+      capacity?: number;
+    }
+  ) => {
+    setFlowEvents((prev) =>
+      prev.map((ev) => {
+        if (ev.id !== eventId) return ev;
+
+        const lesson = updates.lessonId
+          ? lessons.find((l) => l.id === updates.lessonId) ??
+            createdLessons.find((l) => l.id === updates.lessonId)
+          : undefined;
+        const next: ScheduleEvent = { ...ev };
+
+        if (lesson) {
+          next.title = lesson.title;
+          next.lessonId = lesson.id;
+          next.lessonPlanId = lesson.id;
+          next.lessonPlanTitle = lesson.title;
+          next.duration = lesson.duration;
+          next.category = trainingTypeToEventCategory(lesson.trainingType);
+        }
+        if (updates.dateKey && updates.time) {
+          next.start = combineDateAndTime(updates.dateKey, updates.time);
+        }
+        if (updates.rosterClients) {
+          next.attendees = updates.rosterClients.map((c) => ({
+            id: c.id,
+            name: c.name,
+            phone: isValidPhone(c.phone) ? c.phone.trim() : undefined,
+          }));
+          next.enrolled = next.attendees.length;
+        }
+        if (updates.capacity != null) {
+          next.capacity = updates.capacity;
+        }
+        return next;
+      })
+    );
+  }, [createdLessons]);
 
   const removeScheduleEvent = useCallback((eventId: string) => {
     setFlowEvents((prev) => prev.filter((ev) => ev.id !== eventId));
@@ -869,7 +1066,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         purchaseCoinPackage,
         addCoins,
         addCreatedLesson,
+        updateCreatedLesson,
         deleteCreatedLesson,
+        favoriteLessonIds,
+        isFavoriteLesson,
+        toggleFavoriteLesson,
+        duplicateCreatedLesson,
         addCustomExercise,
         getLessonById,
         weekStart,
@@ -894,6 +1096,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         runFeedbackAutomation,
         addLessonToSchedule,
         moveScheduleEvent,
+        updateScheduleEvent,
         removeScheduleEvent,
         addEventAttendee,
         removeEventAttendee,

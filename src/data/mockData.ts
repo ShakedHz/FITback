@@ -1,3 +1,14 @@
+export type LessonLevel = 'Beginner' | 'Intermediate' | 'Advanced';
+
+export const LESSON_LEVELS: LessonLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
+
+/** Teaching notes for one exercise inside a specific lesson plan. */
+export interface ExercisePlanNotes {
+  reps?: string;
+  cue?: string;
+  springs?: SpringSetup;
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -5,9 +16,14 @@ export interface Exercise {
   duration: number;
   category: string;
   videoUrl: string;
-  posterUrl?: string;
   isCustom?: boolean;
   createdBy?: string;
+  /** Reps / timing for this exercise in a plan (not the catalog). */
+  reps?: string;
+  /** Short cue or modification for this plan. */
+  cue?: string;
+  /** Reformer spring mix for this exercise in the plan. */
+  springs?: SpringSetup;
 }
 
 export interface LessonSection {
@@ -23,9 +39,13 @@ export interface Lesson {
   instructorId: string;
   instructorName: string;
   duration: number;
-  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  level: LessonLevel;
+  /** One-line class theme, e.g. "core + spinal mobility". */
+  focus?: string;
   trainingType: TrainingType;
   equipment: EquipmentType;
+  /** Reformer props to set up for the class (weight, circle, ball, jumpboard). */
+  props?: PilatesPropId[];
   tags: string[];
   rating: number;
   reviews: number;
@@ -36,11 +56,12 @@ export interface Lesson {
   sections: LessonSection[];
   isOwned?: boolean;
   isCreated?: boolean;
+  /** Seeded starter plan, not yet customized by the instructor. */
+  isStarter?: boolean;
   /** Cover image (legacy seed data) */
   coverImage?: string;
   /** Preview video uploaded by the instructor */
   coverVideo?: string;
-  /** Auto album from 4 workout images (Spotify-style) */
   albumImages: string[];
 }
 
@@ -57,44 +78,11 @@ export interface Instructor {
   coins: number;
 }
 
-export interface FeedPost {
-  id: string;
-  lessonId: string;
-  instructorId: string;
-  instructorName: string;
-  instructorAvatar: string;
-  instructorTier: InstructorTier;
-  lessonTitle: string;
-  level: Lesson['level'];
-  trainingType: TrainingType;
-  equipment: EquipmentType;
-  duration: number;
-  tags: string[];
-  coverImage?: string;
-  albumImages: string[];
-  rating: number;
-  likes: number;
-  comments: number;
-  price: number;
-  trending?: boolean;
-}
-
-import { getAiAssets } from './aiExerciseVideos';
 import { getInstructorAvatar } from './instructorPhotos';
-import { buildAlbumFromExercises } from '@/utils/lessonCover';
-import {
-  computeLessonPrice,
-  getInstructorTier,
-  getInstructorSpecialties,
-  INSTRUCTOR_PROFILES,
-  TIER_LABELS,
-  type InstructorTier,
-} from './instructorTiers';
+import { computeLessonPrice } from './instructorTiers';
 import type { TrainingType } from './trainingTypes';
 import { inferEquipment, type EquipmentType } from './equipmentTypes';
-
-export type { InstructorTier, TrainingType };
-export { INSTRUCTOR_PROFILES, TIER_LABELS, computeLessonPrice, getInstructorTier, getInstructorSpecialties };
+import type { PilatesPropId, SpringSetup } from './pilatesSetup';
 
 export const currentInstructor: Instructor = {
   id: 'maya',
@@ -110,16 +98,16 @@ export const currentInstructor: Instructor = {
 };
 
 export const exercises: Exercise[] = [
-  { id: 'e1', name: 'Hundred', nameHe: 'Hundred', duration: 2, category: 'Warm-up', videoUrl: '', posterUrl: getAiAssets('e1')?.poster },
-  { id: 'e2', name: 'Roll Up', nameHe: 'Roll Up', duration: 2, category: 'Warm-up', videoUrl: '', posterUrl: getAiAssets('e2')?.poster },
-  { id: 'e3', name: 'Single Leg Stretch', nameHe: 'Single Leg Stretch', duration: 2, category: 'Warm-up', videoUrl: '', posterUrl: getAiAssets('e3')?.poster },
-  { id: 'e4', name: 'Double Leg Stretch', nameHe: 'Double Leg Stretch', duration: 2, category: 'Core', videoUrl: '', posterUrl: getAiAssets('e4')?.poster },
-  { id: 'e5', name: 'Criss Cross', nameHe: 'Criss Cross', duration: 3, category: 'Core', videoUrl: '', posterUrl: getAiAssets('e5')?.poster },
-  { id: 'e6', name: 'Swan Dive', nameHe: 'Swan Dive', duration: 3, category: 'Back', videoUrl: '', posterUrl: getAiAssets('e6')?.poster },
-  { id: 'e7', name: 'Teaser', nameHe: 'Teaser', duration: 3, category: 'Core', videoUrl: '', posterUrl: getAiAssets('e7')?.poster },
-  { id: 'e8', name: 'Saw', nameHe: 'Saw', duration: 2, category: 'Stretching', videoUrl: '', posterUrl: getAiAssets('e8')?.poster },
-  { id: 'e9', name: 'Spine Stretch', nameHe: 'Spine Stretch', duration: 2, category: 'Stretching', videoUrl: '', posterUrl: getAiAssets('e9')?.poster },
-  { id: 'e10', name: 'Child Pose', nameHe: 'Child Pose', duration: 2, category: 'Cool-down', videoUrl: '', posterUrl: getAiAssets('e10')?.poster },
+  { id: 'e1', name: 'Hundred', nameHe: 'Hundred', duration: 2, category: 'Warm-up', videoUrl: '' },
+  { id: 'e2', name: 'Roll Up', nameHe: 'Roll Up', duration: 2, category: 'Warm-up', videoUrl: '' },
+  { id: 'e3', name: 'Single Leg Stretch', nameHe: 'Single Leg Stretch', duration: 2, category: 'Warm-up', videoUrl: '' },
+  { id: 'e4', name: 'Double Leg Stretch', nameHe: 'Double Leg Stretch', duration: 2, category: 'Core', videoUrl: '' },
+  { id: 'e5', name: 'Criss Cross', nameHe: 'Criss Cross', duration: 3, category: 'Core', videoUrl: '' },
+  { id: 'e6', name: 'Swan Dive', nameHe: 'Swan Dive', duration: 3, category: 'Back', videoUrl: '' },
+  { id: 'e7', name: 'Teaser', nameHe: 'Teaser', duration: 3, category: 'Core', videoUrl: '' },
+  { id: 'e8', name: 'Saw', nameHe: 'Saw', duration: 2, category: 'Stretching', videoUrl: '' },
+  { id: 'e9', name: 'Spine Stretch', nameHe: 'Spine Stretch', duration: 2, category: 'Stretching', videoUrl: '' },
+  { id: 'e10', name: 'Child Pose', nameHe: 'Child Pose', duration: 2, category: 'Cool-down', videoUrl: '' },
 ];
 
 const defaultSections: LessonSection[] = [
@@ -161,7 +149,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     description: 'A dynamic class combining core strength, flexibility, and control. Perfect for intermediate students seeking a balanced challenge.',
     sections: defaultSections,
     coverImage: '/instructors/feed-dana-power-flow.png',
-    albumImages: buildAlbumFromExercises(exercises.slice(0, 4)),
+    albumImages: [],
   },
   {
     id: 'l5',
@@ -179,7 +167,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 45,
     description: 'An intense reformer workout for full-body strength.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(2, 6)),
+    albumImages: [],
   },
   {
     id: 'l6',
@@ -197,7 +185,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 32,
     description: 'Core-focused work with advanced exercises for intermediate students.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(4, 8)),
+    albumImages: [],
   },
   {
     id: 'l7',
@@ -216,7 +204,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     description: 'A professional lesson plan for athletes and instructors seeking high intensity.',
     sections: defaultSections,
     coverImage: '/instructors/feed-dana-power-flow.png',
-    albumImages: buildAlbumFromExercises(exercises.slice(0, 4)),
+    albumImages: [],
   },
   {
     id: 'l8',
@@ -234,7 +222,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 28,
     description: 'A balanced evening class — strength and stretching to close the day.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(6, 10)),
+    albumImages: [],
   },
   {
     id: 'l20',
@@ -252,7 +240,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 41,
     description: 'A short, powerful HIIT workout — intervals, strength, and endurance.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(0, 4)),
+    albumImages: [],
   },
   {
     id: 'l9',
@@ -270,7 +258,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 24,
     description: 'Improve balance and body control with precise exercises.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(3, 7)),
+    albumImages: [],
   },
   {
     id: 'l10',
@@ -288,7 +276,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 18,
     description: 'A lesson plan for spine health — gentle and effective.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(5, 9)),
+    albumImages: [],
   },
   {
     id: 'l11',
@@ -306,7 +294,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 22,
     description: 'An intermediate class with progressive challenges.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(1, 5)),
+    albumImages: [],
   },
   {
     id: 'l19',
@@ -324,7 +312,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 36,
     description: 'Morning vinyasa flow — breath, movement, and gradual warm-up.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(6, 10)),
+    albumImages: [],
   },
   {
     id: 'l4',
@@ -343,7 +331,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     description: 'A gentle morning class with stretches and breathwork.',
     sections: defaultSections,
     coverImage: '/instructors/feed-shira-morning.png',
-    albumImages: buildAlbumFromExercises(exercises.slice(6, 10)),
+    albumImages: [],
   },
   {
     id: 'l12',
@@ -362,7 +350,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     description: 'A lesson plan adapted for pregnancy — safe and strengthening.',
     sections: defaultSections,
     coverImage: '/instructors/feed-shira-morning.png',
-    albumImages: buildAlbumFromExercises(exercises.slice(8, 10).concat(exercises.slice(0, 2))),
+    albumImages: [],
   },
   {
     id: 'l13',
@@ -380,7 +368,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 21,
     description: 'Improve range of motion with a pleasant flow.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(7, 10)),
+    albumImages: [],
   },
   {
     id: 'l14',
@@ -398,7 +386,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 35,
     description: 'A foundations lesson plan perfect for beginners — step by step.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(0, 4)),
+    albumImages: [],
   },
   {
     id: 'l21',
@@ -416,7 +404,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 27,
     description: 'A blend of pilates, ballet, and strength — focus on posture and long muscles.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(2, 6)),
+    albumImages: [],
   },
   {
     id: 'l15',
@@ -434,7 +422,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 12,
     description: 'A short, focused core workout — perfect for a lunch break.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(3, 7)),
+    albumImages: [],
   },
   {
     id: 'l16',
@@ -452,7 +440,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 9,
     description: 'A light midday class — stretches and a gentle wake-up.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(6, 10)),
+    albumImages: [],
   },
   {
     id: 'l17',
@@ -470,7 +458,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 14,
     description: 'An introduction to mat pilates — accessible and clear.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(0, 4)),
+    albumImages: [],
   },
   {
     id: 'l18',
@@ -488,7 +476,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 16,
     description: 'Focus on legs and glutes with effective exercises.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(2, 6)),
+    albumImages: [],
   },
   {
     id: 'l22',
@@ -506,7 +494,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     comments: 23,
     description: 'An intense ride workout — climbs, sprints, and cardio endurance.',
     sections: defaultSections,
-    albumImages: buildAlbumFromExercises(exercises.slice(4, 8)),
+    albumImages: [],
   },
   {
     id: 'l2',
@@ -526,7 +514,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     sections: defaultSections,
     isCreated: true,
     isOwned: true,
-    albumImages: buildAlbumFromExercises(exercises.slice(0, 4)),
+    albumImages: [],
   },
   {
     id: 'l3',
@@ -546,7 +534,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     sections: defaultSections,
     isCreated: true,
     isOwned: true,
-    albumImages: buildAlbumFromExercises(exercises.slice(4, 8)),
+    albumImages: [],
   },
   {
     id: 'l23',
@@ -566,7 +554,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     sections: defaultSections,
     isCreated: true,
     isOwned: true,
-    albumImages: buildAlbumFromExercises(exercises.slice(6, 10)),
+    albumImages: [],
   },
   {
     id: 'l24',
@@ -586,7 +574,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     sections: defaultSections,
     isCreated: true,
     isOwned: true,
-    albumImages: buildAlbumFromExercises(exercises.slice(7, 10)),
+    albumImages: [],
   },
   {
     id: 'l25',
@@ -606,7 +594,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     sections: defaultSections,
     isCreated: true,
     isOwned: true,
-    albumImages: buildAlbumFromExercises(exercises.slice(0, 4)),
+    albumImages: [],
   },
   {
     id: 'l26',
@@ -626,7 +614,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     sections: defaultSections,
     isCreated: true,
     isOwned: true,
-    albumImages: buildAlbumFromExercises(exercises.slice(3, 7)),
+    albumImages: [],
   },
   {
     id: 'l27',
@@ -647,7 +635,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     isCreated: true,
     isOwned: true,
     coverImage: '/instructors/feed-shira-morning.png',
-    albumImages: buildAlbumFromExercises(exercises.slice(8, 10).concat(exercises.slice(0, 2))),
+    albumImages: [],
   },
 ];
 
@@ -656,41 +644,3 @@ export const lessons: Lesson[] = lessonsData.map((l) => ({
   equipment: inferEquipment(l.trainingType, l.tags),
 }));
 
-
-export const feedPosts: FeedPost[] = lessons
-  .filter((l) => l.price > 0 && l.instructorId !== 'maya')
-  .map((l) => ({
-    id: `fp-${l.id}`,
-    lessonId: l.id,
-    instructorId: l.instructorId,
-    instructorName: l.instructorName,
-    instructorAvatar: getInstructorAvatar(l.instructorId),
-    instructorTier: getInstructorTier(l.instructorId),
-    lessonTitle: l.title,
-    level: l.level,
-    trainingType: l.trainingType,
-    equipment: l.equipment,
-    duration: l.duration,
-    tags: l.tags,
-    coverImage: l.coverImage,
-    albumImages: l.albumImages,
-    rating: l.rating,
-    likes: l.likes,
-    comments: l.comments,
-    price: l.price,
-    trending: l.likes >= 400,
-  }))
-  .sort((a, b) => b.likes - a.likes);
-
-export const dashboardInsights = [
-  { text: '40-min strength-focused classes → higher ratings', type: 'positive' as const },
-  { text: 'New clients prefer intermediate difficulty', type: 'neutral' as const },
-  { text: 'Satisfaction drops when there is no calm cool-down', type: 'warning' as const },
-];
-
-export const lessonTags = [
-  { label: 'Too hard', count: 12 },
-  { label: 'Loved the core', count: 34 },
-  { label: 'Wanted more stretching', count: 28 },
-  { label: 'Perfect!', count: 45 },
-];

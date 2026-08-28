@@ -9,6 +9,17 @@ html, body, #root {
   height: 100dvh;
 }
 
+/* Keeps native controls (pickers, selects, checkboxes) on the app palette. */
+html {
+  color-scheme: dark;
+  accent-color: #8b5cf6;
+}
+
+::selection {
+  background: rgba(139, 92, 246, 0.4);
+  color: #fff;
+}
+
 body {
   font-family: 'Heebo', sans-serif;
   background: #0a0612;
@@ -320,12 +331,13 @@ textarea.input {
 .back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: none;
   border: none;
   color: #a78bfa;
   font-family: inherit;
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   padding: 0;
   margin-bottom: 16px;

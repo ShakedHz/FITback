@@ -1,21 +1,38 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, GripVertical, Minus, Pencil, CopyPlus } from 'lucide-react';
+import { Plus, Minus, GripVertical, CopyPlus, X, MoreVertical, ChevronDown } from 'lucide-react';
+import { BackButton } from '@/components/IconToolbar';
+import { PilatesPropsRow, SpringPicker } from '@/components/PilatesSetup';
 import { useApp, type LessonDraftSection } from '@/context/AppContext';
-import { ExerciseVideo } from '@/components/ExerciseVideo';
 import { LessonVideoUpload } from '@/components/LessonCoverUpload';
 import {
-  TRAINING_TYPE_COLORS,
+  TRAINING_TYPE_LABELS,
+  canChooseTrainingType,
   type TrainingType,
 } from '@/data/trainingTypes';
 import { getLessonTemplate } from '@/data/lessonTemplates';
-import { inferEquipment } from '@/data/equipmentTypes';
-import { durationsFromExercises } from '@/utils/lessonDuration';
+import { defaultPlanEquipment } from '@/data/equipmentTypes';
+import { isSpringSetupEmpty, type SpringSetup } from '@/data/pilatesSetup';
+import { durationsFromExercises, DEFAULT_CLASS_DURATION, CLASS_DURATION_STEP, MIN_CLASS_DURATION, MAX_CLASS_DURATION, clampClassDuration } from '@/utils/lessonDuration';
 import { exercisesPath } from '@/utils/exerciseNav';
-import { equipmentLabel, trainingLabel, useI18n } from '@/i18n';
+import { equipmentLabel, levelLabel, trainingLabel, useI18n } from '@/i18n';
+import type { ExercisePlanNotes, Lesson, LessonLevel } from '@/data/mockData';
+import { LESSON_LEVELS } from '@/data/mockData';
+import '@/components/ExerciseVideo.css';
+import './LessonBuilder.css';
 
 function createSectionId() {
   return `sec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+const MIN_REPS = 0;
+const MAX_REPS = 99;
+
+function parseReps(value?: string) {
+  if (!value) return 0;
+  const match = value.match(/\d+/);
+  if (!match) return 0;
+  return Math.min(MAX_REPS, Math.max(MIN_REPS, Number(match[0])));
 }
 
 const DRAG_ACTIVATE_PX = 6;
@@ -64,6 +81,7 @@ export function LessonBuilderPage() {
   const fromAi = searchParams.get('ai') === '1';
   const fromBlank = searchParams.get('blank') === '1';
   const fromTemplate = searchParams.get('template') === '1';
+  const from = searchParams.get('from');
 
   const {
     allExercises,
@@ -74,6 +92,8 @@ export function LessonBuilderPage() {
     getLessonById,
     loadLessonDraft,
     resetLessonDraft,
+    addCreatedLesson,
+    updateCreatedLesson,
   } = useApp();
   const { t } = useI18n();
 
@@ -82,6 +102,7 @@ export function LessonBuilderPage() {
     () => (specialties.length > 0 ? specialties : (['pilates'] as TrainingType[])),
     [specialties]
   );
+  const showTypeChoice = canChooseTrainingType(specialties);
 
   const isBlankPlan =
     fromBlank ||
@@ -95,6 +116,11 @@ export function LessonBuilderPage() {
   useEffect(() => {
     if (lessonId) {
       if (loadedIdRef.current === lessonId) return;
+      // Returning from the exercise picker — keep in-progress edits
+      if (lessonDraft.sourceLessonId === lessonId) {
+        loadedIdRef.current = lessonId;
+        return;
+      }
       const lesson = getLessonById(lessonId);
       if (!lesson) return;
       loadLessonDraft(lesson);
@@ -144,33 +170,53 @@ export function LessonBuilderPage() {
   const timedPlan = useMemo(
     () =>
       durationsFromExercises(
-        sections.map((s) => ({ id: s.id, title: s.title, exerciseIds: s.exerciseIds })),
+        sections.map((s) => ({
+          id: s.id,
+          title: s.title,
+          duration: s.duration,
+          exerciseIds: s.exerciseIds,
+          notes: s.notes,
+        })),
         allExercises
       ),
     [sections, allExercises]
   );
 
-  // Keep draft durations in sync with exercises
+  // Keep section membership in sync without changing class length
   useEffect(() => {
-    const sameDuration = timedPlan.duration === lessonDraft.duration;
     const sameSections =
       lessonDraft.sections?.length === timedPlan.sections.length &&
       timedPlan.sections.every(
         (s, i) =>
-          s.duration === lessonDraft.sections![i].duration &&
           s.exerciseIds.join(',') === lessonDraft.sections![i].exerciseIds.join(',')
       );
-    if (sameDuration && sameSections) return;
+    if (sameSections) return;
     setLessonDraft({
-      duration: timedPlan.duration,
       sections: timedPlan.sections,
       exerciseIds: timedPlan.exerciseIds,
     });
-  }, [timedPlan, lessonDraft.duration, lessonDraft.sections, setLessonDraft]);
+  }, [timedPlan, lessonDraft.sections, setLessonDraft]);
 
   const [reorder, setReorder] = useState<SectionReorderState | null>(null);
   const [highlightedSectionId, setHighlightedSectionId] = useState<string | null>(null);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [openSpringKey, setOpenSpringKey] = useState<string | null>(null);
+
+  const equipment = lessonDraft.equipment ?? defaultPlanEquipment(lessonDraft.trainingType);
+  const isPilates = lessonDraft.trainingType === 'pilates';
+  const isReformer = isPilates && equipment === 'reformer';
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const onDown = (e: PointerEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el?.closest('.builder-block__menu-wrap')) return;
+      setOpenMenuId(null);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [openMenuId]);
   const sectionListRef = useRef<HTMLDivElement>(null);
   const pendingDragRef = useRef<PendingSectionDrag | null>(null);
   const dragSnapshotRef = useRef<number[]>([]);
@@ -207,12 +253,13 @@ export function LessonBuilderPage() {
         nextSections.map((s) => ({
           id: s.id,
           title: s.title,
+          duration: s.duration,
           exerciseIds: s.exerciseIds,
+          notes: s.notes,
         })),
         allExercises
       );
       setLessonDraft({
-        duration: timed.duration,
         sections: timed.sections,
         exerciseIds: timed.exerciseIds,
       });
@@ -235,6 +282,19 @@ export function LessonBuilderPage() {
     [sections, applySections]
   );
 
+  const removeExercise = useCallback(
+    (sectionId: string, exerciseId: string) => {
+      applySections(
+        sections.map((s) =>
+          s.id === sectionId
+            ? { ...s, exerciseIds: s.exerciseIds.filter((id) => id !== exerciseId) }
+            : s
+        )
+      );
+    },
+    [sections, applySections]
+  );
+
   const duplicateSection = useCallback(
     (sectionId: string) => {
       const idx = sections.findIndex((s) => s.id === sectionId);
@@ -246,6 +306,7 @@ export function LessonBuilderPage() {
         title: `Copy of ${src.title}`,
         duration: src.duration,
         exerciseIds: [...src.exerciseIds],
+        notes: src.notes ? { ...src.notes } : undefined,
       };
       const next = [...sections];
       next.splice(idx + 1, 0, copy);
@@ -260,6 +321,97 @@ export function LessonBuilderPage() {
     },
     [sections, applySections]
   );
+
+  const moveExercise = useCallback(
+    (sectionId: string, fromIndex: number, toIndex: number) => {
+      applySections(
+        sections.map((s) => {
+          if (s.id !== sectionId) return s;
+          if (toIndex < 0 || toIndex >= s.exerciseIds.length) return s;
+          const ids = [...s.exerciseIds];
+          const [id] = ids.splice(fromIndex, 1);
+          ids.splice(toIndex, 0, id);
+          return { ...s, exerciseIds: ids };
+        })
+      );
+    },
+    [sections, applySections]
+  );
+
+  const updateExerciseNote = useCallback(
+    (sectionId: string, exerciseId: string, patch: Partial<ExercisePlanNotes>) => {
+      applySections(
+        sections.map((s) => {
+          if (s.id !== sectionId) return s;
+          const prev = s.notes?.[exerciseId] ?? {};
+          const merged: ExercisePlanNotes = { ...prev, ...patch };
+          if (isSpringSetupEmpty(merged.springs)) {
+            delete merged.springs;
+          }
+          return {
+            ...s,
+            notes: {
+              ...s.notes,
+              [exerciseId]: merged,
+            },
+          };
+        })
+      );
+    },
+    [sections, applySections]
+  );
+
+  const setExerciseReps = useCallback(
+    (sectionId: string, exerciseId: string, next: number) => {
+      const reps = Math.min(MAX_REPS, Math.max(MIN_REPS, Math.round(next)));
+      updateExerciseNote(sectionId, exerciseId, { reps: reps > 0 ? String(reps) : '' });
+    },
+    [updateExerciseNote]
+  );
+
+  const setExerciseSprings = useCallback(
+    (sectionId: string, exerciseId: string, springs: SpringSetup | undefined) => {
+      updateExerciseNote(sectionId, exerciseId, { springs });
+    },
+    [updateExerciseNote]
+  );
+
+  const exDragRef = useRef<{ sectionId: string; index: number; lastY: number } | null>(null);
+
+  const beginExerciseDrag = useCallback(
+    (sectionId: string, index: number, clientY: number) => {
+      exDragRef.current = { sectionId, index, lastY: clientY };
+      document.body.classList.add('exercise-reordering');
+    },
+    []
+  );
+
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const drag = exDragRef.current;
+      if (!drag) return;
+      const dy = e.clientY - drag.lastY;
+      if (Math.abs(dy) < 28) return;
+      const dir = dy > 0 ? 1 : -1;
+      moveExercise(drag.sectionId, drag.index, drag.index + dir);
+      drag.index += dir;
+      drag.lastY = e.clientY;
+    };
+    const onUp = () => {
+      if (!exDragRef.current) return;
+      exDragRef.current = null;
+      document.body.classList.remove('exercise-reordering');
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      document.body.classList.remove('exercise-reordering');
+    };
+  }, [moveExercise]);
 
   const moveSection = useCallback(
     (fromIdx: number, toIdx: number) => {
@@ -377,6 +529,8 @@ export function LessonBuilderPage() {
     if (isBlankPlan) {
       setLessonDraft({
         trainingType: type,
+        equipment: defaultPlanEquipment(type),
+        props: type === 'pilates' ? lessonDraft.props : [],
         albumImages: [],
         exerciseIds: [],
         sections: [
@@ -384,7 +538,6 @@ export function LessonBuilderPage() {
           { id: 's2', title: t('builder.main'), duration: 0, exerciseIds: [] },
           { id: 's3', title: t('builder.cooldown'), duration: 0, exerciseIds: [] },
         ],
-        duration: 0,
       });
       return;
     }
@@ -394,6 +547,7 @@ export function LessonBuilderPage() {
       template.map((s) => ({
         id: s.id,
         title: s.title,
+        duration: s.duration,
         exerciseIds: [...s.exerciseIds],
       })),
       allExercises
@@ -401,14 +555,87 @@ export function LessonBuilderPage() {
 
     setLessonDraft({
       trainingType: type,
+      equipment: defaultPlanEquipment(type),
+      props: type === 'pilates' ? lessonDraft.props : [],
       albumImages: [],
       exerciseIds: timed.exerciseIds,
       sections: timed.sections,
-      duration: timed.duration,
     });
   };
 
-  const equipment = inferEquipment(lessonDraft.trainingType);
+  const backTo = lessonId
+    ? `/lesson/${lessonId}`
+    : from === 'library'
+      ? '/library'
+      : from === 'create' || fromAi
+        ? '/create'
+        : '/library';
+
+  const saveToLibrary = () => {
+    const title = lessonDraft.title.trim();
+    if (!title) return;
+    if (timedPlan.exerciseIds.length === 0) return;
+
+    const planSections = timedPlan.sections.map((section) => ({
+      id: section.id,
+      title: section.title,
+      duration: section.duration,
+      exercises: section.exerciseIds
+        .map((id) => {
+          const ex = allExercises.find((e) => e.id === id);
+          if (!ex) return null;
+          const notes = section.notes?.[id];
+          return {
+            ...ex,
+            reps: notes?.reps,
+            cue: notes?.cue,
+            springs: notes?.springs,
+          };
+        })
+        .filter((e): e is NonNullable<typeof e> => Boolean(e)),
+    }));
+
+    const description =
+      lessonDraft.description.trim() ||
+      t('preview.defaultDesc', { type: trainingLabel(lessonDraft.trainingType, t).toLowerCase() });
+
+    const existing = lessonId ? getLessonById(lessonId) : undefined;
+    const lesson: Lesson = {
+      id: existing?.id ?? `l-${Date.now()}`,
+      title,
+      instructorId: instructor.id,
+      instructorName: instructor.name,
+      duration: clampClassDuration(lessonDraft.duration || DEFAULT_CLASS_DURATION),
+      level: lessonDraft.level ?? existing?.level ?? 'Intermediate',
+      focus: lessonDraft.focus.trim() || undefined,
+      trainingType: lessonDraft.trainingType,
+      equipment: lessonDraft.equipment ?? defaultPlanEquipment(lessonDraft.trainingType),
+      props:
+        (lessonDraft.equipment ?? defaultPlanEquipment(lessonDraft.trainingType)) === 'reformer'
+          ? lessonDraft.props
+          : undefined,
+      tags: existing?.tags ?? ['New', TRAINING_TYPE_LABELS[lessonDraft.trainingType]],
+      rating: existing?.rating ?? 0,
+      reviews: existing?.reviews ?? 0,
+      price: existing?.price ?? 0,
+      likes: existing?.likes ?? 0,
+      comments: existing?.comments ?? 0,
+      description,
+      sections: planSections,
+      isCreated: true,
+      isOwned: true,
+      isStarter: false,
+      coverVideo: lessonDraft.coverVideo ?? existing?.coverVideo,
+      coverImage: existing?.coverImage,
+      albumImages: existing?.albumImages ?? [],
+    };
+
+    if (existing) updateCreatedLesson(lesson);
+    else addCreatedLesson(lesson);
+
+    resetLessonDraft();
+    navigate('/library');
+  };
 
   const openExerciseLibrary = (sectionId: string) => {
     const params = new URLSearchParams();
@@ -416,6 +643,7 @@ export function LessonBuilderPage() {
     if (fromTemplate) params.set('template', '1');
     if (fromAi) params.set('ai', '1');
     if (lessonId) params.set('lessonId', lessonId);
+    if (from) params.set('from', from);
     navigate(exercisesPath(sectionId, params));
   };
 
@@ -424,92 +652,157 @@ export function LessonBuilderPage() {
     return previewSections(timedPlan.sections, reorder.fromIndex, reorder.insertIndex);
   }, [timedPlan.sections, reorder]);
 
+  const canSave = Boolean(lessonDraft.title.trim()) && timedPlan.exerciseIds.length > 0;
+
   return (
-    <div className="page fade-in">
-      <button className="back-btn" onClick={() => navigate(-1)}>{t('common.back')}</button>
-      <h1 className="page-title">
-        {lessonId
-          ? t('builder.edit')
-          : fromAi
-            ? t('builder.ai')
-            : t('builder.build')}
-      </h1>
-      {fromAi ? (
-        <p className="page-subtitle" style={{ marginTop: 4 }}>
-          {t('builder.aiSubtitle')}
-        </p>
-      ) : isBlankPlan && !lessonId ? (
-        <p className="page-subtitle" style={{ marginTop: 4 }}>
-          {t('builder.blankSubtitle')}
-        </p>
-      ) : null}
-
-      <div className="card" style={{ marginTop: 16 }}>
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 8 }}>{t('builder.trainingType')}</label>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-          {allowedTypes.map((type) => {
-            const colors = TRAINING_TYPE_COLORS[type];
-            const active = lessonDraft.trainingType === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => selectTrainingType(type)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 20,
-                  border: `1px solid ${active ? colors.border : 'rgba(139,92,246,0.25)'}`,
-                  background: active ? colors.bg : 'rgba(26,18,40,0.5)',
-                  color: active ? colors.text : '#94a3b8',
-                  fontFamily: 'inherit',
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 500,
-                  cursor: 'pointer',
-                }}
-              >
-                {trainingLabel(type, t)}
-              </button>
-            );
-          })}
-        </div>
-        <p style={{ fontSize: 12, color: '#64748b', marginBottom: 14 }}>
-          {t('builder.equipment', { equipment: equipmentLabel(equipment, t) })}
-          {isBlankPlan ? t('builder.addYourself') : t('builder.templateFor', { type: trainingLabel(lessonDraft.trainingType, t) })}
-        </p>
-
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 6 }}>{t('builder.lessonName')}</label>
-        <input
-          className="input"
-          value={lessonDraft.title}
-          onChange={(e) => setLessonDraft({ title: e.target.value })}
-        />
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
-          {t('builder.description')} <span style={{ color: '#64748b', fontWeight: 400 }}>({t('common.optional')})</span>
-        </label>
-        <textarea
-          className="input"
-          placeholder={t('builder.aboutPlaceholder')}
-          value={lessonDraft.description}
-          onChange={(e) => setLessonDraft({ description: e.target.value })}
-          rows={3}
-          style={{ minHeight: 88, resize: 'vertical', lineHeight: 1.45 }}
-        />
+    <div className="page fade-in builder">
+      <div className="page-toolbar">
+        <BackButton to={backTo} label={t('common.back')} />
+        <button
+          type="button"
+          className="builder-save-btn"
+          disabled={!canSave}
+          onClick={saveToLibrary}
+        >
+          {lessonId ? t('builder.saveChanges') : t('builder.addToLibrary')}
+        </button>
       </div>
 
-      <LessonVideoUpload
-        lesson={{
-          coverVideo: lessonDraft.coverVideo ?? undefined,
-          trainingType: lessonDraft.trainingType,
-        }}
-        coverVideo={lessonDraft.coverVideo}
-        onVideoChange={setLessonCoverVideo}
-        alt={lessonDraft.title}
-      />
-
-      <p className="section-title" style={{ marginTop: 20 }}>{t('builder.plan')}</p>
-      <p className={`lesson-section-reorder-hint${reorder ? '' : ' lesson-section-reorder-hint--idle'}`}>
-        {reorder ? t('builder.releaseSection') : t('builder.dragReorder')}
-      </p>
+      <div className="builder-sheet">
+        <div className="builder-field">
+          <label className="builder-field__label" htmlFor="builder-title">
+            {t('builder.lessonName')}
+          </label>
+          <input
+            id="builder-title"
+            className="input"
+            placeholder={t('builder.untitledPlaceholder')}
+            value={lessonDraft.title}
+            onChange={(e) => setLessonDraft({ title: e.target.value })}
+          />
+        </div>
+        <div className="builder-field">
+          <label className="builder-field__label" htmlFor="builder-focus">
+            {t('builder.focus')}
+          </label>
+          <input
+            id="builder-focus"
+            className="input"
+            placeholder={t('builder.focusPlaceholder')}
+            value={lessonDraft.focus ?? ''}
+            onChange={(e) => setLessonDraft({ focus: e.target.value })}
+          />
+        </div>
+        <div className={`builder-field-row${showTypeChoice ? '' : ' builder-field-row--single-type'}`}>
+          {showTypeChoice && (
+            <div className="builder-field">
+              <label className="builder-field__label" htmlFor="builder-type">
+                {t('builder.trainingType')}
+              </label>
+              <div className="builder-field__control">
+                <select
+                  id="builder-type"
+                  value={lessonDraft.trainingType}
+                  onChange={(e) => selectTrainingType(e.target.value as TrainingType)}
+                >
+                  {allowedTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {trainingLabel(type, t)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="builder-field__chevron" aria-hidden />
+              </div>
+            </div>
+          )}
+          <div className="builder-field">
+            <label className="builder-field__label" htmlFor="builder-level">
+              {t('builder.level')}
+            </label>
+            <div className="builder-field__control">
+              <select
+                id="builder-level"
+                value={lessonDraft.level ?? 'Intermediate'}
+                onChange={(e) => setLessonDraft({ level: e.target.value as LessonLevel })}
+              >
+                {LESSON_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {levelLabel(level, t)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="builder-field__chevron" aria-hidden />
+            </div>
+          </div>
+          <div className="builder-field builder-field--duration">
+            <span className="builder-field__label">{t('builder.classDuration')}</span>
+            <div className="builder-stepper">
+              <button
+                type="button"
+                disabled={clampClassDuration(lessonDraft.duration || DEFAULT_CLASS_DURATION) <= MIN_CLASS_DURATION}
+                aria-label={t('builder.durationLess')}
+                onClick={() =>
+                  setLessonDraft({
+                    duration: clampClassDuration(
+                      (lessonDraft.duration || DEFAULT_CLASS_DURATION) - CLASS_DURATION_STEP
+                    ),
+                  })
+                }
+              >
+                <Minus size={14} />
+              </button>
+              <span className="builder-stepper__value">
+                {clampClassDuration(lessonDraft.duration || DEFAULT_CLASS_DURATION)}
+              </span>
+              <button
+                type="button"
+                disabled={clampClassDuration(lessonDraft.duration || DEFAULT_CLASS_DURATION) >= MAX_CLASS_DURATION}
+                aria-label={t('builder.durationMore')}
+                onClick={() =>
+                  setLessonDraft({
+                    duration: clampClassDuration(
+                      (lessonDraft.duration || DEFAULT_CLASS_DURATION) + CLASS_DURATION_STEP
+                    ),
+                  })
+                }
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+        {isPilates && (
+          <>
+            <div className="builder-field">
+              <span className="builder-field__label">{t('builder.equipment')}</span>
+              <div className="pilates-segment" role="group" aria-label={t('builder.equipment')}>
+                <button
+                  type="button"
+                  className={`pilates-segment__opt${equipment === 'mat' ? ' is-on' : ''}`}
+                  aria-pressed={equipment === 'mat'}
+                  onClick={() => setLessonDraft({ equipment: 'mat' })}
+                >
+                  {equipmentLabel('mat', t)}
+                </button>
+                <button
+                  type="button"
+                  className={`pilates-segment__opt${equipment === 'reformer' ? ' is-on' : ''}`}
+                  aria-pressed={equipment === 'reformer'}
+                  onClick={() => setLessonDraft({ equipment: 'reformer' })}
+                >
+                  {t('builder.apparatus')}
+                </button>
+              </div>
+            </div>
+            {isReformer && (
+              <PilatesPropsRow
+                selected={lessonDraft.props}
+                onChange={(props) => setLessonDraft({ props })}
+              />
+            )}
+          </>
+        )}
+        <p className="section-title builder-plan-label">{t('builder.plan')}</p>
       <div
         ref={sectionListRef}
         className={`lesson-section-list${reorder ? ' lesson-section-list--reordering' : ''}`}
@@ -518,157 +811,224 @@ export function LessonBuilderPage() {
           const sectionIndex = timedPlan.sections.findIndex((s) => s.id === section.id);
           const isLifted = reorder?.sectionId === section.id;
           return (
-          <Fragment key={section.id}>
-            <div
-              data-section-id={section.id}
-              className={`card lesson-section-card${
-                isLifted ? ' lesson-section-card--lifted' : ''
-              }${reorder ? ' lesson-section-card--shifting' : ''}${
-                highlightedSectionId === section.id ? ' lesson-section-card--highlighted' : ''
-              }`}
-            >
-              <div className="lesson-section-header">
-                <div
-                  className="lesson-section-grip"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={t('builder.dragAria')}
-                  onPointerDown={(e) => {
-                    if (e.button !== 0 || reorder) return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    beginHandleDrag(section.id, sectionIndex, e.clientX, e.clientY);
-                  }}
-                >
-                  <GripVertical size={18} />
-                </div>
-
-            <div className="lesson-section-heading">
-              {editingSectionId === section.id ? (
-                <input
-                  className="input lesson-section-title-input"
-                  value={section.title}
-                  autoFocus
-                  onChange={(e) => updateSectionTitle(section.id, e.target.value)}
-                  onBlur={() => setEditingSectionId(null)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === 'Escape') {
-                      setEditingSectionId(null);
-                    }
-                  }}
-                />
-              ) : (
-                <div className="lesson-section-title-row">
-                  <span className="lesson-section-name">{section.title}</span>
-                  <button
-                    type="button"
-                    className="lesson-section-pencil"
-                    aria-label={t('builder.editSection')}
-                    onClick={() => setEditingSectionId(section.id)}
+            <Fragment key={section.id}>
+              <div
+                data-section-id={section.id}
+                className={`builder-block lesson-section-card${
+                  isLifted ? ' builder-block--lifted lesson-section-card--lifted' : ''
+                }${
+                  highlightedSectionId === section.id
+                    ? ' builder-block--highlighted lesson-section-card--highlighted'
+                    : ''
+                }`}
+              >
+                <div className="builder-block__head">
+                  <div
+                    className="lesson-section-grip"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={t('builder.dragAria')}
+                    onPointerDown={(e) => {
+                      if (e.button !== 0 || reorder) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      beginHandleDrag(section.id, sectionIndex, e.clientX, e.clientY);
+                    }}
                   >
-                    <Pencil size={14} />
-                  </button>
-                  {section.duration > 0 && (
-                    <span className="lesson-section-duration">{section.duration} {t('common.min')}</span>
+                    <GripVertical size={16} />
+                  </div>
+                  {editingSectionId === section.id ? (
+                    <input
+                      className="builder-block__title-input"
+                      value={section.title}
+                      autoFocus
+                      onChange={(e) => updateSectionTitle(section.id, e.target.value)}
+                      onBlur={() => setEditingSectionId(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === 'Escape') setEditingSectionId(null);
+                      }}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="builder-block__title"
+                      onClick={() => setEditingSectionId(section.id)}
+                    >
+                      {section.title}
+                    </button>
                   )}
+                  <div className="builder-block__menu-wrap">
+                    <button
+                      type="button"
+                      className="builder-block__menu-btn"
+                      aria-label={t('builder.sectionMenu')}
+                      onClick={() => {
+                        setOpenSpringKey(null);
+                        setOpenMenuId((id) => (id === section.id ? null : section.id));
+                      }}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {openMenuId === section.id && (
+                      <div className="builder-block__menu">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            duplicateSection(section.id);
+                            setOpenMenuId(null);
+                          }}
+                        >
+                          <CopyPlus size={14} />
+                          {t('builder.duplicateSection')}
+                        </button>
+                        <button
+                          type="button"
+                          className="is-danger"
+                          disabled={timedPlan.sections.length <= 1}
+                          onClick={() => {
+                            deleteSection(section.id);
+                            setOpenMenuId(null);
+                          }}
+                        >
+                          <X size={14} />
+                          {t('builder.removeSection')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
 
-            <div className="lesson-section-actions">
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm lesson-section-action-btn lesson-section-duplicate-btn"
-                aria-label={
-                  section.exerciseIds.length > 0
-                    ? t('builder.duplicateWith', { count: section.exerciseIds.length })
-                    : t('builder.duplicateEmpty')
-                }
-                title={
-                  section.exerciseIds.length > 0
-                    ? t('builder.duplicateTitle', { count: section.exerciseIds.length })
-                    : t('builder.duplicateSection')
-                }
-                onClick={() => duplicateSection(section.id)}
-              >
-                <CopyPlus size={17} strokeWidth={2.25} aria-hidden />
+                <div className="builder-block__list">
                 {section.exerciseIds.length > 0 && (
-                  <span className="lesson-section-duplicate-count">{section.exerciseIds.length}</span>
+                  <div className={`builder-ex-cols${isReformer ? ' builder-ex-cols--springs' : ''}`}>
+                    <span className="builder-ex-cols__grip" aria-hidden />
+                    <span className="builder-ex-cols__name" />
+                    {isReformer ? (
+                      <span className="builder-ex-cols__springs">{t('builder.springs')}</span>
+                    ) : null}
+                    <span className="builder-ex-cols__reps">{t('builder.reps')}</span>
+                    <span className="builder-ex-cols__remove" aria-hidden />
+                  </div>
                 )}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm lesson-section-action-btn lesson-section-remove"
-                aria-label={t('builder.removeSection')}
-                disabled={timedPlan.sections.length <= 1}
-                title={timedPlan.sections.length <= 1 ? t('builder.oneRequired') : t('builder.removeSection')}
-                onClick={() => deleteSection(section.id)}
-              >
-                <Minus size={18} strokeWidth={2.5} aria-hidden />
-              </button>
-            </div>
-          </div>
-          {section.exerciseIds.length === 0 ? (
-            <p style={{ fontSize: 13, color: '#64748b', padding: '8px 0 4px' }}>
-              {t('builder.noExercises')}
-            </p>
-          ) : (
-            section.exerciseIds.map((eid) => {
-              const ex = getExercise(eid);
-              if (!ex) return null;
-              return (
-                <div
-                  key={eid}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 0',
-                    borderTop: '1px solid rgba(139,92,246,0.1)',
-                  }}
+
+                {section.exerciseIds.map((eid, exIdx) => {
+                  const ex = getExercise(eid);
+                  if (!ex) return null;
+                  const notes = section.notes?.[eid];
+                  const reps = parseReps(notes?.reps);
+                  const springKey = `${section.id}:${eid}`;
+                  return (
+                    <div key={eid} className="builder-ex" data-exercise-id={eid}>
+                      <div
+                        className="builder-ex__grip"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={t('builder.dragAria')}
+                        onPointerDown={(e) => {
+                          if (e.button !== 0) return;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          beginExerciseDrag(section.id, exIdx, e.clientY);
+                        }}
+                      >
+                        <GripVertical size={14} />
+                      </div>
+                      <span className="builder-ex__name">{ex.nameHe}</span>
+                      {isReformer && (
+                        <SpringPicker
+                          setup={notes?.springs}
+                          open={openSpringKey === springKey}
+                          onOpenChange={(open) => {
+                            setOpenMenuId(null);
+                            setOpenSpringKey(open ? springKey : null);
+                          }}
+                          onChange={(springs) => setExerciseSprings(section.id, eid, springs)}
+                        />
+                      )}
+                      <div className="builder-reps">
+                        <button
+                          type="button"
+                          disabled={reps <= MIN_REPS}
+                          aria-label={t('builder.repsLess')}
+                          onClick={() => setExerciseReps(section.id, eid, reps - 1)}
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <input
+                          className="builder-reps__value"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          aria-label={t('builder.reps')}
+                          value={reps === 0 ? '' : String(reps)}
+                          placeholder="0"
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '');
+                            if (digits === '') {
+                              setExerciseReps(section.id, eid, 0);
+                              return;
+                            }
+                            setExerciseReps(section.id, eid, Number(digits));
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={reps >= MAX_REPS}
+                          aria-label={t('builder.repsMore')}
+                          onClick={() => setExerciseReps(section.id, eid, reps + 1)}
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="builder-ex__remove"
+                        aria-label={t('builder.removeExercise')}
+                        onClick={() => removeExercise(section.id, eid)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  className="builder-add-ex"
+                  onClick={() => openExerciseLibrary(section.id)}
                 >
-                  <ExerciseVideo exercise={ex} size="row" />
-                  <span style={{ flex: 1, fontSize: 14 }}>{ex.nameHe}</span>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>{ex.duration} {t('common.min')}</span>
+                  <Plus size={16} />
+                  {section.exerciseIds.length === 0
+                    ? t('builder.addExercise')
+                    : t('builder.addExerciseMore')}
+                </button>
                 </div>
-              );
-            })
-          )}
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            style={{ marginTop: 10, width: '100%' }}
-            onClick={() => openExerciseLibrary(section.id)}
-          >
-            <Plus size={16} /> {t('builder.addExercise')}
-          </button>
-        </div>
-          </Fragment>
+              </div>
+            </Fragment>
           );
         })}
       </div>
+      </div>
 
-      <button
-        type="button"
-        className="btn btn-ghost"
-        style={{ marginTop: 12, width: '100%' }}
-        onClick={addSection}
-      >
+      <button type="button" className="btn btn-ghost builder-add-section" onClick={addSection}>
         <Plus size={16} /> {t('builder.addSection')}
       </button>
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => openExerciseLibrary(timedPlan.sections[0]?.id ?? 's1')}
-        >
-          {t('builder.library')}
-        </button>
-        <button type="button" className="btn btn-primary" onClick={() => navigate('/preview')}>
-          {t('builder.preview')}
-        </button>
-      </div>
+      <details className="builder-extras">
+        <summary>{t('builder.extras')}</summary>
+        <LessonVideoUpload
+          lesson={{
+            coverVideo: lessonDraft.coverVideo ?? undefined,
+            trainingType: lessonDraft.trainingType,
+          }}
+          coverVideo={lessonDraft.coverVideo}
+          onVideoChange={setLessonCoverVideo}
+          alt={lessonDraft.title}
+        />
+      </details>
+
+      {timedPlan.exerciseIds.length === 0 && (
+        <p className="builder-save-hint">{t('builder.needExercises')}</p>
+      )}
     </div>
   );
 }

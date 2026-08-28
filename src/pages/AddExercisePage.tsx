@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, Check, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { ExerciseVideo } from '@/components/ExerciseVideo';
+import { BackButton } from '@/components/IconToolbar';
 import { exercisesPath } from '@/utils/exerciseNav';
 import { categoryLabel, useI18n } from '@/i18n';
 
@@ -79,7 +80,7 @@ export function AddExercisePage() {
 
   return (
     <div className="page fade-in">
-      <button className="back-btn" onClick={() => navigate(libraryPath)}>{t('common.back')}</button>
+      <BackButton to={libraryPath} label={t('common.back')} />
       <h1 className="page-title">{t('exercises.addPageTitle')}</h1>
       <p className="page-subtitle">{t('exercises.addSubtitle')}</p>
 

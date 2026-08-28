@@ -2,7 +2,7 @@ import { lessons, exercises, type Lesson } from './mockData';
 import { getLessonTemplate } from './lessonTemplates';
 import { TRAINING_TYPE_LABELS, type TrainingType } from './trainingTypes';
 import { inferEquipment } from './equipmentTypes';
-import { durationsFromExercises } from '@/utils/lessonDuration';
+import { durationsFromExercises, DEFAULT_CLASS_DURATION } from '@/utils/lessonDuration';
 
 interface InstructorMeta {
   id: string;
@@ -14,7 +14,7 @@ type LessonSeed = Pick<
   'id' | 'title' | 'duration' | 'level' | 'tags' | 'rating' | 'reviews' | 'likes' | 'comments' | 'description'
 >;
 
-/** Build a lesson plan whose section times come from its exercises. */
+/** Build a starter plan. Class length is a studio slot, not a sum of exercises. */
 export function lessonFromTrainingType(
   type: TrainingType,
   instructor: InstructorMeta,
@@ -25,6 +25,7 @@ export function lessonFromTrainingType(
     template.map((section) => ({
       id: `${type}_${section.id}`,
       title: section.title,
+      duration: section.duration,
       exerciseIds: [...section.exerciseIds],
     })),
     exercises
@@ -44,7 +45,7 @@ export function lessonFromTrainingType(
     title: seed?.title ?? `${TRAINING_TYPE_LABELS[type]} Foundations`,
     instructorId: instructor.id,
     instructorName: instructor.name,
-    duration: timed.duration,
+    duration: seed?.duration ?? DEFAULT_CLASS_DURATION,
     level: seed?.level ?? 'Beginner',
     trainingType: type,
     equipment: inferEquipment(type, seed?.tags ?? [TRAINING_TYPE_LABELS[type]]),
@@ -60,6 +61,7 @@ export function lessonFromTrainingType(
     sections,
     isCreated: true,
     isOwned: true,
+    isStarter: true,
     albumImages: [],
   };
 }

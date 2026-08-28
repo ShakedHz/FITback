@@ -1,0 +1,50 @@
+.icon-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.page-toolbar .back-btn {
+  margin-bottom: 0;
+}
+
+.icon-btn {
+  background: rgba(139, 92, 246, 0.15);
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a78bfa;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.icon-btn:hover {
+  background: rgba(139, 92, 246, 0.28);
+}
+
+.icon-btn--danger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
+.icon-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.24);
+}
+
+.icon-btn.is-fav {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
+}

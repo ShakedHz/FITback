@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Star, MessageSquareText, Lightbulb, Pencil, Bot, AlertTriangle, Sparkles,
+  Star, MessageSquareText, Lightbulb, Pencil, Bot, AlertTriangle, Sparkles,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import {
@@ -10,9 +10,11 @@ import {
   primaryAction,
   type AnalyticsPeriod,
 } from '@/data/lessonAnalytics';
+import { BackButton, IconButton, IconToolbar } from '@/components/IconToolbar';
 import { LessonCover } from '@/components/LessonCover';
 import { lessonHasMedia } from '@/utils/lessonCover';
 import { WeeklyBarChart } from '@/components/AnalyticsCharts';
+import { canChooseTrainingType } from '@/data/trainingTypes';
 import { trainingLabel, useI18n } from '@/i18n';
 import '@/components/Analytics.css';
 
@@ -43,7 +45,7 @@ function RatingBars({
 export function LessonAnalyticsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getLessonById, feedbackResponses } = useApp();
+  const { getLessonById, feedbackResponses, instructor } = useApp();
   const { t } = useI18n();
   const [period, setPeriod] = useState<AnalyticsPeriod>('7d');
   const lesson = id ? getLessonById(id) : undefined;
@@ -56,9 +58,7 @@ export function LessonAnalyticsPage() {
   if (!lesson || !analytics) {
     return (
       <div className="page fade-in">
-        <button type="button" className="back-btn" onClick={() => navigate('/analytics')}>
-          <ArrowLeft className="rtl-flip" size={20} /> {t('common.back')}
-        </button>
+        <BackButton to="/analytics" label={t('common.back')} />
         <div className="card" style={{ textAlign: 'center', padding: 32, marginTop: 20 }}>
           <p style={{ color: '#94a3b8' }}>{t('analytics.lessonNotFound')}</p>
         </div>
@@ -72,20 +72,33 @@ export function LessonAnalyticsPage() {
 
   return (
     <div className="page fade-in">
-        <button type="button" className="back-btn" onClick={() => navigate('/analytics')}>
-          <ArrowLeft className="rtl-flip" size={20} /> {t('analytics.backToRatings')}
-        </button>
+      <div className="page-toolbar">
+        <BackButton to="/analytics" label={t('analytics.backToRatings')} />
+        <IconToolbar>
+          <IconButton
+            onClick={() => navigate(`/builder?lessonId=${lesson.id}`)}
+            aria-label={t('analytics.editPlan')}
+          >
+            <Pencil size={18} />
+          </IconButton>
+        </IconToolbar>
+      </div>
 
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 16 }}>
         {lessonHasMedia(lesson) && <LessonCover lesson={lesson} alt={lesson.title} size="md" />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="page-title" style={{ fontSize: 20 }}>{lesson.title}</h1>
           <p className="page-subtitle">
-            {t('analytics.lessonMetaLine', {
-              duration: lesson.duration,
-              type: trainingLabel(lesson.trainingType, t),
-              count: analytics.responseCount,
-            })}
+            {t(
+              canChooseTrainingType(instructor.specialties)
+                ? 'analytics.lessonMetaLine'
+                : 'analytics.lessonMetaLineSolo',
+              {
+                duration: lesson.duration,
+                type: trainingLabel(lesson.trainingType, t),
+                count: analytics.responseCount,
+              }
+            )}
           </p>
         </div>
         <div className="ratings-score-ring ratings-score-ring--lg" style={{ borderColor: scoreColor, color: scoreColor }}>
@@ -120,14 +133,6 @@ export function LessonAnalyticsPage() {
           <h2>{t('analytics.recommended')}</h2>
         </div>
         <p>{action.text}</p>
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          style={{ marginTop: 12, width: '100%' }}
-          onClick={() => navigate(`/builder?lessonId=${lesson.id}`)}
-        >
-          <Pencil size={14} /> {t('analytics.editPlan')}
-        </button>
       </div>
 
       <div className="ratings-kpi-strip" style={{ marginBottom: 16 }}>

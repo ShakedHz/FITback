@@ -1,0 +1,43 @@
+---
+description: Keep FITback UI actions and forms in one visual standard
+alwaysApply: true
+---
+
+# Unified UI
+
+Reuse existing patterns. Do not invent a new control style for the same action.
+
+## Edit / delete / close
+
+Destructive and edit actions are **round icon buttons**, never full-width text buttons.
+
+- Use `IconToolbar` + `IconButton` from `src/components/IconToolbar.tsx`.
+- Trash = `IconButton danger` with `Trash2`.
+- Edit = `IconButton` with `Pencil`.
+- Close = `IconButton` with `X`.
+- On a full page, put them in `page-toolbar` opposite the back button.
+- On a sheet, put them in `IconToolbar` at the top-end (same as the schedule class sheet).
+- Confirm destructive actions before deleting.
+
+## Forms
+
+Stack fields the way the add-class sheet does:
+
+- Label above the control, aligned to the start (RTL-aware, not hardcoded `text-align: right`).
+- Compact steppers (`+/−`) for numbers and time; the value in the middle stays keyboard-editable.
+- Selects are full-width dropdowns, not scattered chip grids.
+- Related fields (time + capacity) sit in a two-column row.
+
+## Lists
+
+- Selectable people/items are checkbox rows, not unlabeled chips.
+- Delete-from-roster stays behind an explicit “edit list” mode, not an always-visible X on each row.
+
+## Back navigation
+
+Use `BackButton` from `src/components/IconToolbar.tsx` with an explicit `to` parent route.
+Never `navigate(-1)` in nested flows (library → lesson → builder → exercises), or back will reopen the previous nested screen.
+
+- Prefer CSS classes over inline styles.
+- Prefer logical CSS (`inset-inline`, `margin-inline`, `text-align: start`) so Hebrew RTL and English LTR both work.
+- Accent color is purple (`#8b5cf6` / `#a78bfa`), not the browser default blue.

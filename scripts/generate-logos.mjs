@@ -1,5 +1,5 @@
 /**
- * Regenerate PNG app icons from public/icon.svg
+ * Regenerate PNG app icons from public/icon-white.svg
  * Run: node scripts/generate-logos.mjs
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -9,7 +9,7 @@ import sharp from 'sharp';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
-const svg = readFileSync(join(root, 'public/icon.svg'));
+const svg = readFileSync(join(root, 'public/icon-white.svg'));
 
 const sizes = [
   { name: 'fitback-logo-192.png', size: 192 },

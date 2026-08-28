@@ -34,6 +34,11 @@ export function getTrainingTypeLabel(type: TrainingType): string {
   return TRAINING_TYPE_LABELS[type];
 }
 
+/** Type pickers only make sense when the instructor teaches more than one class type. */
+export function canChooseTrainingType(specialties?: TrainingType[] | null): boolean {
+  return (specialties?.length ?? 0) > 1;
+}
+
 /** Auto bio from selected class types — no free-text needed at signup. */
 export function bioFromSpecialties(specialties: TrainingType[]): string {
   const labels = specialties.map((type) => TRAINING_TYPE_LABELS[type]);

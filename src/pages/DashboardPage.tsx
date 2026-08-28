@@ -8,7 +8,6 @@ import {
   Link2,
   BarChart3,
   Library,
-  PlusCircle,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { avatarColorForName } from '@/components/InstructorAvatar';
@@ -20,15 +19,14 @@ import {
   getEventColors,
   shouldShowEventType,
 } from '@/data/scheduleTypes';
-import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
+import { TRAINING_TYPE_COLORS, canChooseTrainingType } from '@/data/trainingTypes';
 import { eventCategoryLabel, trainingLabel, useI18n } from '@/i18n';
 import './Dashboard.css';
 
 const QUICK_ACTIONS = [
-  { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule', color: '#a78bfa', img: '/exercises/e10-child-pose.png' },
-  { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', color: '#34d399', img: '/exercises/e5-criss-cross.png' },
-  { path: '/library', icon: Library, labelKey: 'nav.library', color: '#60a5fa', img: '/exercises/e9-spine-stretch.png' },
-  { path: '/create', icon: PlusCircle, labelKey: 'dashboard.newLesson', color: '#f472b6', img: '/exercises/e6-swan-dive.png' },
+  { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule', color: '#a78bfa' },
+  { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', color: '#34d399' },
+  { path: '/library', icon: Library, labelKey: 'nav.library', color: '#60a5fa' },
 ] as const;
 
 function getGreetingKey(): string {
@@ -177,7 +175,9 @@ export function DashboardPage() {
                       <div className="dashboard-today__event-body">
                         <span className="dashboard-today__event-title">{ev.title}</span>
                         <span className="dashboard-today__event-type">
-                          {shouldShowEventType(ev) ? `${eventCategoryLabel(getEventCategory(ev), t)} · ` : ''}
+                          {canChooseTrainingType(instructor.specialties) && shouldShowEventType(ev)
+                            ? `${eventCategoryLabel(getEventCategory(ev), t)} · `
+                            : ''}
                           {ev.enrolled != null ? t('dashboard.clientsOnEvent', { count: ev.enrolled }) : ''}
                         </span>
                       </div>
@@ -203,17 +203,15 @@ export function DashboardPage() {
       <section className="dashboard-block dashboard-block--last">
         <h2 className="dashboard-section-label">{t('dashboard.shortcuts')}</h2>
         <div className="dashboard-quick__grid">
-          {QUICK_ACTIONS.map(({ path, icon: Icon, labelKey, color, img }) => (
+          {QUICK_ACTIONS.map(({ path, icon: Icon, labelKey, color }) => (
             <button
               key={path}
               type="button"
               className="dashboard-action-card"
               onClick={() => navigate(path)}
             >
-              <img className="dashboard-action-card__img" src={img} alt="" aria-hidden />
-              <div className="dashboard-action-card__overlay" />
               <div className="dashboard-action-card__body">
-                <Icon size={15} color={color} />
+                <Icon size={18} color={color} />
                 <span className="dashboard-action-card__title">{t(labelKey)}</span>
               </div>
             </button>

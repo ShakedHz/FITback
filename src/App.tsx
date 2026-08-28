@@ -14,14 +14,12 @@ import { AiLessonPage } from '@/pages/AiLessonPage';
 import { LessonBuilderPage } from '@/pages/LessonBuilderPage';
 import { ExerciseLibraryPage } from '@/pages/ExerciseLibraryPage';
 import { AddExercisePage } from '@/pages/AddExercisePage';
-import { LessonPreviewPage } from '@/pages/LessonPreviewPage';
 import { FeedbackPage } from '@/pages/FeedbackPage';
 import { AnalyticsHubPage } from '@/pages/AnalyticsHubPage';
 import { LessonAnalyticsPage } from '@/pages/LessonAnalyticsPage';
 import { SchedulePage } from '@/pages/SchedulePage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
-import { WeeklySurveyPage } from '@/pages/WeeklySurveyPage';
 import { ScrollToTop } from '@/components/ScrollToTop';
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -52,9 +50,7 @@ function AppLayout() {
           <Route path="/builder" element={<Guard><LessonBuilderPage /></Guard>} />
           <Route path="/exercises" element={<Guard><ExerciseLibraryPage /></Guard>} />
           <Route path="/exercises/new" element={<Guard><AddExercisePage /></Guard>} />
-          <Route path="/preview" element={<Guard><LessonPreviewPage /></Guard>} />
           <Route path="/profile" element={<Guard><ProfilePage /></Guard>} />
-          <Route path="/survey" element={<Guard><WeeklySurveyPage /></Guard>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

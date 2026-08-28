@@ -26,3 +26,9 @@ export function inferEquipment(
   if (tags.some((t) => /reformer|Reformer/i.test(t))) return 'reformer';
   return DEFAULT_EQUIPMENT[trainingType];
 }
+
+/** New pilates plans default to reformer so springs/props are available. */
+export function defaultPlanEquipment(trainingType: TrainingType): EquipmentType {
+  if (trainingType === 'pilates') return 'reformer';
+  return DEFAULT_EQUIPMENT[trainingType];
+}

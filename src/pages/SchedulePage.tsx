@@ -1,28 +1,27 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
   ChevronLeft,
-  Link2,
+  ChevronDown,
   MapPin,
   User,
   Users,
   X,
   Plus,
+  Minus,
+  Pencil,
+  Trash2,
   Clock,
   CalendarPlus,
   MessageSquare,
   BookOpen,
-  Unlink,
-  Check,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
-import { BRAND } from '@/data/brand';
-import {
-  buildClassSurveyUrl,
-} from '@/services/classFeedback';
-import { loadSurveyClients, type SurveyClient } from '@/services/surveyClients';
+import { type SurveyClient } from '@/services/surveyClients';
+import { ClientPicker } from '@/components/ClientPicker';
+import { IconButton, IconToolbar } from '@/components/IconToolbar';
 import {
   addDays,
   formatWeekRange,
@@ -35,18 +34,20 @@ import {
   getEventCategory,
   getEventColors,
   shouldShowEventType,
-  TIME_SLOTS,
   canAttachPlanToEvent,
   isOwnEvent,
   type ScheduleEvent,
 } from '@/data/scheduleTypes';
-import { TRAINING_TYPES, TRAINING_TYPE_COLORS, type TrainingType } from '@/data/trainingTypes';
+import { TRAINING_TYPES, canChooseTrainingType, type TrainingType } from '@/data/trainingTypes';
 import { equipmentLabel, eventCategoryLabel, trainingLabel, useI18n } from '@/i18n';
 import '@/components/Schedule.css';
 
+const DEFAULT_CAPACITY = 10;
+const MAX_CAPACITY = 60;
+const TIME_STEP_MINUTES = 15;
+
 type ViewMode = 'day' | 'week';
-type AddStep = 'type' | 'lesson';
-type SheetMode = 'add' | 'attach';
+type SheetMode = 'add' | 'attach' | 'edit';
 
 function ScheduleOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   const shell = document.getElementById('app-shell');
@@ -67,32 +68,64 @@ function isClientOnEvent(event: ScheduleEvent, client: SurveyClient): boolean {
 }
 
 export function SchedulePage() {
-  const navigate = useNavigate();
   const {
+    instructor,
     weekStart,
     setWeekStart,
     scheduleEvents,
     arboxConnection,
     addLessonToSchedule,
+    updateScheduleEvent,
     removeScheduleEvent,
     attachLessonPlan,
-    detachLessonPlan,
-    toggleEventAttendee,
     schedulableLessons,
     setLinkedInstructor,
+    rosterClients,
+    arboxClients,
   } = useApp();
   const { t, dateLocale, locale } = useI18n();
+  const showTypeChoice = canChooseTrainingType(instructor.specialties);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [selectedDay, setSelectedDay] = useState<Date>(() => startOfDay(new Date()));
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [sheetMode, setSheetMode] = useState<SheetMode>('add');
-  const [addStep, setAddStep] = useState<AddStep>('type');
   const [addTrainingType, setAddTrainingType] = useState<TrainingType | null>(null);
   const [addLessonId, setAddLessonId] = useState<string | null>(null);
   const [addTime, setAddTime] = useState('10:00');
-  const [rosterClients, setRosterClients] = useState<SurveyClient[]>(() => loadSurveyClients());
+  const [addClientIds, setAddClientIds] = useState<string[]>([]);
+  const [addCapacity, setAddCapacity] = useState(DEFAULT_CAPACITY);
+  const [capacityWarning, setCapacityWarning] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(false);
+
+  const attachLessonId = searchParams.get('attachLessonId');
+
+  useEffect(() => {
+    if (!attachLessonId) return;
+    if (schedulableLessons.length === 0) return;
+    const lesson = schedulableLessons.find((l) => l.id === attachLessonId);
+    const next = new URLSearchParams(searchParams);
+    next.delete('attachLessonId');
+    setSearchParams(next, { replace: true });
+    if (!lesson) return;
+
+    setSheetMode('add');
+    setAddTrainingType(lesson.trainingType);
+    setAddLessonId(lesson.id);
+    setAddTime('10:00');
+    setAddClientIds([]);
+    setAddCapacity(DEFAULT_CAPACITY);
+    setCapacityWarning(false);
+    setShowAddSheet(true);
+    setViewMode('day');
+  }, [attachLessonId, schedulableLessons, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    setCapacityWarning(false);
+    setEditingEvent(false);
+  }, [selectedEvent?.id]);
 
   // Keep event sheet in sync when attendees / feedback status change
   useEffect(() => {
@@ -101,11 +134,6 @@ export function SchedulePage() {
     if (fresh) setSelectedEvent(fresh);
     else setSelectedEvent(null);
   }, [scheduleEvents, selectedEvent?.id]);
-
-  // Refresh roster when opening a class (clients are managed on Survey)
-  useEffect(() => {
-    if (selectedEvent) setRosterClients(loadSurveyClients());
-  }, [selectedEvent?.id]);
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -171,16 +199,57 @@ export function SchedulePage() {
   }, [schedulableLessons]);
 
   const lessonsForType = useMemo(() => {
-    if (!addTrainingType) return [];
+    if (!addTrainingType) return schedulableLessons;
     return schedulableLessons.filter((l) => l.trainingType === addTrainingType);
   }, [schedulableLessons, addTrainingType]);
 
+  const selectedLesson = useMemo(
+    () => schedulableLessons.find((l) => l.id === addLessonId) ?? null,
+    [schedulableLessons, addLessonId]
+  );
+
+  const isLiveArbox = arboxConnection.connected && arboxConnection.dataSource === 'live';
+
+  // Connected studios keep their roster in Arbox; otherwise it is the local list.
+  const pickerClients = useMemo<SurveyClient[]>(() => {
+    if (!isLiveArbox) return rosterClients;
+    return arboxClients.map((client) => ({
+      id: client.id,
+      name: client.name,
+      phone: client.phone ?? '',
+      createdAt: '',
+    }));
+  }, [isLiveArbox, arboxClients, rosterClients]);
+
+  // The arrows jump between round quarter-hours; typing still allows any time.
+  const shiftTime = (delta: number) => {
+    const [hours, minutes] = addTime.split(':').map(Number);
+    const current = (hours || 0) * 60 + (minutes || 0);
+    const snapped =
+      delta > 0
+        ? Math.floor(current / TIME_STEP_MINUTES) * TIME_STEP_MINUTES + delta
+        : Math.ceil(current / TIME_STEP_MINUTES) * TIME_STEP_MINUTES + delta;
+    const next = ((snapped % 1440) + 1440) % 1440;
+    setAddTime(
+      `${String(Math.floor(next / 60)).padStart(2, '0')}:${String(next % 60).padStart(2, '0')}`
+    );
+  };
+
+  const changeCapacity = (delta: number) => {
+    setCapacityWarning(false);
+    setAddCapacity((prev) =>
+      Math.min(MAX_CAPACITY, Math.max(Math.max(1, addClientIds.length), prev + delta))
+    );
+  };
+
   const openAddSheet = () => {
     setSheetMode('add');
-    setAddStep('type');
     setAddTrainingType(null);
     setAddLessonId(null);
     setAddTime('10:00');
+    setAddClientIds([]);
+    setAddCapacity(DEFAULT_CAPACITY);
+    setCapacityWarning(false);
     setShowAddSheet(true);
     if (viewMode === 'week') setViewMode('day');
   };
@@ -189,31 +258,66 @@ export function SchedulePage() {
     if (!canAttachPlanToEvent(event, arboxConnection)) return;
     setSelectedEvent(event);
     setSheetMode('attach');
-    setAddStep('type');
     setAddTrainingType(null);
     setAddLessonId(null);
     setShowAddSheet(true);
   };
 
+  // Editing reuses the add sheet, pre-filled with what the class holds today.
+  const openEditSheet = (event: ScheduleEvent) => {
+    const lesson = schedulableLessons.find(
+      (l) => l.id === event.lessonId || l.id === event.lessonPlanId
+    );
+    const attending = pickerClients.filter((client) => isClientOnEvent(event, client));
+
+    setSelectedEvent(event);
+    setSheetMode('edit');
+    setSelectedDay(startOfDay(new Date(event.start)));
+    setAddTrainingType(lesson?.trainingType ?? null);
+    setAddLessonId(lesson?.id ?? null);
+    setAddTime(getEventTime(event));
+    setAddClientIds(attending.map((client) => client.id));
+    setAddCapacity(event.capacity ?? Math.max(DEFAULT_CAPACITY, attending.length));
+    setCapacityWarning(false);
+    setShowAddSheet(true);
+  };
+
   const closeAddSheet = () => {
     setShowAddSheet(false);
-    setAddStep('type');
     setAddTrainingType(null);
     setAddLessonId(null);
+    setAddClientIds([]);
+    setAddCapacity(DEFAULT_CAPACITY);
+    setCapacityWarning(false);
     setSheetMode('add');
   };
 
-  const selectTrainingType = (type: TrainingType) => {
-    setAddTrainingType(type);
-    const first = schedulableLessons.find((l) => l.trainingType === type);
-    setAddLessonId(first?.id ?? null);
-    setAddStep('lesson');
+  const toggleAddClient = (client: SurveyClient) => {
+    setAddClientIds((prev) => {
+      if (prev.includes(client.id)) {
+        setCapacityWarning(false);
+        return prev.filter((id) => id !== client.id);
+      }
+      if (prev.length >= addCapacity) {
+        setCapacityWarning(true);
+        return prev;
+      }
+      setCapacityWarning(false);
+      return [...prev, client.id];
+    });
   };
 
-  const backToTypeStep = () => {
-    setAddStep('type');
-    setAddLessonId(null);
+  const selectTrainingType = (next: TrainingType | null) => {
+    setAddTrainingType(next);
+    if (next && !schedulableLessons.some((l) => l.id === addLessonId && l.trainingType === next)) {
+      setAddLessonId(null);
+    }
   };
+
+  // Classes created here always belong to the signed-in instructor, even if they
+  // were saved before she signed in.
+  const instructorNameFor = (event: ScheduleEvent) =>
+    event.source === 'flowpilates' ? instructor.name : event.instructor;
 
   const confirmAdd = () => {
     if (!addLessonId) return;
@@ -235,7 +339,23 @@ export function SchedulePage() {
       return;
     }
 
-    addLessonToSchedule(addLessonId, selectedKey, addTime);
+    if (sheetMode === 'edit' && selectedEvent) {
+      updateScheduleEvent(selectedEvent.id, {
+        lessonId: addLessonId,
+        dateKey: selectedKey,
+        time: addTime,
+        rosterClients: pickerClients.filter((c) => addClientIds.includes(c.id)),
+        capacity: addCapacity,
+      });
+      closeAddSheet();
+      setSelectedEvent(null);
+      return;
+    }
+
+    addLessonToSchedule(addLessonId, selectedKey, addTime, {
+      rosterClients: pickerClients.filter((c) => addClientIds.includes(c.id)),
+      capacity: addCapacity,
+    });
     closeAddSheet();
   };
 
@@ -272,14 +392,13 @@ export function SchedulePage() {
             <span className="schedule-card__title">{ev.title}</span>
           </div>
           <div className="schedule-card__meta">
-            {shouldShowEventType(ev) && (
+            {showTypeChoice && shouldShowEventType(ev) && (
               <span className="schedule-card__type">{eventCategoryLabel(getEventCategory(ev), t)}</span>
             )}
             {ev.location && <span>· {ev.location}</span>}
-            {ev.instructor && <span>· {ev.instructor}</span>}
+            {instructorNameFor(ev) && <span>· {instructorNameFor(ev)}</span>}
             {own && <span className="schedule-card__tag schedule-card__tag--own">{t('common.you')}</span>}
             {otherInstructor && <span className="schedule-card__tag schedule-card__tag--other">{t('schedule.viewOnly')}</span>}
-            {ev.source === 'flowpilates' && <span className="schedule-card__tag">{BRAND.name}</span>}
             {ev.feedbackSentAt && <span className="schedule-card__tag schedule-card__tag--sent">{t('schedule.surveySent')}</span>}
           </div>
           {showPlanStatus && (
@@ -460,13 +579,13 @@ export function SchedulePage() {
                 <h2>
                   {sheetMode === 'attach'
                     ? t('schedule.attachPlan')
-                    : addStep === 'type'
-                      ? t('schedule.addClass')
-                      : t('schedule.selectLesson')}
+                    : sheetMode === 'edit'
+                      ? t('schedule.editClass')
+                      : t('schedule.addClass')}
                 </h2>
-                <button type="button" className="schedule-sheet__close" onClick={closeAddSheet} aria-label={t('common.close')}>
+                <IconButton onClick={closeAddSheet} aria-label={t('common.close')}>
                   <X size={20} />
-                </button>
+                </IconButton>
               </div>
               <p className="schedule-sheet__date">
                 {sheetMode === 'attach' && selectedEvent
@@ -478,100 +597,174 @@ export function SchedulePage() {
                   {t('schedule.attachOwnOnly')}
                 </p>
               )}
-              {addStep === 'lesson' && addTrainingType && (
-                <button type="button" className="schedule-sheet__back-type" onClick={backToTypeStep}>
-                  ← {trainingLabel(addTrainingType, t)}
-                </button>
-              )}
             </div>
 
             <div className="schedule-sheet__body">
-              {addStep === 'type' && (
-                <>
-                  <p className="schedule-sheet__label">{t('schedule.trainingType')}</p>
-                  <div className="schedule-type-grid">
-                    {availableTypes.map((type) => {
-                      const colors = TRAINING_TYPE_COLORS[type];
-                      const count = schedulableLessons.filter((l) => l.trainingType === type).length;
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          className="schedule-type-pick"
-                          style={{
-                            background: colors.bg,
-                            borderColor: colors.border,
-                            color: colors.text,
-                          }}
-                          onClick={() => selectTrainingType(type)}
-                        >
-                          <span className="schedule-type-pick__label">{trainingLabel(type, t)}</span>
-                          <span className="schedule-type-pick__count">{t('schedule.lessonsCount', { count })}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              {addStep === 'lesson' && addTrainingType && (
-                <>
-                  <p className="schedule-sheet__label">{t('schedule.lessonPlan')}</p>
-                  <div className="schedule-sheet__lessons">
-                    {lessonsForType.map((lesson) => (
-                      <button
-                        key={lesson.id}
-                        type="button"
-                        className={`schedule-pick ${addLessonId === lesson.id ? 'schedule-pick--on' : ''}`}
-                        onClick={() => setAddLessonId(lesson.id)}
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('text/lesson-id', lesson.id);
-                        }}
+              <section className="schedule-group">
+                {showTypeChoice && (
+                  <div className="schedule-field">
+                    <label className="schedule-field__label" htmlFor="add-training-type">
+                      {t('schedule.trainingType')}
+                    </label>
+                    <div className="schedule-field__control">
+                      <select
+                        id="add-training-type"
+                        value={addTrainingType ?? ''}
+                        onChange={(e) =>
+                          selectTrainingType((e.target.value || null) as TrainingType | null)
+                        }
                       >
-                        <span className="schedule-pick__title">{lesson.title}</span>
-                        <span className="schedule-pick__meta">
-                          {equipmentLabel(lesson.equipment, t)} · {lesson.duration} {t('common.min')}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {sheetMode === 'add' && (
-                    <>
-                      <p className="schedule-sheet__label">{t('schedule.time')}</p>
-                      <div className="schedule-sheet__times">
-                        {TIME_SLOTS.map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            className={`schedule-time ${addTime === t ? 'schedule-time--on' : ''}`}
-                            onClick={() => setAddTime(t)}
-                          >
-                            {t}
-                          </button>
+                        <option value="">{t('schedule.allTypes')}</option>
+                        {availableTypes.map((type) => (
+                          <option key={type} value={type}>
+                            {trainingLabel(type, t)}
+                          </option>
                         ))}
-                      </div>
-                    </>
+                      </select>
+                      <ChevronDown size={16} className="schedule-field__chevron" aria-hidden />
+                    </div>
+                  </div>
+                )}
+
+                <div className="schedule-field">
+                  <label className="schedule-field__label" htmlFor="add-lesson-plan">
+                    {t('schedule.lessonPlan')}
+                  </label>
+                  <div className="schedule-field__control">
+                    <select
+                      id="add-lesson-plan"
+                      value={addLessonId ?? ''}
+                      disabled={lessonsForType.length === 0}
+                      onChange={(e) => setAddLessonId(e.target.value || null)}
+                    >
+                      <option value="">
+                        {lessonsForType.length === 0
+                          ? t('schedule.noLessons')
+                          : t('schedule.choosePlan')}
+                      </option>
+                      {lessonsForType.map((lesson) => (
+                        <option key={lesson.id} value={lesson.id}>
+                          {lesson.title}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="schedule-field__chevron" aria-hidden />
+                  </div>
+                  {selectedLesson && (
+                    <p className="schedule-field__meta">
+                      {equipmentLabel(selectedLesson.equipment, t)} · {selectedLesson.duration}{' '}
+                      {t('common.min')}
+                    </p>
                   )}
-                </>
+                </div>
+
+                {sheetMode !== 'attach' && (
+                  <div className="schedule-field-row">
+                    <div className="schedule-field">
+                      <label className="schedule-field__label" htmlFor="add-time">
+                        {t('schedule.time')}
+                      </label>
+                      <div className="schedule-stepper">
+                        <button
+                          type="button"
+                          onClick={() => shiftTime(-TIME_STEP_MINUTES)}
+                          aria-label={t('schedule.timeEarlier')}
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <input
+                          id="add-time"
+                          className="schedule-stepper__time"
+                          type="time"
+                          step={300}
+                          value={addTime}
+                          onChange={(e) => setAddTime(e.target.value || addTime)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => shiftTime(TIME_STEP_MINUTES)}
+                          aria-label={t('schedule.timeLater')}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="schedule-field">
+                      <span className="schedule-field__label">{t('schedule.capacity')}</span>
+                      <div className="schedule-stepper">
+                        <button
+                          type="button"
+                          onClick={() => changeCapacity(-1)}
+                          disabled={addCapacity <= Math.max(1, addClientIds.length)}
+                          aria-label={t('schedule.capacityLess')}
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <span className="schedule-stepper__value">{addCapacity}</span>
+                        <button
+                          type="button"
+                          onClick={() => changeCapacity(1)}
+                          disabled={addCapacity >= MAX_CAPACITY}
+                          aria-label={t('schedule.capacityMore')}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {sheetMode !== 'attach' && (
+                <section className="schedule-group">
+                  <div className="schedule-clients__head">
+                    <span className="schedule-field__label">{t('schedule.clients')}</span>
+                    <span
+                      className="schedule-clients__count"
+                      title={t('schedule.selectedOfCapacity', {
+                        count: addClientIds.length,
+                        capacity: addCapacity,
+                      })}
+                    >
+                      {addClientIds.length}/{addCapacity}
+                    </span>
+                  </div>
+                  {isLiveArbox && (
+                    <p className="schedule-attendees__hint">{t('schedule.clientsFromArbox')}</p>
+                  )}
+                  <ClientPicker
+                    clients={pickerClients}
+                    isSelected={(client) => addClientIds.includes(client.id)}
+                    onToggle={toggleAddClient}
+                    canManage={!isLiveArbox}
+                    emptyLabel={isLiveArbox ? t('schedule.noArboxClients') : undefined}
+                    onAdded={(client) => setAddClientIds((prev) => [...prev, client.id])}
+                    onRemoved={(client) =>
+                      setAddClientIds((prev) => prev.filter((id) => id !== client.id))
+                    }
+                  />
+                  {capacityWarning && (
+                    <p className="schedule-attendees__full">{t('schedule.capacityReached')}</p>
+                  )}
+                </section>
               )}
             </div>
 
-            {addStep === 'lesson' && (
-              <div className="schedule-sheet__footer">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={!addLessonId}
-                  onClick={confirmAdd}
-                >
-                  {sheetMode === 'attach'
-                    ? t('schedule.attachToSlot')
+            <div className="schedule-sheet__footer">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!addLessonId}
+                onClick={confirmAdd}
+              >
+                {sheetMode === 'attach'
+                  ? t('schedule.attachToSlot')
+                  : sheetMode === 'edit'
+                    ? t('schedule.saveChanges')
                     : t('schedule.addAtTime', { time: addTime })}
-                </button>
-              </div>
-            )}
+              </button>
+            </div>
           </div>
         </ScheduleOverlay>
       )}
@@ -583,16 +776,42 @@ export function SchedulePage() {
               className="schedule-sheet__accent"
               style={{ backgroundColor: getEventColors(selectedEvent).bg }}
             />
-            <button type="button" className="schedule-sheet__close" onClick={() => setSelectedEvent(null)}>
-              <X size={20} />
-            </button>
+            <IconToolbar className="schedule-sheet__toolbar">
+              {selectedEvent.source === 'flowpilates' && (
+                <IconButton
+                  danger
+                  onClick={() => {
+                    removeScheduleEvent(selectedEvent.id);
+                    setSelectedEvent(null);
+                  }}
+                  aria-label={t('schedule.removeFromSchedule')}
+                >
+                  <Trash2 size={18} />
+                </IconButton>
+              )}
+              {!editingEvent && canAttachPlanToEvent(selectedEvent, arboxConnection) && (
+                <IconButton
+                  onClick={() =>
+                    selectedEvent.source === 'flowpilates'
+                      ? openEditSheet(selectedEvent)
+                      : setEditingEvent(true)
+                  }
+                  aria-label={t('schedule.edit')}
+                >
+                  <Pencil size={18} />
+                </IconButton>
+              )}
+              <IconButton onClick={() => setSelectedEvent(null)} aria-label={t('common.close')}>
+                <X size={20} />
+              </IconButton>
+            </IconToolbar>
             <h2 className="schedule-sheet__title">{selectedEvent.title}</h2>
             <p className="schedule-sheet__sub">
               <Clock size={14} />
               {getEventTime(selectedEvent)} · {selectedEvent.duration} {t('common.min')}
             </p>
             <div className="schedule-sheet__details">
-              {shouldShowEventType(selectedEvent) && (
+              {showTypeChoice && shouldShowEventType(selectedEvent) && (
                 <div className="schedule-sheet__row">
                   <span
                     className="schedule-sheet__category"
@@ -602,11 +821,14 @@ export function SchedulePage() {
                   </span>
                 </div>
               )}
-              {selectedEvent.location && (
+              {selectedEvent.location && selectedEvent.source === 'arbox' && (
                 <div className="schedule-sheet__row"><MapPin size={16} /><span>{selectedEvent.location}</span></div>
               )}
-              {selectedEvent.instructor && (
-                <div className="schedule-sheet__row"><User size={16} /><span>{selectedEvent.instructor}</span></div>
+              {instructorNameFor(selectedEvent) && (
+                <div className="schedule-sheet__row">
+                  <User size={16} />
+                  <span>{instructorNameFor(selectedEvent)}</span>
+                </div>
               )}
               {selectedEvent.enrolled != null && selectedEvent.capacity != null && (
                 <div className="schedule-sheet__row">
@@ -614,21 +836,6 @@ export function SchedulePage() {
                   <span>{t('schedule.enrolledOf', { enrolled: selectedEvent.enrolled, capacity: selectedEvent.capacity })}</span>
                 </div>
               )}
-              <div className="schedule-sheet__row">
-                <Link2 size={16} />
-                <span>{selectedEvent.source === 'arbox' ? 'Arbox' : BRAND.name}</span>
-              </div>
-              {selectedEvent.lessonPlanTitle ? (
-                <div className="schedule-sheet__row schedule-sheet__row--plan">
-                  <BookOpen size={16} />
-                  <span>{selectedEvent.lessonPlanTitle}</span>
-                </div>
-              ) : canAttachPlanToEvent(selectedEvent, arboxConnection) ? (
-                <div className="schedule-sheet__row schedule-sheet__row--plan schedule-sheet__row--plan-missing">
-                  <BookOpen size={16} />
-                  <span>{t('schedule.noPlanAttached')}</span>
-                </div>
-              ) : null}
               {selectedEvent.feedbackSentAt && (
                 <div className="schedule-sheet__row">
                   <MessageSquare size={16} />
@@ -676,77 +883,23 @@ export function SchedulePage() {
                     <p className="schedule-attendees__selected">{t('schedule.feedbackAlready')}</p>
                   )}
                 </>
+              ) : (selectedEvent.attendees ?? []).length > 0 ? (
+                <ul className="schedule-attendees__roster">
+                  {(selectedEvent.attendees ?? []).map((attendee) => (
+                    <li key={attendee.id} className="schedule-attendees__roster-item">
+                      <span className="schedule-attendees__name">{attendee.name}</span>
+                    </li>
+                  ))}
+                </ul>
               ) : (
-                <>
-                  <p className="schedule-attendees__hint">
-                    {t('schedule.selectAttended')}
-                  </p>
-
-                  {rosterClients.length === 0 ? (
-                    <div className="schedule-attendees__empty-block">
-                      <p className="schedule-attendees__empty">{t('schedule.noClientsYet')}</p>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setSelectedEvent(null);
-                          navigate('/survey');
-                        }}
-                      >
-                        <Plus size={14} /> {t('schedule.addInClients')}
-                      </button>
-                    </div>
-                  ) : (
-                    <ul className="schedule-attendees__pick">
-                      {rosterClients.map((client) => {
-                        const on = isClientOnEvent(selectedEvent, client);
-                        return (
-                          <li key={client.id}>
-                            <button
-                              type="button"
-                              className={`schedule-attendees__pick-btn${on ? ' schedule-attendees__pick-btn--on' : ''}`}
-                              onClick={() => toggleEventAttendee(selectedEvent.id, client)}
-                            >
-                              <span className="schedule-attendees__pick-check" aria-hidden>
-                                {on ? <Check size={14} /> : null}
-                              </span>
-                              <span className="schedule-attendees__pick-body">
-                                <span className="schedule-attendees__name">{client.name}</span>
-                                <span className="schedule-attendees__phone">{client.phone}</span>
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-
-                  {(selectedEvent.attendees ?? []).length > 0 && (
-                    <p className="schedule-attendees__selected">
-                      {t('schedule.selectedCount', { count: (selectedEvent.attendees ?? []).length })}
-                    </p>
-                  )}
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ marginTop: 10 }}
-                    onClick={() => {
-                      const url = new URL(buildClassSurveyUrl(selectedEvent));
-                      setSelectedEvent(null);
-                      navigate(`${url.pathname}${url.search}`);
-                    }}
-                  >
-                    <MessageSquare size={14} /> {t('schedule.previewForm')}
-                  </button>
-                </>
+                <p className="schedule-attendees__empty">{t('schedule.noneOnClass')}</p>
               )}
             </div>
 
-            {canAttachPlanToEvent(selectedEvent, arboxConnection) && (
+            {editingEvent && canAttachPlanToEvent(selectedEvent, arboxConnection) && (
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-secondary"
                 style={{ marginTop: 12 }}
                 onClick={() => openAttachSheet(selectedEvent)}
               >
@@ -755,32 +908,17 @@ export function SchedulePage() {
               </button>
             )}
 
-            {selectedEvent.lessonPlanId && canAttachPlanToEvent(selectedEvent, arboxConnection) && (
+            {editingEvent && (
               <button
                 type="button"
-                className="schedule-sheet__detach"
-                onClick={() => {
-                  detachLessonPlan(selectedEvent.id);
-                  setSelectedEvent({
-                    ...selectedEvent,
-                    lessonPlanId: undefined,
-                    lessonPlanTitle: undefined,
-                  });
-                }}
+                className="btn btn-primary"
+                style={{ marginTop: 8 }}
+                onClick={() => setEditingEvent(false)}
               >
-                <Unlink size={16} /> {t('schedule.removePlan')}
+                {t('schedule.doneEditing')}
               </button>
             )}
 
-            {selectedEvent.source === 'flowpilates' && (
-              <button
-                type="button"
-                className="schedule-sheet__delete"
-                onClick={() => { removeScheduleEvent(selectedEvent.id); setSelectedEvent(null); }}
-              >
-                {t('schedule.removeFromSchedule')}
-              </button>
-            )}
           </div>
         </ScheduleOverlay>
       )}

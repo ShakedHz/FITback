@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bot, Sparkles, Star, MessageSquareText, BookOpen, ArrowRight, RefreshCw } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { suggestLessonFromClientData, type AiLessonSuggestion } from '@/data/aiLessonSuggest';
 import { hasSurveyResults } from '@/data/lessonAnalytics';
-import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
+import { defaultPlanEquipment } from '@/data/equipmentTypes';
+import { TRAINING_TYPE_COLORS, canChooseTrainingType } from '@/data/trainingTypes';
+import { BackButton } from '@/components/IconToolbar';
 import { LessonCover } from '@/components/LessonCover';
 import { exercises } from '@/data/mockData';
 import { trainingLabel, useI18n } from '@/i18n';
@@ -12,6 +14,9 @@ import './AiLesson.css';
 
 export function AiLessonPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromLibrary = searchParams.get('from') === 'library';
+  const backTo = fromLibrary ? '/library' : '/create';
   const { createdLessons, instructor, setLessonDraft } = useApp();
   const { t } = useI18n();
   const [phase, setPhase] = useState<'loading' | 'ready'>('loading');
@@ -50,21 +55,23 @@ export function AiLessonPage() {
       description: suggestion.draft.description,
       duration: suggestion.draft.duration,
       trainingType: suggestion.draft.trainingType,
+      equipment: defaultPlanEquipment(suggestion.draft.trainingType),
+      props: [],
+      focus: suggestion.draft.focus ?? '',
+      level: 'Intermediate',
       coverVideo: suggestion.draft.coverVideo,
       albumImages: suggestion.draft.albumImages,
       exerciseIds: suggestion.draft.exerciseIds,
       sections: suggestion.draft.sections,
       sourceLessonId: undefined,
     });
-    navigate('/builder?ai=1');
+    navigate(fromLibrary ? '/builder?ai=1&from=library' : '/builder?ai=1');
   };
 
   if (createdLessons.length === 0 || !hasSurveyResults()) {
     return (
       <div className="page fade-in">
-        <button type="button" className="back-btn" onClick={() => navigate('/create')}>
-          {t('common.back')}
-        </button>
+        <BackButton to={backTo} label={t('common.back')} />
         <div className="card" style={{ textAlign: 'center', padding: 32, marginTop: 20 }}>
           <Bot size={40} color="#a78bfa" style={{ marginBottom: 12 }} />
           <p style={{ fontWeight: 600, marginBottom: 8 }}>
@@ -79,7 +86,7 @@ export function AiLessonPage() {
             type="button"
             className="btn btn-primary"
             style={{ marginTop: 16 }}
-            onClick={() => navigate(createdLessons.length === 0 ? '/create' : '/survey')}
+            onClick={() => navigate(createdLessons.length === 0 ? '/create' : '/schedule')}
           >
             {createdLessons.length === 0 ? t('ai.createManually') : t('ai.goSurvey')}
           </button>
@@ -91,9 +98,7 @@ export function AiLessonPage() {
   if (phase === 'loading' || !suggestion) {
     return (
       <div className="page fade-in ai-lesson-loading">
-        <button type="button" className="back-btn" onClick={() => navigate('/create')}>
-          {t('common.back')}
-        </button>
+        <BackButton to={backTo} label={t('common.back')} />
         <div className="ai-lesson-loading__card card card-glow">
           <div className="ai-lesson-loading__icon">
             <Bot size={32} color="#c4b5fd" />
@@ -121,9 +126,7 @@ export function AiLessonPage() {
 
   return (
     <div className="page fade-in">
-      <button type="button" className="back-btn" onClick={() => navigate('/create')}>
-        {t('common.back')}
-      </button>
+      <BackButton to={backTo} label={t('common.back')} />
 
       <div className="page-header">
         <div className="ai-lesson-badge">
@@ -155,16 +158,18 @@ export function AiLessonPage() {
             <LessonCover lesson={coverLesson} alt={draft.title} size="md" />
           </div>
         )}
-        <span
-          className="ai-lesson-hero__type"
-          style={{
-            background: typeColors.bg,
-            borderColor: typeColors.border,
-            color: typeColors.text,
-          }}
-        >
-          {trainingLabel(draft.trainingType, t)}
-        </span>
+        {canChooseTrainingType(instructor.specialties) && (
+          <span
+            className="ai-lesson-hero__type"
+            style={{
+              background: typeColors.bg,
+              borderColor: typeColors.border,
+              color: typeColors.text,
+            }}
+          >
+            {trainingLabel(draft.trainingType, t)}
+          </span>
+        )}
         <h2 className="ai-lesson-hero__title">{draft.title}</h2>
         <p className="ai-lesson-hero__meta">{t('ai.basedOnClients', { duration: draft.duration })}</p>
       </div>
@@ -202,7 +207,6 @@ export function AiLessonPage() {
         <div key={section.id} className="card" style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
             <span style={{ fontWeight: 600 }}>{section.title}</span>
-            <span className="tag">{section.duration} {t('common.min')}</span>
           </div>
           <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
             {section.exercises.map((e) => e.nameHe).join(' · ')}

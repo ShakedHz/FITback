@@ -1,5 +1,5 @@
 /** Query keys that identify how we entered the exercise library from the builder. */
-const BUILDER_KEYS = ['blank', 'template', 'ai', 'lessonId'] as const;
+const BUILDER_KEYS = ['blank', 'template', 'ai', 'lessonId', 'from'] as const;
 
 export function exercisesPath(sectionId?: string | null, builderParams?: URLSearchParams | null): string {
   const params = new URLSearchParams();

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Globe } from 'lucide-react';
+import { Check, ChevronDown, Globe } from 'lucide-react';
 import { useI18n, type Locale } from '@/i18n';
 import './LanguageSwitch.css';
 
-const OPTIONS: { value: Locale; key: string }[] = [
-  { value: 'he', key: 'lang.he' },
-  { value: 'en', key: 'lang.en' },
+// Each language is listed in its own script, the way most apps present them.
+const OPTIONS: { value: Locale; short: string; native: string }[] = [
+  { value: 'he', short: 'עב', native: 'עברית' },
+  { value: 'en', short: 'EN', native: 'English' },
 ];
 
 export function LanguageSwitch({ className = '' }: { className?: string }) {
@@ -29,6 +30,8 @@ export function LanguageSwitch({ className = '' }: { className?: string }) {
     };
   }, [open]);
 
+  const active = OPTIONS.find((option) => option.value === locale) ?? OPTIONS[0];
+
   return (
     <div className={`lang-switch ${className}`.trim()} ref={rootRef}>
       <button
@@ -39,7 +42,9 @@ export function LanguageSwitch({ className = '' }: { className?: string }) {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <Globe size={20} />
+        <Globe size={16} strokeWidth={2} />
+        <span className="lang-switch__code">{active.short}</span>
+        <ChevronDown size={14} className="lang-switch__caret" aria-hidden />
       </button>
 
       {open && (
@@ -52,14 +57,14 @@ export function LanguageSwitch({ className = '' }: { className?: string }) {
                 type="button"
                 role="menuitemradio"
                 aria-checked={selected}
-                className={`lang-switch__item${selected ? ' active' : ''}`}
+                className={`lang-switch__item${selected ? ' is-active' : ''}`}
                 onClick={() => {
                   setLocale(option.value);
                   setOpen(false);
                 }}
               >
-                <span>{t(option.key)}</span>
-                {selected && <Check size={16} />}
+                <span className="lang-switch__native">{option.native}</span>
+                <span className="lang-switch__check">{selected && <Check size={16} />}</span>
               </button>
             );
           })}

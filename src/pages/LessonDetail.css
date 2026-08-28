@@ -1,0 +1,102 @@
+.teach-sheet {
+  background: rgba(26, 18, 40, 0.9);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  padding: 18px 16px 12px;
+}
+
+.teach-sheet__head {
+  margin-bottom: 18px;
+}
+
+.teach-sheet__title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #f8fafc;
+}
+
+.teach-sheet__focus {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #c4b5fd;
+}
+
+.teach-sheet__meta {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.teach-sheet__desc {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #94a3b8;
+}
+
+.teach-block {
+  margin-top: 12px;
+  padding: 10px 12px 6px;
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 10, 26, 0.4);
+}
+
+.teach-block:first-of-type {
+  margin-top: 0;
+}
+
+.teach-block__title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.teach-block__list {
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid rgba(167, 139, 250, 0.45);
+}
+
+.teach-ex {
+  min-height: 40px;
+  padding: 8px 0;
+}
+
+.teach-ex + .teach-ex {
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.teach-ex__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teach-ex__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e2e8f0;
+  min-width: 0;
+}
+
+.teach-ex__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.teach-ex__reps {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(139, 92, 246, 0.14);
+  font-size: 11px;
+  font-weight: 700;
+  color: #e9d5ff;
+}

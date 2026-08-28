@@ -13,9 +13,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5199,
     strictPort: true,
-    hmr: {
-      clientPort: 5199,
-    },
+    allowedHosts: true,
+    hmr: process.env.FITBACK_ALWAYS_ON
+      ? false
+      : {
+          clientPort: 5199,
+        },
     proxy: {
       '/api/arbox': {
         target: 'http://127.0.0.1:5201',
@@ -33,5 +36,18 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5198,
     strictPort: true,
+    allowedHosts: true,
+    proxy: {
+      '/api/arbox': {
+        target: 'http://127.0.0.1:5201',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/arbox/, ''),
+      },
+      '/api/sms': {
+        target: 'http://127.0.0.1:5200',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/sms/, ''),
+      },
+    },
   },
 });

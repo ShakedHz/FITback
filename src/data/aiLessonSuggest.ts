@@ -9,7 +9,7 @@ import {
 } from './lessonAnalytics';
 import { getLessonTemplate, type SectionTemplate } from './lessonTemplates';
 import { TRAINING_TYPE_LABELS, type TrainingType } from './trainingTypes';
-import { durationsFromExercises } from '@/utils/lessonDuration';
+import { durationsFromExercises, DEFAULT_CLASS_DURATION } from '@/utils/lessonDuration';
 
 export interface AiLessonDraftSection {
   id: string;
@@ -23,6 +23,7 @@ export interface AiLessonDraft {
   description: string;
   duration: number;
   trainingType: TrainingType;
+  focus?: string;
   coverVideo: string | null;
   albumImages: string[];
   exerciseIds: string[];
@@ -186,6 +187,7 @@ export function suggestLessonFromClientData(
     sections.map((s) => ({
       id: s.id,
       title: s.title,
+      duration: s.duration,
       exerciseIds: s.exerciseIds,
     })),
     exercises
@@ -201,8 +203,9 @@ export function suggestLessonFromClientData(
       topThemes.length > 0
         ? `Designed from client feedback — focuses on ${topThemes.join(', ').toLowerCase()}.`
         : `A ${TRAINING_TYPE_LABELS[type].toLowerCase()} class shaped from your clients' ratings.`,
-    duration: timed.duration,
+    duration: DEFAULT_CLASS_DURATION,
     trainingType: type,
+    focus: titleFocus,
     coverVideo: null,
     albumImages: [],
     exerciseIds: timed.exerciseIds,

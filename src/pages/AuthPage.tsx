@@ -5,7 +5,6 @@ import type { AuthUser } from '@/auth/types';
 import type { StudioRole } from '@/data/scheduleTypes';
 import { BrandLogo } from '@/components/BrandLogo';
 import { SpecialtyPicker } from '@/components/SpecialtyPicker';
-import { BRAND } from '@/data/brand';
 import { type TrainingType } from '@/data/trainingTypes';
 import { instructorBio, translateError, useI18n } from '@/i18n';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
@@ -134,7 +133,10 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
       </div>
       <div className="auth-page__header">
         <BrandLogo size={72} className="auth-page__logo" />
-        <h1 className="auth-page__brand-name">{BRAND.name}</h1>
+        <h1 className="auth-page__brand-name">
+          <span className="auth-page__brand-fit">FIT</span>
+          <span className="auth-page__brand-back">back</span>
+        </h1>
         <p className="auth-page__tagline">{t('auth.tagline')}</p>
       </div>
 

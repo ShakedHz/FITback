@@ -1005,9 +1005,42 @@ button.ratings-action {
 .ratings-empty-line {
   margin: 0;
   font-size: 13px;
+  line-height: 1.45;
   color: #64748b;
   text-align: center;
+  padding: 4px 0 8px;
+}
+
+.ratings-blank__chart {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 132px;
   padding: 4px 0;
+}
+
+.ratings-blank__chart span {
+  height: 1px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.18);
+}
+
+.ratings-blank__item {
+  opacity: 0.55;
+}
+
+.ratings-blank .analytics-chart__bar {
+  min-height: 3px;
+  opacity: 0.45;
+}
+
+.ratings-blank .ratings-responses-dash__value,
+.ratings-blank .ratings-responses-dash__side {
+  color: #64748b;
+}
+
+.ratings-ai-card__summary--waiting {
+  color: #c4b5fd;
+  opacity: 0.75;
 }
 
 .ratings-ai-card {

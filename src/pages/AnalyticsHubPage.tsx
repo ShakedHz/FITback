@@ -12,6 +12,7 @@ import { WeeklyBarChart, TRAINING_TYPE_BAR_COLORS } from '@/components/Analytics
 import { MultiLineChart, type LineChartSeries } from '@/components/MultiLineChart';
 import {
   TRAINING_TYPE_COLORS,
+  canChooseTrainingType,
   type TrainingType,
 } from '@/data/trainingTypes';
 import { trainingLabel, useI18n } from '@/i18n';
@@ -127,10 +128,68 @@ export function AnalyticsHubPage() {
       </div>
 
       {!hasResults ? (
-        <div className="card" style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
-          <p style={{ margin: 0, lineHeight: 1.45 }}>
-            {t('analytics.empty')}
-          </p>
+        // Same layout as a filled screen, waiting to be filled in.
+        <div className="ratings-blank">
+          <section className="card ratings-responses-dash">
+            <div className="ratings-responses-dash__head">
+              <div className="ratings-responses-dash__count">
+                <Users size={20} color="#a78bfa" />
+                <div>
+                  <p className="ratings-responses-dash__value">0</p>
+                  <p className="ratings-responses-dash__label">{t('analytics.peopleResponded')}</p>
+                </div>
+              </div>
+              <div className="ratings-responses-dash__side">
+                <span>
+                  <Star size={14} color="#fbbf24" fill="#fbbf24" /> {t('analytics.avg', { rating: '—' })}
+                </span>
+                <span>
+                  <MessageSquareText size={14} color="#34d399" /> {t('analytics.notesCount', { count: 0 })}
+                </span>
+              </div>
+            </div>
+            <WeeklyBarChart data={overall.weeklyResponses} />
+          </section>
+
+          <section className="card ratings-responses-dash">
+            <div className="ratings-section-head" style={{ marginBottom: 12 }}>
+              <Star size={18} color="#fbbf24" fill="#fbbf24" />
+              <h2>{t('analytics.averageByLesson')}</h2>
+            </div>
+            <div className="ratings-blank__chart" aria-hidden>
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          </section>
+
+          <section className="card ratings-ai-card">
+            <div className="ratings-section-head">
+              <Bot size={18} color="#a78bfa" />
+              <h2>{t('analytics.aiSummary')}</h2>
+            </div>
+            <p className="ratings-ai-card__summary ratings-ai-card__summary--waiting">
+              {t('analytics.summaryWaiting')}
+            </p>
+          </section>
+
+          <p className="section-title">{t('analytics.clientFeedback')}</p>
+          <div className="card ratings-feedback-list">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="ratings-feedback-item ratings-blank__item">
+                <div className="ratings-feedback-item__top">
+                  <span className="ratings-feedback-item__stars">—/5</span>
+                  <span className="ratings-feedback-item__meta">{t('common.class')} · —</span>
+                </div>
+                <p className="ratings-feedback-item__note ratings-feedback-item__note--empty">
+                  {t('analytics.noNote')}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <p className="ratings-empty-line">{t('analytics.empty')}</p>
         </div>
       ) : (
         <>
@@ -230,18 +289,20 @@ export function AnalyticsHubPage() {
                               : '',
                           })}
                         </p>
-                        <span
-                          className="analytics-lesson-card__type"
-                          style={{
-                            display: 'inline-block',
-                            marginTop: 6,
-                            background: colors.bg,
-                            borderColor: colors.border,
-                            color: colors.text,
-                          }}
-                        >
-                          {trainingLabel(lesson.trainingType, t)}
-                        </span>
+                        {canChooseTrainingType(instructor.specialties) && colors && (
+                          <span
+                            className="analytics-lesson-card__type"
+                            style={{
+                              display: 'inline-block',
+                              marginTop: 6,
+                              background: colors.bg,
+                              borderColor: colors.border,
+                              color: colors.text,
+                            }}
+                          >
+                            {trainingLabel(lesson.trainingType, t)}
+                          </span>
+                        )}
                       </div>
                       <ChevronRight className="rtl-flip" size={18} color="#a78bfa" />
                     </div>

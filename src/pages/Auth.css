@@ -95,6 +95,17 @@
   color: #f8fafc;
 }
 
+.auth-page__brand-fit {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.auth-page__brand-back {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  opacity: 0.72;
+}
+
 .auth-page__tagline {
   margin: 8px 0 0;
   font-size: 14px;
