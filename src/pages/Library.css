@@ -14,10 +14,11 @@
 .library-filter {
   flex-shrink: 0;
   padding: 8px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  background: rgba(26, 18, 40, 0.5);
-  color: #94a3b8;
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-card);
+  color: var(--color-text-muted);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -25,9 +26,9 @@
 }
 
 .library-filter--active {
-  background: rgba(139, 92, 246, 0.28);
-  border-color: rgba(139, 92, 246, 0.5);
-  color: #e9d5ff;
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-card);
   font-weight: 600;
 }
 
@@ -40,7 +41,7 @@
   place-items: center;
   background: rgba(148, 163, 184, 0.1);
   border: 1px dashed rgba(148, 163, 184, 0.25);
-  color: #64748b;
+  color: var(--color-text-subtle);
 }
 
 .library-card__meta {
@@ -62,7 +63,7 @@
 
 .library-empty-filter {
   text-align: center;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 14px;
   padding: 24px 16px;
 }

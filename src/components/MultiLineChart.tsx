@@ -193,7 +193,7 @@ export function MultiLineChart({ series, yMax = 5, yMin = 0, categoryOrder }: Pr
                   x={chart.padL - 6}
                   y={y + 3}
                   textAnchor="end"
-                  fill="#64748b"
+                  fill="var(--color-text-subtle)"
                   fontSize="9"
                   fontWeight="600"
                 >
@@ -228,7 +228,7 @@ export function MultiLineChart({ series, yMax = 5, yMin = 0, categoryOrder }: Pr
                   cy={c.y}
                   r={activeKey === c.key ? 5 : 3.5}
                   fill={s.color}
-                  stroke="#0f0a1a"
+                  stroke="var(--color-bg)"
                   strokeWidth="1.2"
                   vectorEffect="non-scaling-stroke"
                 />
@@ -254,7 +254,7 @@ export function MultiLineChart({ series, yMax = 5, yMin = 0, categoryOrder }: Pr
               x={chart.xAt(i)}
               y={chart.H - 8}
               textAnchor="middle"
-              fill="#64748b"
+              fill="var(--color-text-subtle)"
               fontSize="8"
               fontWeight="600"
             >

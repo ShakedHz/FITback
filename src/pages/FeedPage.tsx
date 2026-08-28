@@ -118,7 +118,7 @@ export function FeedPage() {
                   <div>
                     <p className="feed-card__instructor-name">{post.instructorName}</p>
                     <p className="feed-card__instructor-meta">
-                      <Star size={12} fill="#fbbf24" color="#fbbf24" />
+                      <Star size={12} fill="var(--color-accent)" color="var(--color-accent)" />
                       {post.rating}
                     </p>
                   </div>

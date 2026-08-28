@@ -66,11 +66,11 @@ export function AiLessonPage() {
           {t('common.back')}
         </button>
         <div className="card" style={{ textAlign: 'center', padding: 32, marginTop: 20 }}>
-          <Bot size={40} color="#a78bfa" style={{ marginBottom: 12 }} />
+          <Bot size={40} color="var(--color-primary-bright)" style={{ marginBottom: 12 }} />
           <p style={{ fontWeight: 600, marginBottom: 8 }}>
             {createdLessons.length === 0 ? t('ai.notEnough') : t('ai.noSurvey')}
           </p>
-          <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.45 }}>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 14, lineHeight: 1.45 }}>
             {createdLessons.length === 0
               ? t('ai.addFirst')
               : t('ai.sendSurvey')}
@@ -96,7 +96,7 @@ export function AiLessonPage() {
         </button>
         <div className="ai-lesson-loading__card card card-glow">
           <div className="ai-lesson-loading__icon">
-            <Bot size={32} color="#c4b5fd" />
+            <Bot size={32} color="var(--color-primary-bright)" />
           </div>
           <h1 className="page-title" style={{ fontSize: 22 }}>{t('ai.analyzing')}</h1>
           <p className="page-subtitle">
@@ -136,11 +136,11 @@ export function AiLessonPage() {
 
       <div className="ai-lesson-stats">
         <div className="ai-lesson-stat">
-          <Star size={15} color="#fbbf24" fill="#fbbf24" />
+          <Star size={15} color="var(--color-accent)" fill="var(--color-accent)" />
           <span>{t('ai.ratings', { count: basedOn.ratings })}</span>
         </div>
         <div className="ai-lesson-stat">
-          <MessageSquareText size={15} color="#a78bfa" />
+          <MessageSquareText size={15} color="var(--color-primary-bright)" />
           <span>{t('ai.notes', { count: basedOn.notes })}</span>
         </div>
         <div className="ai-lesson-stat">
@@ -171,7 +171,7 @@ export function AiLessonPage() {
 
       <div className="card ai-lesson-rationale">
         <div className="ai-lesson-rationale__head">
-          <Bot size={18} color="#a78bfa" />
+          <Bot size={18} color="var(--color-primary-bright)" />
           <h3>{t('ai.why')}</h3>
         </div>
         <p>{rationale}</p>
@@ -204,7 +204,7 @@ export function AiLessonPage() {
             <span style={{ fontWeight: 600 }}>{section.title}</span>
             <span className="tag">{section.duration} {t('common.min')}</span>
           </div>
-          <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>
             {section.exercises.map((e) => e.nameHe).join(' · ')}
           </p>
         </div>

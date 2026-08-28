@@ -48,7 +48,7 @@ export function LessonDetailPage() {
           name={instructor.name}
           size="sm"
         />
-        <p style={{ color: '#94a3b8' }}>{t('detail.by', { name: instructor.name })}</p>
+        <p style={{ color: 'var(--color-text-muted)' }}>{t('detail.by', { name: instructor.name })}</p>
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -73,7 +73,7 @@ export function LessonDetailPage() {
             borderRadius: 20,
             background: 'rgba(148, 163, 184, 0.12)',
             border: '1px solid rgba(148, 163, 184, 0.25)',
-            color: '#cbd5e1',
+            color: 'var(--color-text-secondary)',
           }}
         >
           {equipmentLabel(lesson.equipment, t)}
@@ -83,22 +83,22 @@ export function LessonDetailPage() {
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: 20, marginBottom: 20, fontSize: 14, color: '#94a3b8' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Star size={16} fill="#fbbf24" color="#fbbf24" /> {t('detail.reviews', { rating: lesson.rating, reviews: lesson.reviews })}</span>
+      <div style={{ display: 'flex', gap: 20, marginBottom: 20, fontSize: 14, color: 'var(--color-text-muted)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Star size={16} fill="var(--color-accent)" color="var(--color-accent)" /> {t('detail.reviews', { rating: lesson.rating, reviews: lesson.reviews })}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={16} /> {lesson.duration} {t('common.min')}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><BarChart3 size={16} /> {levelLabel(lesson.level, t)}</span>
       </div>
 
       <div className="card">
         <p className="section-title">{t('detail.description')}</p>
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: '#cbd5e1' }}>{lesson.description}</p>
+        <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-secondary)' }}>{lesson.description}</p>
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
         <p className="section-title">{t('detail.plan')}</p>
         {lesson.sections.map((section) => (
           <div key={section.id} style={{ marginBottom: 16 }}>
-            <p style={{ fontWeight: 600, color: '#a78bfa', marginBottom: 8 }}>
+            <p style={{ fontWeight: 600, color: 'var(--color-primary-bright)', marginBottom: 8 }}>
               {section.title} ({section.duration} {t('common.min')})
             </p>
             {section.exercises.map((ex) => (
@@ -109,12 +109,12 @@ export function LessonDetailPage() {
                   alignItems: 'center',
                   gap: 12,
                   padding: '10px 0',
-                  borderBottom: '1px solid rgba(139,92,246,0.1)',
+                  borderBottom: '1px solid rgba(var(--color-primary-rgb),0.1)',
                 }}
               >
                 <ExerciseVideo exercise={ex} size="row" />
                 <span style={{ flex: 1 }}>{ex.nameHe}</span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>{ex.duration} {t('common.min')}</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-subtle)' }}>{ex.duration} {t('common.min')}</span>
               </div>
             ))}
           </div>

@@ -89,17 +89,17 @@ export function LessonPreviewPage() {
         className="card card-glow"
         style={{
           marginTop: 16,
-          background: 'linear-gradient(135deg, rgba(139,92,246,0.25), rgba(109,40,217,0.15))',
+          background: 'linear-gradient(135deg, rgba(var(--color-primary-rgb),0.25), rgba(var(--color-primary-rgb),0.15))',
           textAlign: 'center',
           padding: 24,
         }}
       >
         <h2 style={{ fontSize: 22 }}>{lessonDraft.title}</h2>
-        <p style={{ color: '#94a3b8', marginTop: 8 }}>
+        <p style={{ color: 'var(--color-text-muted)', marginTop: 8 }}>
           {t('preview.meta', { duration: lessonDraft.duration, type: trainingLabel(lessonDraft.trainingType, t) })}
         </p>
         {lessonDraft.description.trim() && (
-          <p style={{ marginTop: 12, fontSize: 14, color: '#cbd5e1', lineHeight: 1.45 }}>
+          <p style={{ marginTop: 12, fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.45 }}>
             {lessonDraft.description.trim()}
           </p>
         )}
@@ -108,7 +108,7 @@ export function LessonPreviewPage() {
       <p className="section-title" style={{ marginTop: 24 }}>{t('preview.internal')}</p>
       {planSections.map((section) => (
         <div key={section.id} className="card" style={{ marginBottom: 8 }}>
-          <p style={{ fontWeight: 600, color: '#a78bfa', marginBottom: 12 }}>
+          <p style={{ fontWeight: 600, color: 'var(--color-primary-bright)', marginBottom: 12 }}>
             {t('preview.sectionDur', { title: section.title, duration: section.duration })}
           </p>
           {section.exercises.map((ex) => (
@@ -118,7 +118,7 @@ export function LessonPreviewPage() {
             >
               <ExerciseVideo exercise={ex} size="row" />
               <span style={{ flex: 1 }}>{ex.nameHe}</span>
-              <span style={{ color: '#64748b' }}>{ex.duration} {t('common.min')}</span>
+              <span style={{ color: 'var(--color-text-subtle)' }}>{ex.duration} {t('common.min')}</span>
             </div>
           ))}
         </div>

@@ -1,4 +1,6 @@
-import type { AuthSession, AuthUser, StoredAccount } from './types';
+import { findStoredAccount } from './accountLookup';
+import type { AuthProvider, AuthSession, AuthUser, StoredAccount } from './types';
+import { membershipsFromAccount } from '@/data/studioOrg';
 
 const USERS_KEY = 'movana_auth_users_v1';
 const SESSION_KEY = 'movana_auth_session_v1';
@@ -33,6 +35,17 @@ export function findAccountByProvider(
   return readUsers().find((u) => u.provider === provider && u.email === normalized);
 }
 
+export function lookupAccount(query: {
+  provider: AuthProvider;
+  email?: string;
+  googleSub?: string;
+  appleSub?: string;
+  arboxClubId?: string;
+  arboxStaffId?: string;
+}): StoredAccount | undefined {
+  return findStoredAccount(readUsers(), query);
+}
+
 export function saveAccount(account: StoredAccount): StoredAccount {
   const users = readUsers();
   const index = users.findIndex((u) => u.id === account.id);
@@ -43,6 +56,7 @@ export function saveAccount(account: StoredAccount): StoredAccount {
 }
 
 export function accountToUser(account: StoredAccount): AuthUser {
+  const memberships = membershipsFromAccount(account);
   return {
     id: account.id,
     email: account.email,
@@ -53,6 +67,12 @@ export function accountToUser(account: StoredAccount): AuthUser {
     provider: account.provider,
     role: account.role,
     arboxLinked: account.arboxLinked,
+    googleSub: account.googleSub,
+    appleSub: account.appleSub,
+    arboxClubId: account.arboxClubId,
+    arboxStaffId: account.arboxStaffId,
+    memberships,
+    activeStudioId: account.activeStudioId || memberships[0]?.clubId,
     createdAt: account.createdAt,
   };
 }

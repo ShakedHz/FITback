@@ -53,7 +53,7 @@ export function LessonPreviewSheet({
             <InstructorAvatar src={instructorAvatar} name={lesson.instructorName} size="sm" />
             <span>{lesson.instructorName}</span>
             <span className="preview-sheet__rating">
-              <Star size={12} fill="#fbbf24" color="#fbbf24" />
+              <Star size={12} fill="var(--color-accent)" color="var(--color-accent)" />
               {lesson.rating}
             </span>
           </div>

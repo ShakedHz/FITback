@@ -23,6 +23,7 @@ import { ProfilePage } from '@/pages/ProfilePage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { WeeklySurveyPage } from '@/pages/WeeklySurveyPage';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { PostClassFeedbackModal } from '@/components/PostClassFeedbackModal';
 
 function Guard({ children }: { children: React.ReactNode }) {
   return <ProtectedRoute>{children}</ProtectedRoute>;
@@ -60,6 +61,7 @@ function AppLayout() {
         </Routes>
       </div>
       <BottomNav />
+      <PostClassFeedbackModal />
     </div>
   );
 }

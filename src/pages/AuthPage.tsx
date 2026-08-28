@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { hasInstructorProfile, useAuth } from '@/auth/AuthContext';
+import { canAccessApp, useAuth } from '@/auth/AuthContext';
+import { peekPendingInvite } from '@/auth/studioInvite';
 import type { AuthUser } from '@/auth/types';
 import type { StudioRole } from '@/data/scheduleTypes';
 import { BrandLogo } from '@/components/BrandLogo';
@@ -12,6 +13,37 @@ import { LanguageSwitch } from '@/components/LanguageSwitch';
 import './Auth.css';
 
 type Mode = 'login' | 'register';
+
+function safeReturnPath(from: string | undefined): string | undefined {
+  if (!from || !from.startsWith('/') || from.startsWith('//')) return undefined;
+  if (
+    from === '/login' ||
+    from === '/register' ||
+    from === '/' ||
+    from.startsWith('/auth/')
+  ) {
+    return undefined;
+  }
+  return from;
+}
+
+function staffRoleLabel(role: StudioRole, t: (key: string) => string): string {
+  switch (role) {
+    case 'studio_manager':
+      return t('auth.studioManager');
+    case 'instructor':
+      return t('auth.instructor');
+    default: {
+      const _exhaustive: never = role;
+      return _exhaustive;
+    }
+  }
+}
+
+function destinationFor(user: AuthUser | null | undefined, from?: string): string {
+  if (!canAccessApp(user)) return '/onboarding';
+  return safeReturnPath(from) ?? '/dashboard';
+}
 
 function GoogleIcon() {
   return (
@@ -44,6 +76,8 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
     isReady,
     isLoading,
     error,
+    googleEnabled,
+    appleEnabled,
     clearError,
     register,
     loginWithEmail,
@@ -53,22 +87,22 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
   } = useAuth();
   const { t } = useI18n();
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const pendingInvite = peekPendingInvite();
+  const [name, setName] = useState(pendingInvite?.name ?? '');
+  const [email, setEmail] = useState(pendingInvite?.email ?? '');
   const [password, setPassword] = useState('');
   const [specialties, setSpecialties] = useState<TrainingType[]>([]);
   const [showArbox, setShowArbox] = useState(false);
   const [arboxKey, setArboxKey] = useState('');
-  const [arboxRole, setArboxRole] = useState<StudioRole>('instructor');
+  const [arboxTeam, setArboxTeam] = useState<
+    { id: string; name: string; role: StudioRole }[] | null
+  >(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  const fromPath = (location.state as { from?: string } | null)?.from;
+
   if (isReady && isAuthenticated) {
-    return (
-      <Navigate
-        to={hasInstructorProfile(user) || user?.arboxLinked ? '/dashboard' : '/onboarding'}
-        replace
-      />
-    );
+    return <Navigate to={destinationFor(user, fromPath)} replace />;
   }
 
   const go = (next: Mode) => {
@@ -78,10 +112,29 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
   };
 
   const afterAuth = (authUser: AuthUser) => {
-    navigate(
-      hasInstructorProfile(authUser) || authUser.arboxLinked ? '/dashboard' : '/onboarding',
-      { replace: true }
-    );
+    navigate(destinationFor(authUser, fromPath), { replace: true });
+  };
+
+  const onArboxLogin = async (instructorId?: string) => {
+    setLocalError(null);
+    try {
+      const result = await loginWithArbox(arboxKey, instructorId);
+      switch (result.kind) {
+        case 'pick_instructor':
+          setArboxTeam(result.team);
+          return;
+        case 'authenticated':
+          setArboxTeam(null);
+          afterAuth(result.user);
+          return;
+        default: {
+          const _exhaustive: never = result;
+          return _exhaustive;
+        }
+      }
+    } catch {
+      // context error
+    }
   };
 
   const onSubmit = async (e: FormEvent) => {
@@ -93,7 +146,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           setLocalError(t('errors.name'));
           return;
         }
-        if (specialties.length === 0) {
+        if (specialties.length === 0 && !pendingInvite) {
           setLocalError(t('errors.classType'));
           return;
         }
@@ -155,30 +208,41 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
         </button>
       </div>
 
+      {pendingInvite && (
+        <p className="auth-invite-banner">
+          {t('studio.joiningBanner', { studio: pendingInvite.clubName })}
+        </p>
+      )}
+
       <div className="auth-social">
-        <button
-          type="button"
-          className="auth-social__btn auth-social__btn--google"
-          onClick={() => run(loginWithGoogle)}
-          disabled={isLoading}
-        >
-          <GoogleIcon />
-          {t('auth.google')}
-        </button>
-        <button
-          type="button"
-          className="auth-social__btn auth-social__btn--apple"
-          onClick={() => run(loginWithApple)}
-          disabled={isLoading}
-        >
-          <AppleIcon />
-          {t('auth.apple')}
-        </button>
+        {googleEnabled && (
+          <button
+            type="button"
+            className="auth-social__btn auth-social__btn--google"
+            onClick={() => run(loginWithGoogle)}
+            disabled={isLoading}
+          >
+            <GoogleIcon />
+            {t('auth.google')}
+          </button>
+        )}
+        {appleEnabled && (
+          <button
+            type="button"
+            className="auth-social__btn auth-social__btn--apple"
+            onClick={() => run(loginWithApple)}
+            disabled={isLoading}
+          >
+            <AppleIcon />
+            {t('auth.apple')}
+          </button>
+        )}
         <button
           type="button"
           className="auth-social__btn auth-social__btn--arbox"
           onClick={() => {
             clearError();
+            setArboxTeam(null);
             setShowArbox((v) => !v);
           }}
           disabled={isLoading}
@@ -189,42 +253,48 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
 
       {showArbox && (
         <div className="auth-arbox-panel">
-          <p className="auth-arbox-panel__hint">
-            {t('auth.arboxHint')}
-          </p>
-          <div className="auth-role-pick" role="group" aria-label={t('auth.signInAs')}>
-            <button
-              type="button"
-              className={arboxRole === 'instructor' ? 'active' : ''}
-              onClick={() => setArboxRole('instructor')}
-            >
-              {t('auth.instructor')}
-            </button>
-            <button
-              type="button"
-              className={arboxRole === 'studio_manager' ? 'active' : ''}
-              onClick={() => setArboxRole('studio_manager')}
-            >
-              {t('auth.studioManager')}
-            </button>
-          </div>
-          <input
-            className="input"
-            type="password"
-            placeholder={t('auth.arboxKey')}
-            value={arboxKey}
-            onChange={(e) => setArboxKey(e.target.value)}
-            onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            className="btn btn-primary auth-submit"
-            onClick={() => run(() => loginWithArbox(arboxKey, arboxRole))}
-            disabled={isLoading || arboxKey.trim().length < 8}
-          >
-            {isLoading ? t('auth.loadingStudio') : t('auth.loginArbox')}
-          </button>
+          {arboxTeam && arboxTeam.length > 1 ? (
+            <>
+              <p className="auth-arbox-panel__hint">{t('auth.whichInstructor')}</p>
+              <div className="auth-instructor-pick">
+                {arboxTeam.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    className="auth-instructor-pick__btn"
+                    onClick={() => void onArboxLogin(member.id)}
+                    disabled={isLoading}
+                  >
+                    {member.name.trim() || member.id}
+                    <span className="auth-instructor-pick__role">
+                      {staffRoleLabel(member.role, t)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="auth-arbox-panel__hint">{t('auth.arboxHint')}</p>
+              <input
+                className="input"
+                type="password"
+                placeholder={t('auth.arboxKey')}
+                value={arboxKey}
+                onChange={(e) => setArboxKey(e.target.value)}
+                onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className="btn btn-primary auth-submit"
+                onClick={() => void onArboxLogin()}
+                disabled={isLoading || arboxKey.trim().length < 8}
+              >
+                {isLoading ? t('auth.loadingStudio') : t('auth.loginArbox')}
+              </button>
+            </>
+          )}
         </div>
       )}
 

@@ -24,21 +24,21 @@
   border-radius: 12px;
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid rgba(239, 68, 68, 0.28);
-  color: #fca5a5;
+  color: var(--color-danger);
   font-size: 13px;
 }
 
 .weekly-survey-message {
   margin-bottom: 10px;
   padding: 14px;
-  background: rgba(139, 92, 246, 0.08);
+  background: rgba(var(--color-primary-rgb), 0.08);
 }
 
 .weekly-survey-message p {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
-  color: #ddd6fe;
+  color: var(--color-primary-bright);
   word-break: break-word;
 }
 
@@ -58,7 +58,7 @@
 .weekly-survey-empty-list {
   text-align: center;
   padding: 20px 16px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -88,8 +88,8 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(139, 92, 246, 0.22);
-  color: #ddd6fe;
+  background: rgba(var(--color-primary-rgb), 0.22);
+  color: var(--color-primary-bright);
   font-weight: 700;
   font-size: 13px;
   flex-shrink: 0;
@@ -109,7 +109,7 @@
 .weekly-survey-client__contact {
   margin: 1px 0 0;
   font-size: 12px;
-  color: #64748b;
+  color: var(--color-text-subtle);
 }
 
 .weekly-survey-client__remove {
@@ -117,6 +117,6 @@
   min-width: 36px;
   min-height: 36px;
   padding: 6px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }

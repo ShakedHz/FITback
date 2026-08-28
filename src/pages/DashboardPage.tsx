@@ -1,42 +1,24 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Star,
-  Package,
-  Users,
-  Calendar,
-  Link2,
-  BarChart3,
-  Library,
-  PlusCircle,
-} from 'lucide-react';
+import { Calendar, BarChart3, Library, PlusCircle, ChevronRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { avatarColorForName } from '@/components/InstructorAvatar';
+import { InstructorAvatar } from '@/components/InstructorAvatar';
 import { resolveOverallAnalytics } from '@/data/lessonAnalytics';
 import {
   toDateKey,
   getEventDateKey,
   getEventCategory,
-  getEventColors,
   shouldShowEventType,
 } from '@/data/scheduleTypes';
-import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
 import { eventCategoryLabel, trainingLabel, useI18n } from '@/i18n';
 import './Dashboard.css';
 
 const QUICK_ACTIONS = [
-  { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule', color: '#a78bfa', img: '/exercises/e10-child-pose.png' },
-  { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', color: '#34d399', img: '/exercises/e5-criss-cross.png' },
-  { path: '/library', icon: Library, labelKey: 'nav.library', color: '#60a5fa', img: '/exercises/e9-spine-stretch.png' },
-  { path: '/create', icon: PlusCircle, labelKey: 'dashboard.newLesson', color: '#f472b6', img: '/exercises/e6-swan-dive.png' },
+  { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule' },
+  { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings' },
+  { path: '/library', icon: Library, labelKey: 'nav.library' },
+  { path: '/create', icon: PlusCircle, labelKey: 'dashboard.newLesson' },
 ] as const;
-
-function getGreetingKey(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'dashboard.goodMorning';
-  if (hour < 17) return 'dashboard.goodAfternoon';
-  return 'dashboard.goodEvening';
-}
 
 function getEventTime(iso: string): string {
   const d = new Date(iso);
@@ -44,10 +26,11 @@ function getEventTime(iso: string): string {
 }
 
 function formatTodayDate(dateLocale: string): string {
-  const d = new Date();
-  const weekday = d.toLocaleDateString(dateLocale, { weekday: 'short' });
-  const date = d.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
-  return `${weekday} · ${date}`;
+  return new Date().toLocaleDateString(dateLocale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  });
 }
 
 export function DashboardPage() {
@@ -66,156 +49,109 @@ export function DashboardPage() {
     return resolveOverallAnalytics(instructor.specialties[0] ?? 'pilates', feedbackResponses);
   }, [instructor.specialties, feedbackResponses]);
 
-  const tagline = useMemo(() => {
-    if (todayEvents.length > 0) {
-      const key = todayEvents.length === 1 ? 'dashboard.classesToday_one' : 'dashboard.classesToday_other';
-      return t(key, { count: todayEvents.length });
-    }
-    if (instructor.lessonsCount > 0) {
-      const key = instructor.lessonsCount === 1 ? 'dashboard.lessonsInLibrary_one' : 'dashboard.lessonsInLibrary_other';
-      return t(key, { count: instructor.lessonsCount });
-    }
-    return t('dashboard.getStarted');
-  }, [todayEvents.length, instructor.lessonsCount, t]);
+  const nextEventId = useMemo(() => {
+    const now = Date.now();
+    const upcoming = todayEvents.find((e) => new Date(e.start).getTime() >= now);
+    return (upcoming ?? todayEvents[0])?.id;
+  }, [todayEvents]);
+
+  const specialtyLine = instructor.specialties.map((type) => trainingLabel(type, t)).join(' · ');
+  const ratingValue =
+    ratingsSummary && ratingsSummary.responseCount > 0 ? ratingsSummary.avgRating : null;
 
   return (
     <div className="page fade-in dashboard">
-      <section className="dashboard-hero">
-        {instructor.avatar ? (
-          <img className="dashboard-hero__bg" src={instructor.avatar} alt="" aria-hidden referrerPolicy="no-referrer" />
-        ) : (
-          <div
-            className="dashboard-hero__bg dashboard-hero__bg--color"
-            style={{
-              background: `linear-gradient(145deg, ${avatarColorForName(instructor.name)} 0%, #1a0f2e 100%)`,
-            }}
-            aria-hidden
-          />
-        )}
-        <div className="dashboard-hero__overlay" />
-        <div className="dashboard-hero__content">
-          <p className="dashboard-hero__greeting">{t(getGreetingKey())},</p>
-          <h1 className="dashboard-hero__name">{instructor.name}</h1>
-          <p className="dashboard-hero__tagline">{tagline}</p>
-          {instructor.specialties.length > 0 && (
-            <div className="dashboard-hero__specialties">
-              {instructor.specialties.map((type) => {
-                const colors = TRAINING_TYPE_COLORS[type];
-                return (
-                  <span
-                    key={type}
-                    className="dashboard-hero__chip"
-                    style={{
-                      background: colors.bg,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    }}
-                  >
-                    {trainingLabel(type, t)}
-                  </span>
-                );
-              })}
-            </div>
-          )}
+      <header className="dashboard-head">
+        <InstructorAvatar src={instructor.avatar} name={instructor.name} size="md" />
+        <div className="dashboard-head__text">
+          <p className="dashboard-head__date">{formatTodayDate(dateLocale)}</p>
+          <h1 className="dashboard-head__name">{instructor.name}</h1>
+          {specialtyLine ? <p className="dashboard-head__types">{specialtyLine}</p> : null}
         </div>
-      </section>
+      </header>
 
-      <section className="dashboard-block">
-        <div className="dashboard-stats">
-          <div className="dashboard-stats__item">
-            <Star size={14} color="#fbbf24" fill="#fbbf24" />
-            <span className="dashboard-stats__value">
-              {ratingsSummary && ratingsSummary.responseCount > 0
-                ? ratingsSummary.avgRating
-                : '—'}
-            </span>
-            <span className="dashboard-stats__label">{t('dashboard.rating')}</span>
-          </div>
-          <div className="dashboard-stats__item">
-            <Package size={14} color="#a78bfa" />
-            <span className="dashboard-stats__value">{instructor.lessonsCount}</span>
-            <span className="dashboard-stats__label">{t('dashboard.lessons')}</span>
-          </div>
-          <div className="dashboard-stats__item">
-            <Users size={14} color="#34d399" />
-            <span className="dashboard-stats__value">{instructor.studentsCount}</span>
-            <span className="dashboard-stats__label">{t('dashboard.clients')}</span>
-          </div>
-        </div>
-      </section>
+      <p className="dashboard-meta">
+        <span>
+          {ratingValue ?? '—'} {t('dashboard.rating')}
+        </span>
+        <span aria-hidden="true">·</span>
+        <span>
+          {instructor.lessonsCount} {t('dashboard.lessons')}
+        </span>
+        <span aria-hidden="true">·</span>
+        <span>
+          {instructor.studentsCount} {t('dashboard.clients')}
+        </span>
+      </p>
 
-      <section className="dashboard-block">
-        <div className="dashboard-today card">
-          <div className="dashboard-today__header">
-            <div className="dashboard-today__title-row">
-              <Calendar size={15} color="#a78bfa" />
-              <div className="dashboard-today__title-text">
-                <span className="dashboard-today__label">{t('dashboard.todayOnSchedule')}</span>
-                <span className="dashboard-today__date">{formatTodayDate(dateLocale)}</span>
-              </div>
-            </div>
-            {arboxConnection.connected ? (
-              <span className="dashboard-today__arbox dashboard-today__arbox--on">
-                <Link2 size={11} /> Arbox
-              </span>
-            ) : (
-              <button type="button" className="dashboard-today__arbox" onClick={() => navigate('/schedule')}>
-                <Link2 size={11} /> {t('common.connect')}
-              </button>
-            )}
-          </div>
-
-          {todayEvents.length > 0 ? (
-            <ul className="dashboard-today__list">
-              {todayEvents.slice(0, 4).map((ev) => {
-                const colors = getEventColors(ev);
-                return (
-                  <li key={ev.id}>
-                    <button type="button" className="dashboard-today__event" onClick={() => navigate('/schedule')}>
-                      <span className="dashboard-today__accent" style={{ background: colors.bg }} />
-                      <span className="dashboard-today__time">{getEventTime(ev.start)}</span>
-                      <div className="dashboard-today__event-body">
-                        <span className="dashboard-today__event-title">{ev.title}</span>
-                        <span className="dashboard-today__event-type">
-                          {shouldShowEventType(ev) ? `${eventCategoryLabel(getEventCategory(ev), t)} · ` : ''}
-                          {ev.enrolled != null ? t('dashboard.clientsOnEvent', { count: ev.enrolled }) : ''}
-                        </span>
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+      <section className="dashboard-today">
+        <div className="dashboard-today__header">
+          <h2 className="dashboard-today__label">{t('dashboard.todayOnSchedule')}</h2>
+          {arboxConnection.connected ? (
+            <span className="dashboard-today__arbox dashboard-today__arbox--on">Arbox</span>
           ) : (
-            <div className="dashboard-today__empty">
-              <p>{t('dashboard.noClassesToday')}</p>
-            </div>
-          )}
-
-          {todayEvents.length > 4 && (
-            <button type="button" className="dashboard-today__more" onClick={() => navigate('/schedule')}>
-              {t('common.more', { count: todayEvents.length - 4 })}
+            <button type="button" className="dashboard-today__arbox" onClick={() => navigate('/schedule')}>
+              {t('common.connect')}
             </button>
           )}
         </div>
+
+        {todayEvents.length > 0 ? (
+          <ul className="dashboard-today__list">
+            {todayEvents.slice(0, 4).map((ev) => {
+              const isNext = ev.id === nextEventId;
+              return (
+                <li key={ev.id}>
+                  <button
+                    type="button"
+                    className={`dashboard-today__event${isNext ? ' dashboard-today__event--next' : ''}`}
+                    onClick={() => navigate('/schedule')}
+                  >
+                    <span className="dashboard-today__time">
+                      {getEventTime(ev.start)}
+                      {isNext ? <em>{t('dashboard.next')}</em> : null}
+                    </span>
+                    <span className="dashboard-today__event-body">
+                      <span className="dashboard-today__event-title">{ev.title}</span>
+                      <span className="dashboard-today__event-type">
+                        {shouldShowEventType(ev) ? `${eventCategoryLabel(getEventCategory(ev), t)} · ` : ''}
+                        {ev.enrolled != null ? t('dashboard.clientsOnEvent', { count: ev.enrolled }) : ''}
+                      </span>
+                    </span>
+                    <ChevronRight className="rtl-flip dashboard-today__chevron" size={16} aria-hidden />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="dashboard-today__empty">
+            <p>{t('dashboard.noClassesToday')}</p>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/schedule')}>
+              {t('schedule.addClass')}
+            </button>
+          </div>
+        )}
+
+        {todayEvents.length > 4 && (
+          <button type="button" className="dashboard-today__more" onClick={() => navigate('/schedule')}>
+            {t('common.more', { count: todayEvents.length - 4 })}
+          </button>
+        )}
       </section>
 
       <section className="dashboard-block dashboard-block--last">
         <h2 className="dashboard-section-label">{t('dashboard.shortcuts')}</h2>
         <div className="dashboard-quick__grid">
-          {QUICK_ACTIONS.map(({ path, icon: Icon, labelKey, color, img }) => (
+          {QUICK_ACTIONS.map(({ path, icon: Icon, labelKey }) => (
             <button
               key={path}
               type="button"
-              className="dashboard-action-card"
+              className="dashboard-action"
               onClick={() => navigate(path)}
             >
-              <img className="dashboard-action-card__img" src={img} alt="" aria-hidden />
-              <div className="dashboard-action-card__overlay" />
-              <div className="dashboard-action-card__body">
-                <Icon size={15} color={color} />
-                <span className="dashboard-action-card__title">{t(labelKey)}</span>
-              </div>
+              <Icon size={18} strokeWidth={1.75} aria-hidden />
+              <span>{t(labelKey)}</span>
             </button>
           ))}
         </div>

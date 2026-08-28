@@ -29,6 +29,7 @@ import {
   getDefaultWeekStart,
   restoreArboxSession,
   disconnectArboxAccount,
+  setArboxStorageOwner,
   attachPlanToArboxEvent,
   detachPlanFromArboxEvent,
   patchArboxEvent,
@@ -324,9 +325,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [applyArboxSession, weekStart]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !user) return;
 
-    if (!user?.arboxLinked) {
+    const clubId = user.activeStudioId || user.arboxClubId;
+    setArboxStorageOwner(user.id, { migrateLegacy: user.arboxLinked, clubId });
+
+    if (!applyArboxSession()) {
       setArboxConnection(EMPTY_ARBOX_CONNECTION);
       setArboxEvents([]);
       setArboxClients([]);
@@ -335,7 +339,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     void refreshArboxFromStorage();
-  }, [isAuthenticated, user?.arboxLinked, user?.id, refreshArboxFromStorage]);
+  }, [isAuthenticated, user, applyArboxSession, refreshArboxFromStorage]);
 
   useEffect(() => {
     const sync = () => setFeedbackResponses(getAllFeedback());

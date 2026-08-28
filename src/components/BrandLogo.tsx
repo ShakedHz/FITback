@@ -3,7 +3,6 @@ interface BrandLogoProps {
   className?: string;
 }
 
-/** FITback app mark — an F held inside a calm feedback bubble. */
 export function BrandLogo({ size = 72, className }: BrandLogoProps) {
   return (
     <svg
@@ -15,26 +14,11 @@ export function BrandLogo({ size = 72, className }: BrandLogoProps) {
       aria-label="FITback"
       className={className}
     >
-      <defs>
-        <linearGradient id="fitback-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#aaa3be" />
-          <stop offset="100%" stopColor="#625c78" />
-        </linearGradient>
-      </defs>
-      <rect width="512" height="512" rx="112" fill="url(#fitback-bg)" />
-      <g
-        fill="none"
-        stroke="#f8f5ef"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path
-          d="M 158 146 H 354 C 382 146 400 164 400 192 V 306 C 400 334 382 352 354 352 H 260 L 202 398 V 352 H 158 C 130 352 112 334 112 306 V 192 C 112 164 130 146 158 146 Z"
-          strokeWidth="18"
-        />
-        <path d="M 206 308 V 194 H 320" strokeWidth="32" />
-        <path d="M 206 250 H 288" strokeWidth="32" />
-      </g>
+      <rect width="512" height="512" rx="108" fill="#6D28D9" />
+      <path
+        fill="#FFFFFF"
+        d="M 152 92 L 376 92 A 12 12 0 0 1 388 104 L 388 168 A 12 12 0 0 1 376 180 L 232 180 L 232 224 L 314 224 A 12 12 0 0 1 326 236 L 326 300 A 12 12 0 0 1 314 312 L 232 312 L 232 408 A 12 12 0 0 1 220 420 L 152 420 A 12 12 0 0 1 140 408 L 140 104 A 12 12 0 0 1 152 92 Z"
+      />
     </svg>
   );
 }

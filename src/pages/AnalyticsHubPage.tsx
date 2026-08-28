@@ -127,7 +127,7 @@ export function AnalyticsHubPage() {
       </div>
 
       {!hasResults ? (
-        <div className="card" style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+        <div className="card" style={{ padding: 20, textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 14 }}>
           <p style={{ margin: 0, lineHeight: 1.45 }}>
             {t('analytics.empty')}
           </p>
@@ -137,7 +137,7 @@ export function AnalyticsHubPage() {
           <section className="card ratings-responses-dash">
             <div className="ratings-responses-dash__head">
               <div className="ratings-responses-dash__count">
-                <Users size={20} color="#a78bfa" />
+                <Users size={20} color="var(--color-primary-bright)" />
                 <div>
                   <p className="ratings-responses-dash__value">{overall.responseCount}</p>
                   <p className="ratings-responses-dash__label">
@@ -147,7 +147,7 @@ export function AnalyticsHubPage() {
               </div>
               <div className="ratings-responses-dash__side">
                 <span>
-                  <Star size={14} color="#fbbf24" fill="#fbbf24" /> {t('analytics.avg', { rating: overall.avgRating })}
+                  <Star size={14} color="var(--color-accent)" fill="var(--color-accent)" /> {t('analytics.avg', { rating: overall.avgRating })}
                 </span>
                 <span>
                   <MessageSquareText size={14} color="#34d399" /> {t('analytics.notesCount', { count: notes.length })}
@@ -160,7 +160,7 @@ export function AnalyticsHubPage() {
           {lessonTypeSeries.length > 0 && (
             <section className="card ratings-responses-dash">
               <div className="ratings-section-head" style={{ marginBottom: 12 }}>
-                <Star size={18} color="#fbbf24" fill="#fbbf24" />
+                <Star size={18} color="var(--color-accent)" fill="var(--color-accent)" />
                 <h2>{t('analytics.averageByLesson')}</h2>
               </div>
               <MultiLineChart
@@ -174,7 +174,7 @@ export function AnalyticsHubPage() {
 
           <section className="card ratings-ai-card">
             <div className="ratings-section-head">
-              <Bot size={18} color="#a78bfa" />
+              <Bot size={18} color="var(--color-primary-bright)" />
               <h2>{t('analytics.aiSummary')}</h2>
             </div>
             <p className="ratings-ai-card__summary">{overall.aiSummary}</p>
@@ -217,7 +217,7 @@ export function AnalyticsHubPage() {
                       <LessonCover lesson={lesson} alt={lesson.title} size="sm" />
                       <div style={{ flex: 1, minWidth: 0, textAlign: 'start' }}>
                         <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>{lesson.title}</p>
-                        <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>
+                        <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-muted)' }}>
                           {t('analytics.lessonMeta', {
                             avg: analytics.avgRating,
                             count: analytics.responseCount,
@@ -243,7 +243,7 @@ export function AnalyticsHubPage() {
                           {trainingLabel(lesson.trainingType, t)}
                         </span>
                       </div>
-                      <ChevronRight className="rtl-flip" size={18} color="#a78bfa" />
+                      <ChevronRight className="rtl-flip" size={18} color="var(--color-primary-bright)" />
                     </div>
                   </button>
                 );

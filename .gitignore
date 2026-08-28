@@ -17,3 +17,10 @@ dist/
 # Editor
 .idea/
 *.swp
+
+# Cursor skill packs (vendored, local only)
+.cursor/skills/
+
+# Stray shell-redirect artifacts
+/node
+/flowpilates@*

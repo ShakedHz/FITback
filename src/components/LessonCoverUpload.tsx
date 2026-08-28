@@ -50,7 +50,7 @@ export function LessonVideoUpload({
         </div>
       ) : (
         <div className="lesson-cover-upload__empty">
-          <Film size={28} color="#64748b" />
+          <Film size={28} color="var(--color-text-subtle)" />
           <p>{t('cover.none')}</p>
         </div>
       )}

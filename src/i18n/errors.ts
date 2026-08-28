@@ -26,6 +26,15 @@ const ERROR_KEYS: Record<string, string> = {
   'Invalid Arbox API key or service unavailable': 'errors.arboxInvalid',
   'Could not save profile': 'errors.saveProfile',
   'Could not update photo': 'errors.photo',
+  'This invite link is invalid or expired': 'errors.inviteInvalid',
+  'This invite is for a different email': 'errors.inviteEmailMismatch',
+  'Sign in to join this studio': 'errors.inviteSignIn',
+  'Sign in first to add a studio': 'errors.addStudioFirst',
+  'Arbox did not return a studio': 'errors.arboxNoStudio',
+  'WhatsApp proxy is not running. Start the app with npm run dev.': 'errors.whatsappProxy',
+  'Connect studio WhatsApp in Settings': 'errors.whatsappConnect',
+  'WhatsApp is not configured': 'errors.whatsappConnect',
+  'WhatsApp send failed': 'errors.whatsappSend',
 };
 
 export function translateError(t: TranslateFn, message: string | null | undefined): string {

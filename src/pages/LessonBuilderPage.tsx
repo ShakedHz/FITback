@@ -445,7 +445,7 @@ export function LessonBuilderPage() {
       ) : null}
 
       <div className="card" style={{ marginTop: 16 }}>
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 8 }}>{t('builder.trainingType')}</label>
+        <label style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'block', marginBottom: 8 }}>{t('builder.trainingType')}</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {allowedTypes.map((type) => {
             const colors = TRAINING_TYPE_COLORS[type];
@@ -458,9 +458,9 @@ export function LessonBuilderPage() {
                 style={{
                   padding: '8px 14px',
                   borderRadius: 20,
-                  border: `1px solid ${active ? colors.border : 'rgba(139,92,246,0.25)'}`,
-                  background: active ? colors.bg : 'rgba(26,18,40,0.5)',
-                  color: active ? colors.text : '#94a3b8',
+                  border: `1px solid ${active ? colors.border : 'rgba(var(--color-primary-rgb),0.25)'}`,
+                  background: active ? colors.bg : 'rgba(var(--color-card-rgb),0.5)',
+                  color: active ? colors.text : 'var(--color-text-muted)',
                   fontFamily: 'inherit',
                   fontSize: 13,
                   fontWeight: active ? 600 : 500,
@@ -472,19 +472,19 @@ export function LessonBuilderPage() {
             );
           })}
         </div>
-        <p style={{ fontSize: 12, color: '#64748b', marginBottom: 14 }}>
+        <p style={{ fontSize: 12, color: 'var(--color-text-subtle)', marginBottom: 14 }}>
           {t('builder.equipment', { equipment: equipmentLabel(equipment, t) })}
           {isBlankPlan ? t('builder.addYourself') : t('builder.templateFor', { type: trainingLabel(lessonDraft.trainingType, t) })}
         </p>
 
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 6 }}>{t('builder.lessonName')}</label>
+        <label style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'block', marginBottom: 6 }}>{t('builder.lessonName')}</label>
         <input
           className="input"
           value={lessonDraft.title}
           onChange={(e) => setLessonDraft({ title: e.target.value })}
         />
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
-          {t('builder.description')} <span style={{ color: '#64748b', fontWeight: 400 }}>({t('common.optional')})</span>
+        <label style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'block', margin: '12px 0 6px' }}>
+          {t('builder.description')} <span style={{ color: 'var(--color-text-subtle)', fontWeight: 400 }}>({t('common.optional')})</span>
         </label>
         <textarea
           className="input"
@@ -609,7 +609,7 @@ export function LessonBuilderPage() {
             </div>
           </div>
           {section.exerciseIds.length === 0 ? (
-            <p style={{ fontSize: 13, color: '#64748b', padding: '8px 0 4px' }}>
+            <p style={{ fontSize: 13, color: 'var(--color-text-subtle)', padding: '8px 0 4px' }}>
               {t('builder.noExercises')}
             </p>
           ) : (
@@ -624,12 +624,12 @@ export function LessonBuilderPage() {
                     alignItems: 'center',
                     gap: 12,
                     padding: '10px 0',
-                    borderTop: '1px solid rgba(139,92,246,0.1)',
+                    borderTop: '1px solid rgba(var(--color-primary-rgb),0.1)',
                   }}
                 >
                   <ExerciseVideo exercise={ex} size="row" />
                   <span style={{ flex: 1, fontSize: 14 }}>{ex.nameHe}</span>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>{ex.duration} {t('common.min')}</span>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-subtle)' }}>{ex.duration} {t('common.min')}</span>
                 </div>
               );
             })

@@ -28,7 +28,7 @@ export function EarningsPage() {
           marginTop: 16,
         }}
       >
-        <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>Current balance</p>
+        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 8 }}>Current balance</p>
         <CoinBadge amount={coins} size="lg" />
         <button
           className="btn btn-gold btn-sm"
@@ -45,12 +45,12 @@ export function EarningsPage() {
         return (
           <div key={method.title} className="card" style={{ padding: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={20} color="#a78bfa" />
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(var(--color-primary-rgb),0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon size={20} color="var(--color-primary-bright)" />
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: 600, fontSize: 14 }}>{method.title}</p>
-                <p style={{ fontSize: 12, color: '#94a3b8' }}>{method.desc}</p>
+                <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{method.desc}</p>
               </div>
               <span className="tag tag-gold">{method.coins}</span>
             </div>
@@ -64,7 +64,7 @@ export function EarningsPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <p style={{ fontSize: 14, fontWeight: 500 }}>{tx.desc}</p>
-              <p style={{ fontSize: 12, color: '#64748b' }}>{tx.date}</p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-subtle)' }}>{tx.date}</p>
             </div>
             <span style={{ color: tx.amount > 0 ? '#34d399' : '#f87171', fontWeight: 600 }}>
               {tx.amount > 0 ? '+' : ''}{tx.amount}

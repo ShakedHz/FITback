@@ -85,7 +85,7 @@ export function ExerciseLibraryPage() {
       </button>
 
       <div style={{ position: 'relative', marginBottom: 16 }}>
-        <Search size={18} color="#64748b" className="input-with-icon__icon" />
+        <Search size={18} color="var(--color-text-subtle)" className="input-with-icon__icon" />
         <input
           className="input input-with-icon"
           placeholder={t('exercises.search')}
@@ -134,7 +134,7 @@ export function ExerciseLibraryPage() {
 
       {filtered.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: 24 }}>
-          <p style={{ color: '#94a3b8' }}>{t('exercises.none')}</p>
+          <p style={{ color: 'var(--color-text-muted)' }}>{t('exercises.none')}</p>
           <button
             className="btn btn-secondary btn-sm"
             style={{ marginTop: 12 }}

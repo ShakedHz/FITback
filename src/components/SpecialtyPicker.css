@@ -13,7 +13,7 @@
   padding: 0;
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .specialty-picker__list {
@@ -22,7 +22,7 @@
   gap: 2px;
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(15, 10, 26, 0.45);
+  background: rgba(var(--color-bg-rgb), 0.45);
   overflow: hidden;
 }
 
@@ -42,7 +42,7 @@
 }
 
 .specialty-picker__row:active {
-  background: rgba(139, 92, 246, 0.08);
+  background: rgba(var(--color-primary-rgb), 0.08);
 }
 
 .specialty-picker__checkbox {
@@ -50,18 +50,18 @@
   height: 20px;
   margin: 0;
   flex-shrink: 0;
-  accent-color: #8b5cf6;
+  accent-color: var(--color-primary);
   cursor: pointer;
 }
 
 .specialty-picker__text {
   font-size: 15px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--color-text);
   line-height: 1.2;
 }
 
 .specialty-picker__row:has(.specialty-picker__checkbox:checked) .specialty-picker__text {
-  color: #ede9fe;
+  color: var(--color-text);
   font-weight: 600;
 }

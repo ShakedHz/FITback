@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const appPort = 5199;
 const arboxPort = 5201;
+const whatsappPort = 5202;
 
 function getLanIps() {
   const ips = new Set();
@@ -33,7 +34,7 @@ function getLanIps() {
 
 const ips = getLanIps();
 
-console.log('\n📱 FITback — app + Arbox (read-only, no SMS)\n');
+console.log('\n📱 FITback — app + Arbox (read-only) + WhatsApp Cloud API\n');
 if (ips.length === 0) {
   console.log('Open: http://localhost:5199/\n');
 } else {
@@ -57,6 +58,7 @@ function freePort(port) {
 
 freePort(appPort);
 freePort(arboxPort);
+freePort(whatsappPort);
 
 const children = [];
 
@@ -75,6 +77,9 @@ function start(name, cmd, args, env = {}) {
 }
 
 start('arbox-api', 'node', ['scripts/arbox-api.mjs'], { ARBOX_API_PORT: String(arboxPort) });
+start('whatsapp-api', 'node', ['scripts/whatsapp-api.mjs'], {
+  WHATSAPP_API_PORT: String(whatsappPort),
+});
 start('vite', 'npx', ['vite', '--host', '0.0.0.0', '--port', String(appPort)]);
 
 function shutdown() {

@@ -31,8 +31,8 @@ export function CoinShopPage() {
       <div className="page fade-in coin-shop-success">
         <Check size={40} color="#34d399" />
         <h1 className="page-title">Purchase complete!</h1>
-        <p style={{ color: '#94a3b8', marginTop: 8 }}>
-          Added <span style={{ color: '#fbbf24', fontWeight: 700 }}>{lastPurchase.toLocaleString('en-US')}</span> coins to your wallet
+        <p style={{ color: 'var(--color-text-muted)', marginTop: 8 }}>
+          Added <span style={{ color: 'var(--color-accent)', fontWeight: 700 }}>{lastPurchase.toLocaleString('en-US')}</span> coins to your wallet
         </p>
         <CoinBadge amount={coins} size="lg" />
         <button className="btn btn-primary" style={{ marginTop: 24 }} onClick={() => navigate('/dashboard')}>
@@ -49,7 +49,7 @@ export function CoinShopPage() {
       <p className="page-subtitle">Buy {BRAND.coinsName} to unlock lesson plans and lessons</p>
 
       <div className="coin-shop-hero">
-        <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 6 }}>Current balance</p>
+        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 6 }}>Current balance</p>
         <CoinBadge amount={coins} size="lg" />
       </div>
 
@@ -76,7 +76,7 @@ export function CoinShopPage() {
               <div>
                 <div className="coin-package__coins">
                   <span className="coin-package__amount">{total.toLocaleString('en-US')} coins</span>
-                  {isSelected && <Check size={18} color="#a78bfa" />}
+                  {isSelected && <Check size={18} color="var(--color-primary-bright)" />}
                 </div>
                 {pkg.bonus > 0 && (
                   <p className="coin-package__bonus">+{pkg.bonus} free bonus!</p>
@@ -85,7 +85,7 @@ export function CoinShopPage() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p className="coin-package__price">{formatPrice(pkg.price)}</p>
-                <p style={{ fontSize: 11, color: '#64748b' }}>
+                <p style={{ fontSize: 11, color: 'var(--color-text-subtle)' }}>
                   {formatPrice(pkg.price / total)}/coin
                 </p>
               </div>
@@ -94,8 +94,8 @@ export function CoinShopPage() {
         );
       })}
 
-      <div className="card" style={{ marginTop: 8, fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
-        <Sparkles size={14} color="#a78bfa" style={{ verticalAlign: 'middle', marginRight: 4 }} />
+      <div className="card" style={{ marginTop: 8, fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+        <Sparkles size={14} color="var(--color-primary-bright)" style={{ verticalAlign: 'middle', marginRight: 4 }} />
         Coins are used to purchase lesson plans, templates, and Remixes from other instructors
       </div>
 
@@ -103,7 +103,7 @@ export function CoinShopPage() {
         Purchase — {formatPrice(selected.price)} · {getTotalCoins(selected).toLocaleString('en-US')} coins
       </button>
 
-      <p style={{ textAlign: 'center', fontSize: 11, color: '#64748b', marginTop: 12 }}>
+      <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-text-subtle)', marginTop: 12 }}>
         Secure payment · Demo (no real charge)
       </p>
     </div>

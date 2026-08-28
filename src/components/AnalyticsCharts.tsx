@@ -46,7 +46,7 @@ export function AnalyticsProgressBar({ label, pct, count }: ProgressBarProps) {
     <div className="analytics-progress">
       <div className="analytics-progress__header">
         <span>{label}</span>
-        <span style={{ color: '#a78bfa' }}>{count != null ? `${count} · ` : ''}{pct}%</span>
+        <span style={{ color: 'var(--color-primary-bright)' }}>{count != null ? `${count} · ` : ''}{pct}%</span>
       </div>
       <div className="analytics-progress__track">
         <div className="analytics-progress__fill" style={{ width: `${pct}%` }} />

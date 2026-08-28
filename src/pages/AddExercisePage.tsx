@@ -92,7 +92,7 @@ export function AddExercisePage() {
             borderRadius: 12,
             background: 'rgba(239, 68, 68, 0.12)',
             border: '1px solid rgba(239, 68, 68, 0.28)',
-            color: '#fca5a5',
+            color: 'var(--color-danger)',
             fontSize: 13,
             lineHeight: 1.4,
           }}
@@ -102,7 +102,7 @@ export function AddExercisePage() {
       )}
 
       <div className="card" style={{ marginTop: 8 }}>
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginBottom: 6 }}>
+        <label style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'block', marginBottom: 6 }}>
           {t('exercises.nameRequired')}
         </label>
         <input
@@ -116,7 +116,7 @@ export function AddExercisePage() {
           aria-invalid={Boolean(error && !nameHe.trim())}
         />
 
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
+        <label style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'block', margin: '12px 0 6px' }}>
           {t('exercises.englishOptional')}
         </label>
         <input
@@ -126,7 +126,7 @@ export function AddExercisePage() {
           onChange={(e) => setName(e.target.value)}
         />
 
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
+        <label style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'block', margin: '12px 0 6px' }}>
           {t('exercises.category')}
         </label>
         <div className="chip-row">
@@ -142,7 +142,7 @@ export function AddExercisePage() {
           ))}
         </div>
 
-        <label style={{ fontSize: 13, color: '#94a3b8', display: 'block', margin: '12px 0 6px' }}>
+        <label style={{ fontSize: 13, color: 'var(--color-text-muted)', display: 'block', margin: '12px 0 6px' }}>
           {t('exercises.duration')}
         </label>
         <input
@@ -157,7 +157,7 @@ export function AddExercisePage() {
 
       <div className="card" style={{ marginTop: 12 }}>
         <p className="section-title">
-          {t('exercises.video')} <span style={{ color: '#64748b', fontWeight: 400 }}>({t('common.optional')})</span>
+          {t('exercises.video')} <span style={{ color: 'var(--color-text-subtle)', fontWeight: 400 }}>({t('common.optional')})</span>
         </p>
         <div
           className={`add-exercise-upload ${videoUrl ? 'has-file' : ''}`}
@@ -174,15 +174,15 @@ export function AddExercisePage() {
           />
           {videoUrl ? (
             <>
-              <p style={{ fontWeight: 600, color: '#a78bfa' }}>{t('exercises.uploaded')}</p>
-              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{videoFileName}</p>
-              <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>{t('exercises.tapReplace')}</p>
+              <p style={{ fontWeight: 600, color: 'var(--color-primary-bright)' }}>{t('exercises.uploaded')}</p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4 }}>{videoFileName}</p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-subtle)', marginTop: 8 }}>{t('exercises.tapReplace')}</p>
             </>
           ) : (
             <>
-              <Upload size={28} color="#8b5cf6" style={{ marginBottom: 8 }} />
+              <Upload size={28} color="var(--color-primary)" style={{ marginBottom: 8 }} />
               <p style={{ fontWeight: 600 }}>{t('exercises.addVideo')}</p>
-              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4 }}>
                 {t('exercises.videoHint')}
               </p>
             </>

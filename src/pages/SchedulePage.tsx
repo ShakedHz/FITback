@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
   ChevronLeft,
@@ -15,14 +14,10 @@ import {
   MessageSquare,
   BookOpen,
   Unlink,
-  Check,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { BRAND } from '@/data/brand';
-import {
-  buildClassSurveyUrl,
-} from '@/services/classFeedback';
-import { loadSurveyClients, type SurveyClient } from '@/services/surveyClients';
+import { ClassFeedbackAttendees } from '@/components/ClassFeedbackAttendees';
 import {
   addDays,
   formatWeekRange,
@@ -59,15 +54,7 @@ function ScheduleOverlay({ children, onClose }: { children: React.ReactNode; onC
   );
 }
 
-function isClientOnEvent(event: ScheduleEvent, client: SurveyClient): boolean {
-  const phoneDigits = client.phone.replace(/\D/g, '');
-  return (event.attendees ?? []).some(
-    (a) => a.id === client.id || (a.phone && a.phone.replace(/\D/g, '') === phoneDigits)
-  );
-}
-
 export function SchedulePage() {
-  const navigate = useNavigate();
   const {
     weekStart,
     setWeekStart,
@@ -77,7 +64,6 @@ export function SchedulePage() {
     removeScheduleEvent,
     attachLessonPlan,
     detachLessonPlan,
-    toggleEventAttendee,
     schedulableLessons,
     setLinkedInstructor,
   } = useApp();
@@ -92,7 +78,6 @@ export function SchedulePage() {
   const [addTrainingType, setAddTrainingType] = useState<TrainingType | null>(null);
   const [addLessonId, setAddLessonId] = useState<string | null>(null);
   const [addTime, setAddTime] = useState('10:00');
-  const [rosterClients, setRosterClients] = useState<SurveyClient[]>(() => loadSurveyClients());
 
   // Keep event sheet in sync when attendees / feedback status change
   useEffect(() => {
@@ -101,11 +86,6 @@ export function SchedulePage() {
     if (fresh) setSelectedEvent(fresh);
     else setSelectedEvent(null);
   }, [scheduleEvents, selectedEvent?.id]);
-
-  // Refresh roster when opening a class (clients are managed on Survey)
-  useEffect(() => {
-    if (selectedEvent) setRosterClients(loadSurveyClients());
-  }, [selectedEvent?.id]);
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -650,98 +630,11 @@ export function SchedulePage() {
               )}
             </div>
 
-            <div className="schedule-attendees">
-              <p className="schedule-sheet__label">{t('schedule.participants')}</p>
-
-              {selectedEvent.source === 'arbox' ? (
-                <>
-                  <p className="schedule-attendees__hint">
-                    {t('schedule.arboxEnrolledHint')}
-                  </p>
-                  {(selectedEvent.attendees ?? []).length > 0 ? (
-                    <ul className="schedule-attendees__roster">
-                      {(selectedEvent.attendees ?? []).map((attendee) => (
-                        <li key={attendee.id} className="schedule-attendees__roster-item">
-                          <span className="schedule-attendees__name">{attendee.name}</span>
-                          {attendee.phone && (
-                            <span className="schedule-attendees__phone">{attendee.phone}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="schedule-attendees__empty">{t('schedule.noEnrolled')}</p>
-                  )}
-                  {selectedEvent.feedbackSentAt && (
-                    <p className="schedule-attendees__selected">{t('schedule.feedbackAlready')}</p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p className="schedule-attendees__hint">
-                    {t('schedule.selectAttended')}
-                  </p>
-
-                  {rosterClients.length === 0 ? (
-                    <div className="schedule-attendees__empty-block">
-                      <p className="schedule-attendees__empty">{t('schedule.noClientsYet')}</p>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setSelectedEvent(null);
-                          navigate('/survey');
-                        }}
-                      >
-                        <Plus size={14} /> {t('schedule.addInClients')}
-                      </button>
-                    </div>
-                  ) : (
-                    <ul className="schedule-attendees__pick">
-                      {rosterClients.map((client) => {
-                        const on = isClientOnEvent(selectedEvent, client);
-                        return (
-                          <li key={client.id}>
-                            <button
-                              type="button"
-                              className={`schedule-attendees__pick-btn${on ? ' schedule-attendees__pick-btn--on' : ''}`}
-                              onClick={() => toggleEventAttendee(selectedEvent.id, client)}
-                            >
-                              <span className="schedule-attendees__pick-check" aria-hidden>
-                                {on ? <Check size={14} /> : null}
-                              </span>
-                              <span className="schedule-attendees__pick-body">
-                                <span className="schedule-attendees__name">{client.name}</span>
-                                <span className="schedule-attendees__phone">{client.phone}</span>
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-
-                  {(selectedEvent.attendees ?? []).length > 0 && (
-                    <p className="schedule-attendees__selected">
-                      {t('schedule.selectedCount', { count: (selectedEvent.attendees ?? []).length })}
-                    </p>
-                  )}
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ marginTop: 10 }}
-                    onClick={() => {
-                      const url = new URL(buildClassSurveyUrl(selectedEvent));
-                      setSelectedEvent(null);
-                      navigate(`${url.pathname}${url.search}`);
-                    }}
-                  >
-                    <MessageSquare size={14} /> {t('schedule.previewForm')}
-                  </button>
-                </>
-              )}
-            </div>
+            <ClassFeedbackAttendees
+              key={selectedEvent.id}
+              event={selectedEvent}
+              onCloseSheet={() => setSelectedEvent(null)}
+            />
 
             {canAttachPlanToEvent(selectedEvent, arboxConnection) && (
               <button

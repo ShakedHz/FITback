@@ -1,21 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageSquare, Send, X } from 'lucide-react';
+import { Send, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import {
-  buildClassFeedbackMessage,
   dismissClassFeedback,
   FEEDBACK_CHECK_EVENT,
   findPendingFeedbackEvents,
   getAttendeesWithPhone,
-  hasLiveArboxMessaging,
+  isPublicSurveyOrigin,
   wasClassFeedbackDismissed,
 } from '@/services/classFeedback';
-import { openSms } from '@/utils/sms';
-import type { ScheduleEvent } from '@/data/scheduleTypes';
+import { sendStudioFeedbackToAttendees } from '@/services/whatsappCloud';
+import type { ScheduleAttendee, ScheduleEvent } from '@/data/scheduleTypes';
+import { translateError, useI18n } from '@/i18n';
 import './PostClassFeedbackModal.css';
 
 export function PostClassFeedbackModal() {
+  const { t } = useI18n();
   const {
     scheduleEvents,
     autoClassFeedbackEnabled,
@@ -24,8 +26,10 @@ export function PostClassFeedbackModal() {
     isLoggedIn,
   } = useApp();
   const [event, setEvent] = useState<ScheduleEvent | null>(null);
-  const [phones, setPhones] = useState<string[]>([]);
-  const [index, setIndex] = useState(0);
+  const [recipients, setRecipients] = useState<ScheduleAttendee[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ sent: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const feedbackScope = useMemo(
     () => ({ arboxConnection }),
@@ -37,11 +41,6 @@ export function PostClassFeedbackModal() {
       setEvent(null);
       return;
     }
-    // Live Arbox API sends server-side — modal only drives native SMS in the app.
-    if (arboxConnection.connected && hasLiveArboxMessaging()) {
-      setEvent(null);
-      return;
-    }
     const pending = findPendingFeedbackEvents(scheduleEvents, new Date(), feedbackScope).filter(
       (ev) => !wasClassFeedbackDismissed(ev.id)
     );
@@ -50,7 +49,7 @@ export function PostClassFeedbackModal() {
       if (current && pending.some((ev) => ev.id === current.id)) return current;
       return next;
     });
-  }, [isLoggedIn, autoClassFeedbackEnabled, scheduleEvents, feedbackScope, arboxConnection.connected]);
+  }, [isLoggedIn, autoClassFeedbackEnabled, scheduleEvents, feedbackScope]);
 
   useEffect(() => {
     refreshPending();
@@ -71,37 +70,25 @@ export function PostClassFeedbackModal() {
 
   useEffect(() => {
     if (!event) {
-      setPhones([]);
-      setIndex(0);
+      setRecipients([]);
+      setProgress(null);
+      setError(null);
       return;
     }
-    setPhones(getAttendeesWithPhone(event).map((a) => a.phone!));
-    setIndex(0);
+    setRecipients(getAttendeesWithPhone(event));
+    setProgress(null);
+    setError(null);
   }, [event?.id]);
 
-  if (!event || phones.length === 0) return null;
+  if (!event || recipients.length === 0) return null;
 
-  const message = buildClassFeedbackMessage(event);
-  const remaining = phones.length - index;
+  const publicOrigin = isPublicSurveyOrigin();
 
   const finish = () => {
     markEventFeedbackSent(event.id);
     setEvent(null);
-    setPhones([]);
-    setIndex(0);
-    // Pick up the next ended class on the next tick
+    setRecipients([]);
     window.setTimeout(refreshPending, 300);
-  };
-
-  const sendCurrent = () => {
-    const phone = phones[index];
-    if (!phone) return;
-    openSms(phone, message);
-    if (index >= phones.length - 1) {
-      finish();
-      return;
-    }
-    setIndex((i) => i + 1);
   };
 
   const skip = () => {
@@ -110,46 +97,63 @@ export function PostClassFeedbackModal() {
     window.setTimeout(refreshPending, 300);
   };
 
+  const sendAll = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    setProgress({ sent: 0, total: recipients.length });
+    const result = await sendStudioFeedbackToAttendees(recipients, event, t, (sent, total) => {
+      setProgress({ sent, total });
+    });
+    setBusy(false);
+    if (result.sent > 0 && result.failed === 0) {
+      finish();
+      return;
+    }
+    if (result.sent > 0) markEventFeedbackSent(event.id);
+    setError(
+      translateError(t, result.lastError) ||
+        t('schedule.sentWhatsAppPartial', { sent: result.sent, failed: result.failed })
+    );
+  };
+
+  const cta =
+    busy && progress
+      ? t('schedule.sendingWhatsApp', { current: progress.sent, total: progress.total })
+      : t('schedule.sendWhatsAppToCount', { count: recipients.length });
+
   return createPortal(
     <div className="post-feedback-overlay" role="dialog" aria-modal="true" aria-labelledby="post-feedback-title">
       <div className="post-feedback-modal">
-        <button type="button" className="post-feedback-modal__close" onClick={skip} aria-label="Dismiss">
+        <button
+          type="button"
+          className="post-feedback-modal__close"
+          onClick={skip}
+          aria-label={t('common.close')}
+        >
           <X size={18} />
         </button>
         <div className="post-feedback-modal__icon">
-          <MessageSquare size={22} color="#a78bfa" />
+          <WhatsAppIcon size={22} />
         </div>
         <h2 id="post-feedback-title" className="post-feedback-modal__title">
-          Class ended
+          {t('schedule.classEnded')}
         </h2>
         <p className="post-feedback-modal__class">{event.title}</p>
         <p className="post-feedback-modal__text">
-          {event.source === 'arbox' ? (
-            <>
-              Send feedback SMS to <strong>{phones.length}</strong>{' '}
-              {phones.length === 1 ? 'registered participant' : 'registered participants'} from
-              Arbox.
-            </>
-          ) : (
-            <>
-              Send feedback SMS to <strong>{phones.length}</strong>{' '}
-              {phones.length === 1 ? 'participant' : 'participants'} from this class.
-            </>
-          )}
+          {t('schedule.sendWhatsAppBody', { count: recipients.length, title: event.title })}
         </p>
-        {index > 0 && (
-          <p className="post-feedback-modal__progress">
-            SMS {index + 1} of {phones.length} — tap Send in Messages, then continue.
-          </p>
+        <p className="post-feedback-modal__progress">{t('schedule.sendWhatsAppHint')}</p>
+        {!publicOrigin && (
+          <p className="post-feedback-modal__warn">{t('schedule.whatsappPrivateOrigin')}</p>
         )}
-        <button type="button" className="btn btn-primary" onClick={sendCurrent}>
+        {error && <p className="post-feedback-modal__warn">{error}</p>}
+        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void sendAll()}>
           <Send size={16} />
-          {index === 0
-            ? `Send SMS to ${phones.length}`
-            : `Send next (${remaining} left)`}
+          {cta}
         </button>
         <button type="button" className="btn btn-ghost post-feedback-modal__later" onClick={skip}>
-          Later
+          {t('schedule.later')}
         </button>
       </div>
     </div>,

@@ -60,7 +60,7 @@ export function LessonAnalyticsPage() {
           <ArrowLeft className="rtl-flip" size={20} /> {t('common.back')}
         </button>
         <div className="card" style={{ textAlign: 'center', padding: 32, marginTop: 20 }}>
-          <p style={{ color: '#94a3b8' }}>{t('analytics.lessonNotFound')}</p>
+          <p style={{ color: 'var(--color-text-muted)' }}>{t('analytics.lessonNotFound')}</p>
         </div>
       </div>
     );
@@ -68,7 +68,7 @@ export function LessonAnalyticsPage() {
 
   const score = lessonHealthScore(analytics);
   const action = primaryAction(analytics);
-  const scoreColor = score >= 80 ? '#34d399' : score >= 65 ? '#fbbf24' : '#f87171';
+  const scoreColor = score >= 80 ? '#34d399' : score >= 65 ? 'var(--color-accent)' : '#f87171';
 
   return (
     <div className="page fade-in">
@@ -108,7 +108,7 @@ export function LessonAnalyticsPage() {
 
       <div className="card ratings-ai-card">
         <div className="ratings-section-head">
-          <Bot size={18} color="#a78bfa" />
+          <Bot size={18} color="var(--color-primary-bright)" />
           <h2>{t('analytics.aiAnalysis')}</h2>
         </div>
         <p className="ratings-ai-card__summary">{analytics.aiSummary}</p>
@@ -132,7 +132,7 @@ export function LessonAnalyticsPage() {
 
       <div className="ratings-kpi-strip" style={{ marginBottom: 16 }}>
         <div className="ratings-kpi">
-          <Star size={16} color="#fbbf24" fill="#fbbf24" />
+          <Star size={16} color="var(--color-accent)" fill="var(--color-accent)" />
           <div>
             <p className="ratings-kpi__value">{analytics.avgRating}</p>
             <p className="ratings-kpi__label">{t('analytics.average')}</p>
@@ -146,14 +146,14 @@ export function LessonAnalyticsPage() {
           </div>
         </div>
         <div className="ratings-kpi">
-          <AlertTriangle size={16} color={analytics.lowRatingRate > 12 ? '#f87171' : '#94a3b8'} />
+          <AlertTriangle size={16} color={analytics.lowRatingRate > 12 ? '#f87171' : 'var(--color-text-muted)'} />
           <div>
             <p className="ratings-kpi__value">{analytics.lowRatingRate}%</p>
             <p className="ratings-kpi__label">{t('analytics.lowStars')}</p>
           </div>
         </div>
         <div className="ratings-kpi">
-          <MessageSquareText size={16} color="#a78bfa" />
+          <MessageSquareText size={16} color="var(--color-primary-bright)" />
           <div>
             <p className="ratings-kpi__value">{analytics.comments.length}</p>
             <p className="ratings-kpi__label">{t('analytics.notes')}</p>

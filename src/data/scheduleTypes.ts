@@ -87,7 +87,7 @@ export interface ArboxMessageLog {
 
 export const EVENT_CATEGORY_COLORS: Record<EventCategory, { bg: string; border: string; text: string }> = {
   pilates: { bg: '#3B82F6', border: '#2563EB', text: '#ffffff' },
-  reformer: { bg: '#8B5CF6', border: '#7C3AED', text: '#ffffff' },
+  reformer: { bg: '#147A6E', border: '#0F5C54', text: '#ffffff' },
   prenatal: { bg: '#EC4899', border: '#DB2777', text: '#ffffff' },
   stretch: { bg: '#14B8A6', border: '#0D9488', text: '#ffffff' },
   power: { bg: '#F59E0B', border: '#D97706', text: '#ffffff' },
@@ -95,7 +95,7 @@ export const EVENT_CATEGORY_COLORS: Record<EventCategory, { bg: string; border: 
   hiit: { bg: '#EF4444', border: '#DC2626', text: '#ffffff' },
   barre: { bg: '#F472B6', border: '#EC4899', text: '#ffffff' },
   cycle: { bg: '#F59E0B', border: '#D97706', text: '#1e293b' },
-  movana: { bg: '#6366F1', border: '#4F46E5', text: '#ffffff' },
+  movana: { bg: '#2A9D8F', border: '#147A6E', text: '#ffffff' },
 };
 
 export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {
@@ -116,8 +116,8 @@ export const SCHEDULE_END_HOUR = 20;
 export const SCHEDULE_HOUR_HEIGHT = 48;
 
 export const ARBOX_EVENT_COLORS: { bg: string; border: string; text: string } = {
-  bg: '#64748b',
-  border: '#475569',
+  bg: '#7A8780',
+  border: '#5C6862',
   text: '#ffffff',
 };
 

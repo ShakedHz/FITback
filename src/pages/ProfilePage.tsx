@@ -1,10 +1,9 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Users, RefreshCw, LogOut, Camera } from 'lucide-react';
+import { BookOpen, Users, RefreshCw, LogOut, Camera, Building2, Settings } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
-import { LanguageSwitch } from '@/components/LanguageSwitch';
 import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
 import { instructorBio, trainingLabel, useI18n } from '@/i18n';
 import { fileToAvatarDataUrl } from '@/utils/avatarImage';
@@ -19,6 +18,7 @@ export function ProfilePage() {
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
 
+  const activeStudio = user?.memberships?.find((m) => m.clubId === user.activeStudioId);
   const bio = instructor.specialties.length > 0
     ? instructorBio(instructor.specialties, t)
     : instructor.bio;
@@ -79,11 +79,16 @@ export function ProfilePage() {
 
         <h1 className="page-title">{instructor.name}</h1>
         {user?.email && (
-          <p style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>{user.email}</p>
+          <p style={{ color: 'var(--color-text-subtle)', fontSize: 13, marginTop: 4 }}>{user.email}</p>
+        )}
+        {activeStudio && (
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginTop: 4 }}>
+            {activeStudio.clubName}
+          </p>
         )}
 
         {bio && (
-          <p style={{ color: '#94a3b8', fontSize: 14, marginTop: 12, lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 12, lineHeight: 1.5 }}>
             {bio}
           </p>
         )}
@@ -116,19 +121,26 @@ export function ProfilePage() {
       <div className="stat-grid" style={{ marginBottom: 20 }}>
         {stats.map(({ icon: Icon, value, label }) => (
           <div key={label} className="stat-box">
-            <Icon size={18} color="#a78bfa" style={{ marginBottom: 4 }} />
+            <Icon size={18} color="var(--color-primary-bright)" style={{ marginBottom: 4 }} />
             <div className="stat-value" style={{ fontSize: 18 }}>{value}</div>
             <div className="stat-label">{label}</div>
           </div>
         ))}
       </div>
 
-      <div className="profile-lang">
-        <p className="profile-lang__label">{t('lang.label')}</p>
-        <LanguageSwitch />
-      </div>
-
       <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => navigate('/settings')}
+        >
+          <Settings size={18} /> {t('profile.settings')}
+        </button>
+        <button
+          className="btn btn-secondary"
+          onClick={() => navigate('/studio')}
+        >
+          <Building2 size={18} /> {t('profile.studios')}
+        </button>
         <button
           className="btn btn-ghost"
           onClick={() => { logout(); navigate('/'); }}

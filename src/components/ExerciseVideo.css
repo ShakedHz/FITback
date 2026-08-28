@@ -2,7 +2,7 @@
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  background: #1a1228;
+  background: var(--color-card);
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -16,7 +16,7 @@
   height: 100%;
   display: grid;
   place-items: center;
-  background: linear-gradient(145deg, #4c1d95, #1e1b4b);
+  background: linear-gradient(145deg, var(--color-primary-deep), var(--color-bg-elevated));
   color: rgba(255, 255, 255, 0.7);
   font-weight: 700;
   font-size: 1.1em;
@@ -86,7 +86,7 @@
 }
 
 .exercise-video:hover .exercise-video__play {
-  background: rgba(139, 92, 246, 0.35);
+  background: rgba(var(--color-primary-rgb), 0.35);
 }
 
 .exercise-video__play svg {
@@ -101,7 +101,7 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 10px;
-  background: rgba(139, 92, 246, 0.85);
+  background: rgba(var(--color-primary-rgb), 0.85);
   color: white;
 }
 
@@ -159,7 +159,7 @@
 
 .video-modal__meta {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 
@@ -174,8 +174,8 @@
   font-family: inherit;
   color: inherit;
   cursor: pointer;
-  border: 1px solid rgba(139, 92, 246, 0.35);
-  background: linear-gradient(145deg, rgba(139, 92, 246, 0.18), rgba(26, 18, 40, 0.92));
+  border: 1px solid rgba(var(--color-primary-rgb), 0.35);
+  background: linear-gradient(145deg, rgba(var(--color-primary-rgb), 0.18), rgba(var(--color-card-rgb), 0.92));
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -190,9 +190,9 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-deep));
   color: #fff;
-  box-shadow: 0 6px 16px rgba(109, 40, 217, 0.35);
+  box-shadow: 0 6px 16px rgba(var(--color-primary-rgb), 0.35);
 }
 
 .exercise-new-cta__text {
@@ -206,17 +206,17 @@
 .exercise-new-cta__title {
   font-size: 16px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--color-text);
 }
 
 .exercise-new-cta__desc {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   line-height: 1.35;
 }
 
 .exercise-new-cta__arrow {
-  color: #a78bfa;
+  color: var(--color-primary-bright);
   font-size: 18px;
   font-weight: 600;
   flex-shrink: 0;
@@ -241,23 +241,23 @@
 
 .exercise-card__meta {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .add-exercise-upload {
-  border: 2px dashed rgba(139, 92, 246, 0.4);
+  border: 2px dashed rgba(var(--color-primary-rgb), 0.4);
   border-radius: 16px;
   padding: 32px 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: rgba(139, 92, 246, 0.05);
+  background: rgba(var(--color-primary-rgb), 0.05);
 }
 
 .add-exercise-upload:hover,
 .add-exercise-upload.has-file {
-  border-color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.12);
+  border-color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.12);
 }
 
 .add-exercise-upload input {
@@ -325,7 +325,7 @@
   aspect-ratio: 1;
   border-radius: 16px;
   overflow: hidden;
-  background: #1a1228;
+  background: var(--color-card);
 }
 
 .video-modal__ai-wrap .ai-video-loop {
@@ -345,7 +345,7 @@
   font-weight: 600;
   padding: 6px 12px;
   border-radius: 20px;
-  background: rgba(139, 92, 246, 0.85);
+  background: rgba(var(--color-primary-rgb), 0.85);
   color: white;
   backdrop-filter: blur(8px);
 }

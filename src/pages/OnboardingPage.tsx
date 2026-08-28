@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { hasInstructorProfile, useAuth } from '@/auth/AuthContext';
+import { canAccessApp, useAuth } from '@/auth/AuthContext';
 import { SpecialtyPicker } from '@/components/SpecialtyPicker';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
 import { type TrainingType } from '@/data/trainingTypes';
@@ -18,7 +18,7 @@ export function OnboardingPage() {
     return <Navigate to="/login" replace />;
   }
 
-  if (isReady && hasInstructorProfile(user)) {
+  if (isReady && canAccessApp(user)) {
     return <Navigate to="/dashboard" replace />;
   }
 

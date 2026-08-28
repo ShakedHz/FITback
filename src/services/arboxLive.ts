@@ -1,4 +1,4 @@
-import type { ArboxConnection, ScheduleAttendee, ScheduleEvent, StudioRole } from '@/data/scheduleTypes';
+import type { ArboxConnection, ScheduleAttendee, ScheduleEvent } from '@/data/scheduleTypes';
 
 export interface ArboxProbeResult {
   ok: boolean;
@@ -72,8 +72,8 @@ function formatDateForArbox(d: Date): string {
 
 export async function connectLiveArbox(
   apiKey: string,
-  role: StudioRole,
-  weekStart: Date
+  weekStart: Date,
+  linkedInstructorId?: string
 ): Promise<ArboxConnectResponse> {
   const base = proxyBase();
   if (!base) {
@@ -85,7 +85,7 @@ export async function connectLiveArbox(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       apiKey,
-      role,
+      linkedInstructorId,
       weekStartDate: formatDateForArbox(weekStart),
     }),
   });

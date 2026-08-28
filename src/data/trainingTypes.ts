@@ -22,12 +22,36 @@ export const TRAINING_TYPE_COLORS: Record<
   TrainingType,
   { bg: string; border: string; text: string }
 > = {
-  pilates: { bg: 'rgba(59, 130, 246, 0.18)', border: 'rgba(59, 130, 246, 0.4)', text: '#93c5fd' },
-  yoga: { bg: 'rgba(16, 185, 129, 0.18)', border: 'rgba(16, 185, 129, 0.4)', text: '#6ee7b7' },
-  hiit: { bg: 'rgba(239, 68, 68, 0.18)', border: 'rgba(239, 68, 68, 0.4)', text: '#fca5a5' },
-  barre: { bg: 'rgba(236, 72, 153, 0.18)', border: 'rgba(236, 72, 153, 0.4)', text: '#f9a8d4' },
-  cycle: { bg: 'rgba(245, 158, 11, 0.18)', border: 'rgba(245, 158, 11, 0.4)', text: '#fcd34d' },
-  stretch: { bg: 'rgba(20, 184, 166, 0.18)', border: 'rgba(20, 184, 166, 0.4)', text: '#5eead4' },
+  pilates: {
+    bg: 'var(--chip-pilates-bg)',
+    border: 'var(--chip-pilates-border)',
+    text: 'var(--chip-pilates-text)',
+  },
+  yoga: {
+    bg: 'var(--chip-yoga-bg)',
+    border: 'var(--chip-yoga-border)',
+    text: 'var(--chip-yoga-text)',
+  },
+  hiit: {
+    bg: 'var(--chip-hiit-bg)',
+    border: 'var(--chip-hiit-border)',
+    text: 'var(--chip-hiit-text)',
+  },
+  barre: {
+    bg: 'var(--chip-barre-bg)',
+    border: 'var(--chip-barre-border)',
+    text: 'var(--chip-barre-text)',
+  },
+  cycle: {
+    bg: 'var(--chip-cycle-bg)',
+    border: 'var(--chip-cycle-border)',
+    text: 'var(--chip-cycle-text)',
+  },
+  stretch: {
+    bg: 'var(--chip-stretch-bg)',
+    border: 'var(--chip-stretch-border)',
+    text: 'var(--chip-stretch-text)',
+  },
 };
 
 export function getTrainingTypeLabel(type: TrainingType): string {

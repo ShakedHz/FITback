@@ -1,5 +1,6 @@
 import type { StudioRole } from '@/data/scheduleTypes';
 import type { TrainingType } from '@/data/trainingTypes';
+import type { StudioMembership } from '@/data/studioOrg';
 
 export type AuthProvider = 'email' | 'google' | 'apple' | 'arbox';
 
@@ -13,6 +14,12 @@ export interface AuthUser {
   provider: AuthProvider;
   role: StudioRole;
   arboxLinked: boolean;
+  googleSub?: string;
+  appleSub?: string;
+  arboxClubId?: string;
+  arboxStaffId?: string;
+  memberships: StudioMembership[];
+  activeStudioId?: string;
   createdAt: string;
 }
 
@@ -33,6 +40,12 @@ export interface StoredAccount {
   provider: AuthProvider;
   role: StudioRole;
   arboxLinked: boolean;
+  googleSub?: string;
+  appleSub?: string;
+  arboxClubId?: string;
+  arboxStaffId?: string;
+  memberships?: StudioMembership[];
+  activeStudioId?: string;
   /** PBKDF2 hash — only for email accounts */
   passwordHash?: string;
   passwordSalt?: string;
@@ -55,3 +68,7 @@ export interface LoginInput {
 export interface ProfileDetailsInput {
   specialties: TrainingType[];
 }
+
+export type ArboxLoginOutcome =
+  | { kind: 'authenticated'; user: AuthUser }
+  | { kind: 'pick_instructor'; team: { id: string; name: string; role: StudioRole }[] };

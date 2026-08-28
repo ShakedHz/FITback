@@ -70,7 +70,7 @@ export function LibraryPage() {
 
       {items.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: 32 }}>
-          <p style={{ color: '#94a3b8' }}>{t('library.empty')}</p>
+          <p style={{ color: 'var(--color-text-muted)' }}>{t('library.empty')}</p>
           <button
             type="button"
             className="btn btn-primary"
@@ -118,12 +118,12 @@ export function LibraryPage() {
                       name={instructor.name}
                       size="sm"
                     />
-                    <p style={{ fontSize: 12, color: '#94a3b8' }}>
+                    <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                       {t('library.meta', { duration: lesson.duration, level: levelLabel(lesson.level, t) })}
                     </p>
                   </div>
                 </div>
-                <span className="rtl-flip" style={{ color: '#a78bfa' }}>→</span>
+                <span className="rtl-flip" style={{ color: 'var(--color-primary-bright)' }}>→</span>
               </div>
             </div>
           );
