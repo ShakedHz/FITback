@@ -6,16 +6,17 @@ import { PilatesPropsRow, SpringPicker } from '@/components/PilatesSetup';
 import { useApp, type LessonDraftSection } from '@/context/AppContext';
 import { LessonVideoUpload } from '@/components/LessonCoverUpload';
 import {
-  TRAINING_TYPE_LABELS,
   canChooseTrainingType,
   type TrainingType,
 } from '@/data/trainingTypes';
-import { getLessonTemplate } from '@/data/lessonTemplates';
+import { getLessonSectionShell } from '@/data/lessonTemplates';
+import { DEFAULT_YOGA_STYLE, YOGA_STYLES, type YogaStyle } from '@/data/yogaStyles';
 import { defaultPlanEquipment } from '@/data/equipmentTypes';
 import { isSpringSetupEmpty, type SpringSetup } from '@/data/pilatesSetup';
 import { durationsFromExercises, DEFAULT_CLASS_DURATION, CLASS_DURATION_STEP, MIN_CLASS_DURATION, MAX_CLASS_DURATION, clampClassDuration } from '@/utils/lessonDuration';
 import { exercisesPath } from '@/utils/exerciseNav';
-import { equipmentLabel, levelLabel, trainingLabel, useI18n } from '@/i18n';
+import { equipmentLabel, exerciseName, levelLabel, sectionTitle, canonicalSectionTitle, trainingLabel, yogaStyleLabel, useI18n } from '@/i18n';
+import { syncPilatesMainSides } from '@/utils/mirroredSections';
 import type { ExercisePlanNotes, Lesson, LessonLevel } from '@/data/mockData';
 import { LESSON_LEVELS } from '@/data/mockData';
 import '@/components/ExerciseVideo.css';
@@ -78,9 +79,11 @@ export function LessonBuilderPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const lessonId = searchParams.get('lessonId');
+  const templateId = searchParams.get('templateId');
+  const fromTemplateId = searchParams.get('fromTemplateId');
+  const asTemplate = searchParams.get('kind') === 'template' || Boolean(templateId);
   const fromAi = searchParams.get('ai') === '1';
   const fromBlank = searchParams.get('blank') === '1';
-  const fromTemplate = searchParams.get('template') === '1';
   const from = searchParams.get('from');
 
   const {
@@ -91,11 +94,16 @@ export function LessonBuilderPage() {
     instructor,
     getLessonById,
     loadLessonDraft,
+    loadTemplateDraft,
+    startLessonFromTemplate,
     resetLessonDraft,
     addCreatedLesson,
     updateCreatedLesson,
+    addSavedTemplate,
+    updateSavedTemplate,
+    getTemplateById,
   } = useApp();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const specialties = instructor.specialties;
   const allowedTypes = useMemo(
@@ -104,19 +112,11 @@ export function LessonBuilderPage() {
   );
   const showTypeChoice = canChooseTrainingType(specialties);
 
-  const isBlankPlan =
-    fromBlank ||
-    (!fromAi &&
-      !fromTemplate &&
-      !lessonId &&
-      (lessonDraft.exerciseIds?.length ?? 0) === 0);
-
   const loadedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (lessonId) {
       if (loadedIdRef.current === lessonId) return;
-      // Returning from the exercise picker — keep in-progress edits
       if (lessonDraft.sourceLessonId === lessonId) {
         loadedIdRef.current = lessonId;
         return;
@@ -128,42 +128,69 @@ export function LessonBuilderPage() {
       return;
     }
 
+    if (templateId) {
+      if (loadedIdRef.current === `tpl:${templateId}`) return;
+      if (lessonDraft.sourceTemplateId === templateId) {
+        loadedIdRef.current = `tpl:${templateId}`;
+        return;
+      }
+      const template = getTemplateById(templateId);
+      if (!template) return;
+      loadTemplateDraft(template);
+      loadedIdRef.current = `tpl:${templateId}`;
+      return;
+    }
+
+    if (fromTemplateId) {
+      const hasWork =
+        Boolean(lessonDraft.title.trim()) ||
+        (lessonDraft.exerciseIds?.length ?? 0) > 0 ||
+        Boolean(lessonDraft.sections?.some((section) => section.exerciseIds.length > 0));
+      if (hasWork) return;
+      const template = getTemplateById(fromTemplateId);
+      if (template) startLessonFromTemplate(template);
+      return;
+    }
+
     loadedIdRef.current = null;
-    // Keep draft prepared by AI / blank / template entry points
-    if (fromAi || fromBlank || fromTemplate) return;
-    if (lessonDraft.sourceLessonId || !allowedTypes.includes(lessonDraft.trainingType)) {
-      resetLessonDraft('blank');
+    if (fromAi || fromBlank || asTemplate) return;
+    if (lessonDraft.sourceLessonId || lessonDraft.sourceTemplateId || !allowedTypes.includes(lessonDraft.trainingType)) {
+      resetLessonDraft();
     }
   }, [
     lessonId,
+    templateId,
+    fromTemplateId,
     fromAi,
     fromBlank,
-    fromTemplate,
+    asTemplate,
     getLessonById,
+    getTemplateById,
     loadLessonDraft,
+    loadTemplateDraft,
+    startLessonFromTemplate,
     resetLessonDraft,
     allowedTypes,
     lessonDraft.sourceLessonId,
+    lessonDraft.sourceTemplateId,
     lessonDraft.trainingType,
+    lessonDraft.title,
+    lessonDraft.exerciseIds,
+    lessonDraft.sections,
   ]);
 
-  const sections = useMemo(() => {
+  const isYoga = lessonDraft.trainingType === 'yoga';
+  const yogaStyle = lessonDraft.yogaStyle ?? DEFAULT_YOGA_STYLE;
+
+  const sections = useMemo((): LessonDraftSection[] => {
     if (lessonDraft.sections?.length) return lessonDraft.sections;
-    // Never auto-fill exercises for a blank build
-    if (isBlankPlan) {
-      return [
-        { id: 's1', title: t('builder.warmup'), duration: 10, exerciseIds: [] as string[] },
-        { id: 's2', title: t('builder.main'), duration: 25, exerciseIds: [] as string[] },
-        { id: 's3', title: t('builder.cooldown'), duration: 10, exerciseIds: [] as string[] },
-      ];
-    }
-    return getLessonTemplate(lessonDraft.trainingType).map((s) => ({
+    return getLessonSectionShell(lessonDraft.trainingType, yogaStyle).map((s) => ({
       id: s.id,
       title: s.title,
       duration: s.duration,
-      exerciseIds: [...s.exerciseIds],
+      exerciseIds: [],
     }));
-  }, [lessonDraft.sections, lessonDraft.trainingType, isBlankPlan]);
+  }, [lessonDraft.sections, lessonDraft.trainingType, yogaStyle]);
 
   const getExercise = (id: string) => allExercises.find((e) => e.id === id);
 
@@ -200,6 +227,8 @@ export function LessonBuilderPage() {
   const [reorder, setReorder] = useState<SectionReorderState | null>(null);
   const [highlightedSectionId, setHighlightedSectionId] = useState<string | null>(null);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editingSectionTitle, setEditingSectionTitle] = useState('');
+  const skipSectionTitleCommitRef = useRef(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openSpringKey, setOpenSpringKey] = useState<string | null>(null);
 
@@ -248,9 +277,12 @@ export function LessonBuilderPage() {
   }, []);
 
   const applySections = useCallback(
-    (nextSections: LessonDraftSection[]) => {
+    (nextSections: LessonDraftSection[], changedSectionId?: string) => {
+      const synced = changedSectionId
+        ? syncPilatesMainSides(nextSections, changedSectionId, lessonDraft.trainingType)
+        : nextSections;
       const timed = durationsFromExercises(
-        nextSections.map((s) => ({
+        synced.map((s) => ({
           id: s.id,
           title: s.title,
           duration: s.duration,
@@ -264,7 +296,7 @@ export function LessonBuilderPage() {
         exerciseIds: timed.exerciseIds,
       });
     },
-    [allExercises, setLessonDraft]
+    [allExercises, lessonDraft.trainingType, setLessonDraft]
   );
 
   const updateSectionTitle = useCallback(
@@ -289,7 +321,8 @@ export function LessonBuilderPage() {
           s.id === sectionId
             ? { ...s, exerciseIds: s.exerciseIds.filter((id) => id !== exerciseId) }
             : s
-        )
+        ),
+        sectionId
       );
     },
     [sections, applySections]
@@ -303,7 +336,7 @@ export function LessonBuilderPage() {
       const newId = createSectionId();
       const copy: LessonDraftSection = {
         id: newId,
-        title: `Copy of ${src.title}`,
+        title: src.title,
         duration: src.duration,
         exerciseIds: [...src.exerciseIds],
         notes: src.notes ? { ...src.notes } : undefined,
@@ -332,7 +365,8 @@ export function LessonBuilderPage() {
           const [id] = ids.splice(fromIndex, 1);
           ids.splice(toIndex, 0, id);
           return { ...s, exerciseIds: ids };
-        })
+        }),
+        sectionId
       );
     },
     [sections, applySections]
@@ -427,7 +461,7 @@ export function LessonBuilderPage() {
   const addSection = useCallback(() => {
     applySections([
       ...sections,
-      { id: createSectionId(), title: t('builder.newSection'), duration: 0, exerciseIds: [] },
+      { id: createSectionId(), title: 'New section', duration: 0, exerciseIds: [] },
     ]);
   }, [sections, applySections]);
 
@@ -524,57 +558,45 @@ export function LessonBuilderPage() {
 
   const selectTrainingType = (type: TrainingType) => {
     if (!allowedTypes.includes(type) || type === lessonDraft.trainingType) return;
-
-    // Blank build: only switch type — keep sections empty for the instructor to fill
-    if (isBlankPlan) {
-      setLessonDraft({
-        trainingType: type,
-        equipment: defaultPlanEquipment(type),
-        props: type === 'pilates' ? lessonDraft.props : [],
-        albumImages: [],
-        exerciseIds: [],
-        sections: [
-          { id: 's1', title: t('builder.warmup'), duration: 0, exerciseIds: [] },
-          { id: 's2', title: t('builder.main'), duration: 0, exerciseIds: [] },
-          { id: 's3', title: t('builder.cooldown'), duration: 0, exerciseIds: [] },
-        ],
-      });
-      return;
-    }
-
-    const template = getLessonTemplate(type);
-    const timed = durationsFromExercises(
-      template.map((s) => ({
-        id: s.id,
-        title: s.title,
-        duration: s.duration,
-        exerciseIds: [...s.exerciseIds],
-      })),
-      allExercises
-    );
+    const nextYogaStyle = type === 'yoga' ? DEFAULT_YOGA_STYLE : undefined;
 
     setLessonDraft({
       trainingType: type,
+      yogaStyle: nextYogaStyle,
       equipment: defaultPlanEquipment(type),
       props: type === 'pilates' ? lessonDraft.props : [],
       albumImages: [],
-      exerciseIds: timed.exerciseIds,
-      sections: timed.sections,
+      exerciseIds: [],
+      sections: getLessonSectionShell(type, nextYogaStyle),
     });
   };
 
-  const backTo = lessonId
-    ? `/lesson/${lessonId}`
+  const selectYogaStyle = (style: YogaStyle) => {
+    if (!isYoga || style === yogaStyle) return;
+    setLessonDraft({
+      yogaStyle: style,
+      exerciseIds: [],
+      sections: getLessonSectionShell('yoga', style),
+    });
+  };
+
+  const existingTemplate = templateId ? getTemplateById(templateId) : undefined;
+  const existingLesson = lessonId ? getLessonById(lessonId) : undefined;
+  const existing = asTemplate ? existingTemplate : existingLesson;
+
+  const backTo = asTemplate
+    ? '/library?tab=templates'
     : from === 'library'
       ? '/library'
-      : from === 'create' || fromAi
-        ? '/create'
-        : '/library';
+      : lessonId
+        ? `/lesson/${lessonId}`
+        : from === 'create' || fromAi
+          ? '/create'
+          : '/library';
 
   const saveToLibrary = () => {
     const title = lessonDraft.title.trim();
     if (!title) return;
-    if (timedPlan.exerciseIds.length === 0) return;
 
     const planSections = timedPlan.sections.map((section) => ({
       id: section.id,
@@ -599,9 +621,8 @@ export function LessonBuilderPage() {
       lessonDraft.description.trim() ||
       t('preview.defaultDesc', { type: trainingLabel(lessonDraft.trainingType, t).toLowerCase() });
 
-    const existing = lessonId ? getLessonById(lessonId) : undefined;
     const lesson: Lesson = {
-      id: existing?.id ?? `l-${Date.now()}`,
+      id: existing?.id ?? (asTemplate ? `t-${Date.now()}` : `l-${Date.now()}`),
       title,
       instructorId: instructor.id,
       instructorName: instructor.name,
@@ -609,12 +630,13 @@ export function LessonBuilderPage() {
       level: lessonDraft.level ?? existing?.level ?? 'Intermediate',
       focus: lessonDraft.focus.trim() || undefined,
       trainingType: lessonDraft.trainingType,
+      yogaStyle: isYoga ? yogaStyle : undefined,
       equipment: lessonDraft.equipment ?? defaultPlanEquipment(lessonDraft.trainingType),
       props:
         (lessonDraft.equipment ?? defaultPlanEquipment(lessonDraft.trainingType)) === 'reformer'
           ? lessonDraft.props
           : undefined,
-      tags: existing?.tags ?? ['New', TRAINING_TYPE_LABELS[lessonDraft.trainingType]],
+      tags: existing?.tags ?? [lessonDraft.trainingType],
       rating: existing?.rating ?? 0,
       reviews: existing?.reviews ?? 0,
       price: existing?.price ?? 0,
@@ -625,10 +647,19 @@ export function LessonBuilderPage() {
       isCreated: true,
       isOwned: true,
       isStarter: false,
+      isTemplate: asTemplate,
       coverVideo: lessonDraft.coverVideo ?? existing?.coverVideo,
       coverImage: existing?.coverImage,
       albumImages: existing?.albumImages ?? [],
     };
+
+    if (asTemplate) {
+      if (existingTemplate) updateSavedTemplate(lesson);
+      else addSavedTemplate(lesson);
+      resetLessonDraft();
+      navigate('/library?tab=templates');
+      return;
+    }
 
     if (existing) updateCreatedLesson(lesson);
     else addCreatedLesson(lesson);
@@ -640,9 +671,11 @@ export function LessonBuilderPage() {
   const openExerciseLibrary = (sectionId: string) => {
     const params = new URLSearchParams();
     if (fromBlank) params.set('blank', '1');
-    if (fromTemplate) params.set('template', '1');
     if (fromAi) params.set('ai', '1');
     if (lessonId) params.set('lessonId', lessonId);
+    if (templateId) params.set('templateId', templateId);
+    if (fromTemplateId) params.set('fromTemplateId', fromTemplateId);
+    if (asTemplate) params.set('kind', 'template');
     if (from) params.set('from', from);
     navigate(exercisesPath(sectionId, params));
   };
@@ -652,7 +685,7 @@ export function LessonBuilderPage() {
     return previewSections(timedPlan.sections, reorder.fromIndex, reorder.insertIndex);
   }, [timedPlan.sections, reorder]);
 
-  const canSave = Boolean(lessonDraft.title.trim()) && timedPlan.exerciseIds.length > 0;
+  const canSave = Boolean(lessonDraft.title.trim());
 
   return (
     <div className="page fade-in builder">
@@ -664,19 +697,25 @@ export function LessonBuilderPage() {
           disabled={!canSave}
           onClick={saveToLibrary}
         >
-          {lessonId ? t('builder.saveChanges') : t('builder.addToLibrary')}
+          {asTemplate
+            ? existingTemplate
+              ? t('builder.saveChanges')
+              : t('builder.saveTemplate')
+            : lessonId
+              ? t('builder.saveChanges')
+              : t('builder.addToLibrary')}
         </button>
       </div>
 
       <div className="builder-sheet">
         <div className="builder-field">
           <label className="builder-field__label" htmlFor="builder-title">
-            {t('builder.lessonName')}
+            {asTemplate ? t('builder.templateName') : t('builder.lessonName')}
           </label>
           <input
             id="builder-title"
             className="input"
-            placeholder={t('builder.untitledPlaceholder')}
+            placeholder={asTemplate ? t('builder.untitledTemplatePlaceholder') : t('builder.untitledPlaceholder')}
             value={lessonDraft.title}
             onChange={(e) => setLessonDraft({ title: e.target.value })}
           />
@@ -708,6 +747,27 @@ export function LessonBuilderPage() {
                   {allowedTypes.map((type) => (
                     <option key={type} value={type}>
                       {trainingLabel(type, t)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="builder-field__chevron" aria-hidden />
+              </div>
+            </div>
+          )}
+          {isYoga && (
+            <div className="builder-field">
+              <label className="builder-field__label" htmlFor="builder-yoga-style">
+                {t('builder.yogaStyle')}
+              </label>
+              <div className="builder-field__control">
+                <select
+                  id="builder-yoga-style"
+                  value={yogaStyle}
+                  onChange={(e) => selectYogaStyle(e.target.value as YogaStyle)}
+                >
+                  {YOGA_STYLES.map((style) => (
+                    <option key={style} value={style}>
+                      {yogaStyleLabel(style, t)}
                     </option>
                   ))}
                 </select>
@@ -840,21 +900,40 @@ export function LessonBuilderPage() {
                   {editingSectionId === section.id ? (
                     <input
                       className="builder-block__title-input"
-                      value={section.title}
+                      value={editingSectionTitle}
                       autoFocus
-                      onChange={(e) => updateSectionTitle(section.id, e.target.value)}
-                      onBlur={() => setEditingSectionId(null)}
+                      onChange={(e) => setEditingSectionTitle(e.target.value)}
+                      onBlur={() => {
+                        if (skipSectionTitleCommitRef.current) {
+                          skipSectionTitleCommitRef.current = false;
+                          return;
+                        }
+                        const next = canonicalSectionTitle(editingSectionTitle, t);
+                        if (next) updateSectionTitle(section.id, next);
+                        setEditingSectionId(null);
+                        setEditingSectionTitle('');
+                      }}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === 'Escape') setEditingSectionId(null);
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
+                        } else if (e.key === 'Escape') {
+                          skipSectionTitleCommitRef.current = true;
+                          setEditingSectionId(null);
+                          setEditingSectionTitle('');
+                          e.currentTarget.blur();
+                        }
                       }}
                     />
                   ) : (
                     <button
                       type="button"
                       className="builder-block__title"
-                      onClick={() => setEditingSectionId(section.id)}
+                      onClick={() => {
+                        setEditingSectionId(section.id);
+                        setEditingSectionTitle(sectionTitle(section.title, t));
+                      }}
                     >
-                      {section.title}
+                      {sectionTitle(section.title, t)}
                     </button>
                   )}
                   <div className="builder-block__menu-wrap">
@@ -933,7 +1012,7 @@ export function LessonBuilderPage() {
                       >
                         <GripVertical size={14} />
                       </div>
-                      <span className="builder-ex__name">{ex.nameHe}</span>
+                      <span className="builder-ex__name">{exerciseName(ex, locale)}</span>
                       {isReformer && (
                         <SpringPicker
                           setup={notes?.springs}
@@ -1025,10 +1104,6 @@ export function LessonBuilderPage() {
           alt={lessonDraft.title}
         />
       </details>
-
-      {timedPlan.exerciseIds.length === 0 && (
-        <p className="builder-save-hint">{t('builder.needExercises')}</p>
-      )}
     </div>
   );
 }

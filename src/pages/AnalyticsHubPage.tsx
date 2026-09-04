@@ -133,7 +133,7 @@ export function AnalyticsHubPage() {
           <section className="card ratings-responses-dash">
             <div className="ratings-responses-dash__head">
               <div className="ratings-responses-dash__count">
-                <Users size={20} color="#a78bfa" />
+                <Users size={20} color="var(--color-primary-bright)" />
                 <div>
                   <p className="ratings-responses-dash__value">0</p>
                   <p className="ratings-responses-dash__label">{t('analytics.peopleResponded')}</p>
@@ -166,7 +166,7 @@ export function AnalyticsHubPage() {
 
           <section className="card ratings-ai-card">
             <div className="ratings-section-head">
-              <Bot size={18} color="#a78bfa" />
+              <Bot size={18} color="var(--color-primary-bright)" />
               <h2>{t('analytics.aiSummary')}</h2>
             </div>
             <p className="ratings-ai-card__summary ratings-ai-card__summary--waiting">
@@ -196,7 +196,7 @@ export function AnalyticsHubPage() {
           <section className="card ratings-responses-dash">
             <div className="ratings-responses-dash__head">
               <div className="ratings-responses-dash__count">
-                <Users size={20} color="#a78bfa" />
+                <Users size={20} color="var(--color-primary-bright)" />
                 <div>
                   <p className="ratings-responses-dash__value">{overall.responseCount}</p>
                   <p className="ratings-responses-dash__label">
@@ -233,7 +233,7 @@ export function AnalyticsHubPage() {
 
           <section className="card ratings-ai-card">
             <div className="ratings-section-head">
-              <Bot size={18} color="#a78bfa" />
+              <Bot size={18} color="var(--color-primary-bright)" />
               <h2>{t('analytics.aiSummary')}</h2>
             </div>
             <p className="ratings-ai-card__summary">{overall.aiSummary}</p>
@@ -304,7 +304,7 @@ export function AnalyticsHubPage() {
                           </span>
                         )}
                       </div>
-                      <ChevronRight className="rtl-flip" size={18} color="#a78bfa" />
+                      <ChevronRight className="rtl-flip" size={18} color="var(--color-primary-bright)" />
                     </div>
                   </button>
                 );

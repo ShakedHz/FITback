@@ -22,7 +22,7 @@ export const INSTRUCTOR_PROFILES: Record<string, InstructorProfile> = {
     studentsCount: 520,
     lessonsSold: 890,
     avatar: '/instructors/instructor-dana.png',
-    specialties: ['pilates', 'hiit'],
+    specialties: ['pilates', 'yoga'],
   },
   noa: {
     id: 'noa',
@@ -42,7 +42,7 @@ export const INSTRUCTOR_PROFILES: Record<string, InstructorProfile> = {
     studentsCount: 280,
     lessonsSold: 410,
     avatar: '/instructors/instructor-shira.png',
-    specialties: ['pilates', 'stretch', 'barre'],
+    specialties: ['pilates', 'yoga'],
   },
   yael: {
     id: 'yael',
@@ -52,7 +52,7 @@ export const INSTRUCTOR_PROFILES: Record<string, InstructorProfile> = {
     studentsCount: 95,
     lessonsSold: 120,
     avatar: '/instructors/instructor-shira.png',
-    specialties: ['pilates', 'cycle', 'stretch'],
+    specialties: ['pilates', 'yoga'],
   },
 };
 

@@ -24,8 +24,8 @@
 }
 
 .schedule-today {
-  background: rgba(139, 92, 246, 0.15);
-  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: rgba(var(--color-primary-rgb), 0.15);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.35);
   color: var(--color-primary-bright);
   border-radius: 10px;
   padding: 7px 14px;
@@ -145,8 +145,8 @@
 }
 
 .schedule-nav button {
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(var(--color-primary-rgb), 0.12);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
   color: var(--color-primary-bright);
   width: 36px;
   height: 36px;
@@ -174,7 +174,7 @@
 .schedule-tabs button {
   flex: 1;
   padding: 9px;
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
   border-radius: 12px;
   background: var(--color-card-hover);
   font-family: inherit;
@@ -185,8 +185,8 @@
 }
 
 .schedule-tabs button.active {
-  background: rgba(139, 92, 246, 0.22);
-  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(var(--color-primary-rgb), 0.22);
+  border-color: rgba(var(--color-primary-rgb), 0.45);
   color: var(--color-primary-bright);
   font-weight: 600;
 }
@@ -236,12 +236,12 @@
 }
 
 .schedule-day--selected {
-  background: rgba(139, 92, 246, 0.18);
-  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(var(--color-primary-rgb), 0.18);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
 }
 
 .schedule-day--selected .schedule-day__num {
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-deep));
   color: #fff;
 }
 
@@ -249,7 +249,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: var(--color-primary);
   position: absolute;
   bottom: 4px;
 }
@@ -274,7 +274,7 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--color-primary-bright);
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(var(--color-primary-rgb), 0.2);
   padding: 2px 8px;
   border-radius: 8px;
 }
@@ -290,7 +290,7 @@
   align-items: stretch;
   width: 100%;
   background: var(--color-card);
-  border: 1px solid rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.18);
   border-radius: 14px;
   padding: 0;
   cursor: pointer;
@@ -301,7 +301,7 @@
 }
 
 .schedule-card:active {
-  border-color: rgba(139, 92, 246, 0.4);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
 }
 
 .schedule-card__bar {
@@ -380,7 +380,7 @@
 }
 
 .schedule-empty svg {
-  color: rgba(139, 92, 246, 0.4);
+  color: rgba(var(--color-primary-rgb), 0.4);
 }
 
 .schedule-empty p {
@@ -396,15 +396,16 @@
 /* ── FAB ── */
 .schedule-fab {
   position: fixed;
-  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-  left: 20px;
+  inset-inline-start: max(16px, env(safe-area-inset-left, 0px));
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  left: auto;
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-deep));
   color: #fff;
   border: none;
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+  box-shadow: 0 6px 20px rgba(var(--color-primary-rgb), 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -425,7 +426,7 @@
 
 .schedule-sheet {
   background: var(--color-card);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
   border-bottom: none;
   border-radius: 20px 20px 0 0;
   padding: 20px 20px max(24px, env(safe-area-inset-bottom));
@@ -449,7 +450,7 @@
 .schedule-sheet__handle {
   width: 36px;
   height: 4px;
-  background: rgba(139, 92, 246, 0.35);
+  background: rgba(var(--color-primary-rgb), 0.35);
   border-radius: 4px;
   margin: 10px auto 6px;
   flex-shrink: 0;
@@ -458,7 +459,7 @@
 .schedule-sheet__top {
   flex-shrink: 0;
   padding: 0 20px 12px;
-  border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.12);
 }
 
 .schedule-sheet__body {
@@ -520,7 +521,7 @@
   min-height: 46px;
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
   background: var(--color-card-hover);
   color: var(--color-text);
   font-family: inherit;
@@ -557,8 +558,8 @@
 
 .schedule-field select:focus {
   outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.22);
 }
 
 .schedule-field-row {
@@ -579,7 +580,7 @@
   min-height: 46px;
   padding: 2px 6px;
   border-radius: 12px;
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
   background: var(--color-card-hover);
 }
 
@@ -590,7 +591,7 @@
   height: 32px;
   border: none;
   border-radius: 8px;
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(var(--color-primary-rgb), 0.15);
   color: var(--color-primary-bright);
   cursor: pointer;
 }
@@ -635,7 +636,7 @@
 .schedule-stepper__time::-webkit-datetime-edit-hour-field:focus,
 .schedule-stepper__time::-webkit-datetime-edit-minute-field:focus,
 .schedule-stepper__time::-webkit-datetime-edit-ampm-field:focus {
-  background: rgba(139, 92, 246, 0.45);
+  background: rgba(var(--color-primary-rgb), 0.45);
   color: #fff;
   border-radius: 4px;
   outline: none;
@@ -678,7 +679,7 @@
 .schedule-sheet__footer {
   flex-shrink: 0;
   padding: 12px 20px max(16px, env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(139, 92, 246, 0.15);
+  border-top: 1px solid rgba(var(--color-primary-rgb), 0.15);
   background: var(--color-card);
 }
 
@@ -756,19 +757,19 @@
   display: inline-block;
   font-size: 12px;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-on-primary);
   padding: 5px 12px;
   border-radius: 20px;
 }
 
 @media (max-width: 480px) {
   .schedule-page {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-inline: 16px;
   }
 
   .schedule-fab {
-    left: 16px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    inset-inline-start: max(var(--page-pad-x, 16px), env(safe-area-inset-left, 0px));
   }
 
   .schedule-sheet--add {
@@ -779,7 +780,7 @@
 
 @media (min-width: 481px) {
   .schedule-fab {
-    left: calc(50% - 195px + 20px);
+    inset-inline-start: calc(50% - 195px + 16px);
   }
 }
 
@@ -803,7 +804,7 @@
   height: 16px;
   padding: 0 4px;
   border-radius: 999px;
-  background: #8b5cf6;
+  background: var(--color-primary);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -816,7 +817,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-left: 8px;
+  margin-inline-start: 8px;
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(251, 191, 36, 0.18);
@@ -914,8 +915,8 @@
 }
 
 .schedule-instructor-filter button.active {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(var(--color-primary-rgb), 0.2);
+  border-color: rgba(var(--color-primary-rgb), 0.45);
   color: var(--color-primary-bright);
 }
 
@@ -953,13 +954,13 @@
 }
 
 .schedule-identity-pick__btn:active {
-  border-color: rgba(139, 92, 246, 0.5);
-  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(var(--color-primary-rgb), 0.5);
+  background: rgba(var(--color-primary-rgb), 0.2);
 }
 
 .schedule-card--has-plan {
-  border-color: rgba(139, 92, 246, 0.45);
-  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.12);
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+  box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.12);
 }
 
 .schedule-card--no-plan {
@@ -988,7 +989,7 @@
 }
 
 .schedule-card__plan--yes {
-  background: rgba(139, 92, 246, 0.16);
+  background: rgba(var(--color-primary-rgb), 0.16);
   color: #ddd6fe;
 }
 
@@ -1030,7 +1031,7 @@
 }
 
 .schedule-card__tag--plan {
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(var(--color-primary-rgb), 0.2);
   color: var(--color-primary-bright);
 }
 
@@ -1059,8 +1060,8 @@
 }
 
 .schedule-role-pick button.active {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(var(--color-primary-rgb), 0.2);
+  border-color: rgba(var(--color-primary-rgb), 0.5);
   color: #ddd6fe;
 }
 
@@ -1100,7 +1101,7 @@
   padding: 12px;
   border-radius: 12px;
   background: rgba(var(--color-bg-rgb), 0.55);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
 }
 
 .schedule-message__top {
@@ -1151,35 +1152,6 @@
   color: var(--color-text-muted);
 }
 
-.schedule-attendees__name {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.schedule-attendees__phone {
-  margin: 1px 0 0;
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.schedule-attendees__selected {
-  margin: 0 0 8px;
-  font-size: 12px;
-  color: var(--color-primary-bright);
-  font-weight: 600;
-}
-
-.schedule-attendees__roster {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .schedule-attendees__full {
   margin: 0 0 8px;
   font-size: 12px;
@@ -1202,7 +1174,7 @@
 .schedule-clients__count {
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(139, 92, 246, 0.16);
+  background: rgba(var(--color-primary-rgb), 0.16);
   color: var(--color-primary-bright);
   font-size: 12px;
   font-weight: 700;
@@ -1253,8 +1225,8 @@
 }
 
 .client-row--on {
-  background: rgba(139, 92, 246, 0.18);
-  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(var(--color-primary-rgb), 0.18);
+  border-color: rgba(var(--color-primary-rgb), 0.35);
 }
 
 .client-row__main {
@@ -1273,6 +1245,10 @@
   cursor: pointer;
 }
 
+.client-row__main--static {
+  cursor: default;
+}
+
 .client-row__box {
   flex-shrink: 0;
   display: grid;
@@ -1286,8 +1262,8 @@
 }
 
 .client-row--on .client-row__box {
-  background: #8b5cf6;
-  border-color: #8b5cf6;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: #fff;
 }
 
@@ -1360,7 +1336,7 @@
 }
 
 .client-picker__manage:hover {
-  background: rgba(139, 92, 246, 0.14);
+  background: rgba(var(--color-primary-rgb), 0.14);
 }
 
 .client-picker__form {

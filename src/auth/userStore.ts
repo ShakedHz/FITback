@@ -1,6 +1,7 @@
 import { findStoredAccount } from './accountLookup';
 import type { AuthProvider, AuthSession, AuthUser, StoredAccount } from './types';
 import { membershipsFromAccount } from '@/data/studioOrg';
+import { isTrainingType } from '@/data/trainingTypes';
 
 const USERS_KEY = 'movana_auth_users_v1';
 const SESSION_KEY = 'movana_auth_session_v1';
@@ -63,7 +64,7 @@ export function accountToUser(account: StoredAccount): AuthUser {
     name: account.name,
     avatar: account.avatar,
     bio: account.bio,
-    specialties: account.specialties,
+    specialties: (account.specialties ?? []).filter(isTrainingType),
     provider: account.provider,
     role: account.role,
     arboxLinked: account.arboxLinked,

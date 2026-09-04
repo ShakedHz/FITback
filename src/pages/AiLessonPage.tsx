@@ -5,11 +5,11 @@ import { useApp } from '@/context/AppContext';
 import { suggestLessonFromClientData, type AiLessonSuggestion } from '@/data/aiLessonSuggest';
 import { hasSurveyResults } from '@/data/lessonAnalytics';
 import { defaultPlanEquipment } from '@/data/equipmentTypes';
+import { DEFAULT_YOGA_STYLE } from '@/data/yogaStyles';
 import { TRAINING_TYPE_COLORS, canChooseTrainingType } from '@/data/trainingTypes';
 import { BackButton } from '@/components/IconToolbar';
 import { LessonCover } from '@/components/LessonCover';
-import { exercises } from '@/data/mockData';
-import { trainingLabel, useI18n } from '@/i18n';
+import { trainingLabel, exerciseName, sectionTitle, useI18n } from '@/i18n';
 import './AiLesson.css';
 
 export function AiLessonPage() {
@@ -17,8 +17,8 @@ export function AiLessonPage() {
   const [searchParams] = useSearchParams();
   const fromLibrary = searchParams.get('from') === 'library';
   const backTo = fromLibrary ? '/library' : '/create';
-  const { createdLessons, instructor, setLessonDraft } = useApp();
-  const { t } = useI18n();
+  const { createdLessons, instructor, setLessonDraft, allExercises } = useApp();
+  const { t, locale } = useI18n();
   const [phase, setPhase] = useState<'loading' | 'ready'>('loading');
   const [suggestion, setSuggestion] = useState<AiLessonSuggestion | null>(null);
 
@@ -43,10 +43,10 @@ export function AiLessonPage() {
     return suggestion.draft.sections.map((section) => ({
       ...section,
       exercises: section.exerciseIds
-        .map((id) => exercises.find((e) => e.id === id))
+        .map((id) => allExercises.find((e) => e.id === id))
         .filter((e): e is NonNullable<typeof e> => Boolean(e)),
     }));
-  }, [suggestion]);
+  }, [suggestion, allExercises]);
 
   const openInBuilder = () => {
     if (!suggestion) return;
@@ -55,6 +55,8 @@ export function AiLessonPage() {
       description: suggestion.draft.description,
       duration: suggestion.draft.duration,
       trainingType: suggestion.draft.trainingType,
+      yogaStyle:
+        suggestion.draft.trainingType === 'yoga' ? DEFAULT_YOGA_STYLE : undefined,
       equipment: defaultPlanEquipment(suggestion.draft.trainingType),
       props: [],
       focus: suggestion.draft.focus ?? '',
@@ -206,10 +208,10 @@ export function AiLessonPage() {
       {previewSections.map((section) => (
         <div key={section.id} className="card" style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontWeight: 600 }}>{section.title}</span>
+            <span style={{ fontWeight: 600 }}>{sectionTitle(section.title, t)}</span>
           </div>
           <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>
-            {section.exercises.map((e) => e.nameHe).join(' · ')}
+            {section.exercises.map((e) => exerciseName(e, locale)).join(' · ')}
           </p>
         </div>
       ))}

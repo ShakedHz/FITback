@@ -1,6 +1,6 @@
 import type { WeeklyPoint } from '@/data/lessonAnalytics';
 import type { TrainingType } from '@/data/trainingTypes';
-import { TRAINING_TYPE_LABELS } from '@/data/trainingTypes';
+import { trainingLabel, useI18n } from '@/i18n';
 import '@/components/Analytics.css';
 
 interface BarChartProps {
@@ -74,10 +74,6 @@ export function MiniSparkline({ data }: { data: WeeklyPoint[] }) {
 export const TRAINING_TYPE_BAR_COLORS: Record<TrainingType, string> = {
   pilates: '#3b82f6',
   yoga: '#10b981',
-  hiit: '#ef4444',
-  barre: '#ec4899',
-  cycle: '#f59e0b',
-  stretch: '#14b8a6',
 };
 
 export type LessonAveragePoint = {
@@ -92,6 +88,7 @@ export type LessonAveragePoint = {
 
 /** Vertical bar chart: average rating (0–5) per lesson, colored by training type. */
 export function LessonAverageChart({ data }: { data: LessonAveragePoint[] }) {
+  const { t } = useI18n();
   if (data.length === 0) return null;
 
   const yTicks = [5, 4, 3, 2, 1, 0];
@@ -134,8 +131,8 @@ export function LessonAverageChart({ data }: { data: LessonAveragePoint[] }) {
                   <span className="lesson-avg-chart__tooltip" role="tooltip">
                     {row.fullLabel}
                     <br />
-                    {row.avg}/5 · {row.count} rating{row.count === 1 ? '' : 's'}
-                    {row.trainingType ? ` · ${TRAINING_TYPE_LABELS[row.trainingType]}` : ''}
+                    {t('analytics.chartMeta', { avg: row.avg, count: row.count })}
+                    {row.trainingType ? ` · ${trainingLabel(row.trainingType, t)}` : ''}
                   </span>
                 </div>
                 <span className="lesson-avg-chart__x-label" title={row.fullLabel}>
@@ -152,7 +149,7 @@ export function LessonAverageChart({ data }: { data: LessonAveragePoint[] }) {
           {typesInChart.map(([type, color]) => (
             <span key={type} className="lesson-avg-chart__legend-item">
               <span className="lesson-avg-chart__legend-dot" style={{ background: color }} />
-              {TRAINING_TYPE_LABELS[type]}
+              {trainingLabel(type, t)}
             </span>
           ))}
         </div>

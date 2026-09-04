@@ -818,7 +818,10 @@ export function SchedulePage() {
                 <div className="schedule-sheet__row">
                   <span
                     className="schedule-sheet__category"
-                    style={{ backgroundColor: getEventColors(selectedEvent).bg }}
+                    style={{
+                      backgroundColor: getEventColors(selectedEvent).bg,
+                      color: getEventColors(selectedEvent).text,
+                    }}
                   >
                     {eventCategoryLabel(getEventCategory(selectedEvent), t)}
                   </span>
@@ -863,7 +866,6 @@ export function SchedulePage() {
             <ClassFeedbackAttendees
               key={selectedEvent.id}
               event={selectedEvent}
-              onCloseSheet={() => setSelectedEvent(null)}
             />
 
             {editingEvent && canAttachPlanToEvent(selectedEvent, arboxConnection) && (

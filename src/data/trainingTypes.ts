@@ -1,58 +1,29 @@
-export type TrainingType = 'pilates' | 'yoga' | 'hiit' | 'barre' | 'cycle' | 'stretch';
+export type TrainingType = 'pilates' | 'yoga';
 
-export const TRAINING_TYPES: TrainingType[] = [
-  'pilates',
-  'yoga',
-  'hiit',
-  'barre',
-  'cycle',
-  'stretch',
-];
+export const TRAINING_TYPES: TrainingType[] = ['pilates', 'yoga'];
 
 export const TRAINING_TYPE_LABELS: Record<TrainingType, string> = {
   pilates: 'Pilates',
   yoga: 'Yoga',
-  hiit: 'HIIT',
-  barre: 'Barre',
-  cycle: 'Cycle',
-  stretch: 'Stretch',
 };
+
+const ACCENT_CHIP = {
+  bg: 'var(--chip-bg)',
+  border: 'var(--chip-border)',
+  text: 'var(--chip-text)',
+} as const;
 
 export const TRAINING_TYPE_COLORS: Record<
   TrainingType,
   { bg: string; border: string; text: string }
 > = {
-  pilates: {
-    bg: 'var(--chip-pilates-bg)',
-    border: 'var(--chip-pilates-border)',
-    text: 'var(--chip-pilates-text)',
-  },
-  yoga: {
-    bg: 'var(--chip-yoga-bg)',
-    border: 'var(--chip-yoga-border)',
-    text: 'var(--chip-yoga-text)',
-  },
-  hiit: {
-    bg: 'var(--chip-hiit-bg)',
-    border: 'var(--chip-hiit-border)',
-    text: 'var(--chip-hiit-text)',
-  },
-  barre: {
-    bg: 'var(--chip-barre-bg)',
-    border: 'var(--chip-barre-border)',
-    text: 'var(--chip-barre-text)',
-  },
-  cycle: {
-    bg: 'var(--chip-cycle-bg)',
-    border: 'var(--chip-cycle-border)',
-    text: 'var(--chip-cycle-text)',
-  },
-  stretch: {
-    bg: 'var(--chip-stretch-bg)',
-    border: 'var(--chip-stretch-border)',
-    text: 'var(--chip-stretch-text)',
-  },
+  pilates: ACCENT_CHIP,
+  yoga: ACCENT_CHIP,
 };
+
+export function isTrainingType(value: string): value is TrainingType {
+  return (TRAINING_TYPES as readonly string[]).includes(value);
+}
 
 export function getTrainingTypeLabel(type: TrainingType): string {
   return TRAINING_TYPE_LABELS[type];
@@ -75,13 +46,5 @@ export function bioFromSpecialties(specialties: TrainingType[]): string {
 import type { EventCategory } from './scheduleTypes';
 
 export function trainingTypeToEventCategory(type: TrainingType): EventCategory {
-  const map: Record<TrainingType, EventCategory> = {
-    pilates: 'pilates',
-    yoga: 'yoga',
-    hiit: 'hiit',
-    barre: 'barre',
-    cycle: 'cycle',
-    stretch: 'stretch',
-  };
-  return map[type];
+  return type;
 }

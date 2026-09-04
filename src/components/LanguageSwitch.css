@@ -24,7 +24,7 @@
 
 .lang-switch__trigger:hover {
   background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(167, 139, 250, 0.4);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
 }
 
 .lang-switch__trigger:active {
@@ -32,8 +32,8 @@
 }
 
 .lang-switch__trigger[aria-expanded='true'] {
-  background: rgba(139, 92, 246, 0.18);
-  border-color: rgba(167, 139, 250, 0.5);
+  background: rgba(var(--color-primary-rgb), 0.18);
+  border-color: rgba(var(--color-primary-rgb), 0.5);
   color: #ede9fe;
 }
 

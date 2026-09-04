@@ -1,5 +1,5 @@
 /** Query keys that identify how we entered the exercise library from the builder. */
-const BUILDER_KEYS = ['blank', 'template', 'ai', 'lessonId', 'from'] as const;
+const BUILDER_KEYS = ['blank', 'template', 'ai', 'lessonId', 'from', 'kind', 'templateId', 'fromTemplateId'] as const;
 
 export function exercisesPath(sectionId?: string | null, builderParams?: URLSearchParams | null): string {
   const params = new URLSearchParams();
@@ -24,6 +24,20 @@ export function newExercisePath(currentParams: URLSearchParams): string {
   }
   const qs = params.toString();
   return qs ? `/exercises/new?${qs}` : '/exercises/new';
+}
+
+export function editExercisePath(exerciseId: string, currentParams?: URLSearchParams | null): string {
+  const params = new URLSearchParams();
+  const section = currentParams?.get('section');
+  if (section) params.set('section', section);
+  if (currentParams) {
+    for (const key of BUILDER_KEYS) {
+      const value = currentParams.get(key);
+      if (value) params.set(key, value);
+    }
+  }
+  const qs = params.toString();
+  return qs ? `/exercises/${exerciseId}/edit?${qs}` : `/exercises/${exerciseId}/edit`;
 }
 
 export function builderPathFromParams(params: URLSearchParams): string {

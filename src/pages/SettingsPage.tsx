@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { useI18n, type Locale } from '@/i18n';
 import { useTheme } from '@/theme/ThemeContext';
-import type { ThemePreference } from '@/theme/theme';
+import { ACCENT_OPTIONS, ACCENT_SWATCH, type AccentColor, type ThemePreference } from '@/theme/theme';
 import './Settings.css';
 
 function Segmented<T extends string>({
@@ -41,7 +41,7 @@ function Segmented<T extends string>({
 export function SettingsPage() {
   const navigate = useNavigate();
   const { t, locale, setLocale } = useI18n();
-  const { preference, setPreference } = useTheme();
+  const { preference, setPreference, accent, setAccent } = useTheme();
   const { autoClassFeedbackEnabled, setAutoClassFeedbackEnabled } = useApp();
 
   const languageOptions: { value: Locale; label: string }[] = [
@@ -54,6 +54,14 @@ export function SettingsPage() {
     { value: 'dark', label: t('settings.themeDark') },
     { value: 'system', label: t('settings.themeSystem') },
   ];
+
+  const accentLabelKey: Record<AccentColor, string> = {
+    pink: 'settings.accentPink',
+    purple: 'settings.accentPurple',
+    sky: 'settings.accentSky',
+    teal: 'settings.accentTeal',
+    amber: 'settings.accentAmber',
+  };
 
   return (
     <div className="page fade-in">
@@ -88,6 +96,28 @@ export function SettingsPage() {
             onChange={setPreference}
             ariaLabel={t('settings.theme')}
           />
+        </div>
+        <div className="settings-row settings-row--colors">
+          <div className="settings-row__copy">
+            <p className="settings-row__label">{t('settings.accent')}</p>
+          </div>
+          <div className="settings-colors" role="radiogroup" aria-label={t('settings.accent')}>
+            {ACCENT_OPTIONS.map((id) => {
+              const on = accent === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  aria-label={t(accentLabelKey[id])}
+                  className={`settings-color${on ? ' is-on' : ''}`}
+                  style={{ '--swatch': ACCENT_SWATCH[id] } as React.CSSProperties}
+                  onClick={() => setAccent(id)}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 
