@@ -8,6 +8,12 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  applyDocumentAccent,
+  persistAccent,
+  readStoredAccent,
+  type AccentColor,
+} from './accent';
+import {
   applyDocumentTheme,
   persistTheme,
   readStoredTheme,
@@ -19,13 +25,16 @@ import {
 interface ThemeContextValue {
   preference: ThemePreference;
   resolved: ResolvedTheme;
+  accent: AccentColor;
   setPreference: (preference: ThemePreference) => void;
+  setAccent: (accent: AccentColor) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreferenceState] = useState<ThemePreference>(() => readStoredTheme());
+  const [accent, setAccentState] = useState<AccentColor>(() => readStoredAccent());
   const [resolved, setResolved] = useState<ResolvedTheme>(() =>
     resolvedThemeOf(readStoredTheme())
   );
@@ -46,17 +55,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener('change', onChange);
   }, [preference]);
 
+  useEffect(() => {
+    applyDocumentAccent(accent);
+    persistAccent(accent);
+  }, [accent]);
+
   const setPreference = useCallback((next: ThemePreference) => {
     setPreferenceState(next);
+  }, []);
+
+  const setAccent = useCallback((next: AccentColor) => {
+    setAccentState(next);
   }, []);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
       preference,
       resolved,
+      accent,
       setPreference,
+      setAccent,
     }),
-    [preference, resolved, setPreference]
+    [preference, resolved, accent, setPreference, setAccent]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

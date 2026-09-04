@@ -10,7 +10,7 @@ import {
   Library,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { avatarColorForName } from '@/components/InstructorAvatar';
+import { InstructorAvatar } from '@/components/InstructorAvatar';
 import { resolveOverallAnalytics } from '@/data/lessonAnalytics';
 import {
   toDateKey,
@@ -19,12 +19,12 @@ import {
   getEventColors,
   shouldShowEventType,
 } from '@/data/scheduleTypes';
-import { TRAINING_TYPE_COLORS, canChooseTrainingType } from '@/data/trainingTypes';
-import { eventCategoryLabel, trainingLabel, useI18n } from '@/i18n';
+import { canChooseTrainingType } from '@/data/trainingTypes';
+import { eventCategoryLabel, useI18n } from '@/i18n';
 import './Dashboard.css';
 
 const QUICK_ACTIONS = [
-  { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule', color: '#a78bfa' },
+  { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule', color: 'var(--color-primary-bright)' },
   { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', color: '#34d399' },
   { path: '/library', icon: Library, labelKey: 'nav.library', color: '#60a5fa' },
 ] as const;
@@ -79,43 +79,17 @@ export function DashboardPage() {
   return (
     <div className="page fade-in dashboard">
       <section className="dashboard-hero">
-        {instructor.avatar ? (
-          <img className="dashboard-hero__bg" src={instructor.avatar} alt="" aria-hidden referrerPolicy="no-referrer" />
-        ) : (
-          <div
-            className="dashboard-hero__bg dashboard-hero__bg--color"
-            style={{
-              background: `linear-gradient(145deg, ${avatarColorForName(instructor.name)} 0%, #1a0f2e 100%)`,
-            }}
-            aria-hidden
-          />
-        )}
-        <div className="dashboard-hero__overlay" />
-        <div className="dashboard-hero__content">
-          <p className="dashboard-hero__greeting">{t(getGreetingKey())},</p>
+        <span className="dashboard-hero__glow" aria-hidden />
+        <p className="dashboard-hero__greeting">{t(getGreetingKey())}</p>
+        <div className="dashboard-hero__identity">
+          <InstructorAvatar src={instructor.avatar} name={instructor.name} size="md" />
           <h1 className="dashboard-hero__name">{instructor.name}</h1>
-          <p className="dashboard-hero__tagline">{tagline}</p>
-          {instructor.specialties.length > 0 && (
-            <div className="dashboard-hero__specialties">
-              {instructor.specialties.map((type) => {
-                const colors = TRAINING_TYPE_COLORS[type];
-                return (
-                  <span
-                    key={type}
-                    className="dashboard-hero__chip"
-                    style={{
-                      background: colors.bg,
-                      borderColor: colors.border,
-                      color: colors.text,
-                    }}
-                  >
-                    {trainingLabel(type, t)}
-                  </span>
-                );
-              })}
-            </div>
-          )}
         </div>
+        <p
+          className={`dashboard-hero__tagline${todayEvents.length > 0 ? ' dashboard-hero__tagline--live' : ''}`}
+        >
+          {tagline}
+        </p>
       </section>
 
       <section className="dashboard-block">
@@ -130,7 +104,7 @@ export function DashboardPage() {
             <span className="dashboard-stats__label">{t('dashboard.rating')}</span>
           </div>
           <div className="dashboard-stats__item">
-            <Package size={14} color="#a78bfa" />
+            <Package size={14} color="var(--color-primary-bright)" />
             <span className="dashboard-stats__value">{instructor.lessonsCount}</span>
             <span className="dashboard-stats__label">{t('dashboard.lessons')}</span>
           </div>
@@ -146,7 +120,7 @@ export function DashboardPage() {
         <div className="dashboard-today card">
           <div className="dashboard-today__header">
             <div className="dashboard-today__title-row">
-              <Calendar size={15} color="#a78bfa" />
+              <Calendar size={15} color="var(--color-primary-bright)" />
               <div className="dashboard-today__title-text">
                 <span className="dashboard-today__label">{t('dashboard.todayOnSchedule')}</span>
                 <span className="dashboard-today__date">{formatTodayDate(dateLocale)}</span>

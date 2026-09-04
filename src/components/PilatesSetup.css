@@ -47,14 +47,14 @@
 
 .spring-picker__btn.is-set,
 .spring-picker__btn.is-open {
-  border-color: rgba(139, 92, 246, 0.3);
+  border-color: rgba(var(--color-primary-rgb), 0.3);
   background: var(--color-card);
 }
 
 .spring-picker__btn:hover,
 .spring-picker__btn:focus-visible {
-  border-color: rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+  background: rgba(var(--color-primary-rgb), 0.12);
   outline: none;
 }
 
@@ -72,7 +72,7 @@
   padding: 8px;
   border-radius: 14px;
   background: var(--color-card-hover);
-  border: 1px solid rgba(139, 92, 246, 0.35);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.35);
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
 }
 
@@ -142,7 +142,7 @@
   min-height: 40px;
   padding: 3px;
   border-radius: 12px;
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
   background: var(--color-card-hover);
 }
 
@@ -158,9 +158,9 @@
 }
 
 .pilates-segment__opt.is-on {
-  background: rgba(139, 92, 246, 0.28);
+  background: rgba(var(--color-primary-rgb), 0.28);
   color: var(--color-text);
-  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25);
+  box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.25);
 }
 
 .pilates-props {
@@ -192,8 +192,8 @@
 }
 
 .pilates-prop.is-on {
-  border-color: rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+  background: rgba(var(--color-primary-rgb), 0.18);
   color: var(--color-primary-bright);
 }
 
@@ -212,7 +212,7 @@
   gap: 5px;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(139, 92, 246, 0.14);
+  background: rgba(var(--color-primary-rgb), 0.14);
   color: var(--color-primary-bright);
   font-size: 11px;
   font-weight: 650;

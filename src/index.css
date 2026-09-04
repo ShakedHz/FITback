@@ -5,10 +5,10 @@
   --color-card: #ffffff;
   --color-card-rgb: 255, 255, 255;
   --color-card-hover: #f4f2f8;
-  --color-primary: #6d28d9;
-  --color-primary-deep: #5b21b6;
-  --color-primary-bright: #5b21b6;
-  --color-primary-rgb: 109, 40, 217;
+  --color-primary: #f9a8d4;
+  --color-primary-deep: #f472b6;
+  --color-primary-bright: #ec4899;
+  --color-primary-rgb: 249, 168, 212;
   --color-on-primary: #ffffff;
   --color-accent: #d97706;
   --color-on-accent: #1a1228;
@@ -19,7 +19,7 @@
   --color-line: #e6e4ec;
   --color-success: #047857;
   --color-danger: #dc2626;
-  --color-ring: #6d28d9;
+  --color-ring: #fbcfe8;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 14px;
@@ -30,24 +30,9 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --font: 'Heebo', 'Noto Sans Hebrew', system-ui, sans-serif;
   --font-display: 'Rubik', 'Heebo', sans-serif;
-  --chip-pilates-bg: rgba(59, 130, 246, 0.14);
-  --chip-pilates-border: rgba(37, 99, 235, 0.35);
-  --chip-pilates-text: #1d4ed8;
-  --chip-yoga-bg: rgba(16, 185, 129, 0.14);
-  --chip-yoga-border: rgba(5, 150, 105, 0.35);
-  --chip-yoga-text: #047857;
-  --chip-hiit-bg: rgba(239, 68, 68, 0.12);
-  --chip-hiit-border: rgba(220, 38, 38, 0.35);
-  --chip-hiit-text: #b91c1c;
-  --chip-barre-bg: rgba(236, 72, 153, 0.12);
-  --chip-barre-border: rgba(219, 39, 119, 0.35);
-  --chip-barre-text: #be185d;
-  --chip-cycle-bg: rgba(217, 119, 6, 0.14);
-  --chip-cycle-border: rgba(180, 83, 9, 0.35);
-  --chip-cycle-text: #b45309;
-  --chip-stretch-bg: rgba(20, 184, 166, 0.14);
-  --chip-stretch-border: rgba(13, 148, 136, 0.35);
-  --chip-stretch-text: #0f766e;
+  --chip-bg: rgba(var(--color-primary-rgb), 0.18);
+  --chip-border: rgba(var(--color-primary-rgb), 0.4);
+  --chip-text: var(--color-primary-bright);
   color-scheme: light;
 }
 
@@ -58,11 +43,11 @@
   --color-card: #1c1824;
   --color-card-rgb: 28, 24, 36;
   --color-card-hover: #252030;
-  --color-primary: #6d28d9;
-  --color-primary-deep: #5b21b6;
-  --color-primary-bright: var(--color-primary-bright);
-  --color-primary-rgb: 109, 40, 217;
-  --color-on-primary: #ffffff;
+  --color-primary: #fbcfe8;
+  --color-primary-deep: #f9a8d4;
+  --color-primary-bright: #fce7f3;
+  --color-primary-rgb: 251, 207, 232;
+  --color-on-primary: #1a1228;
   --color-accent: #d97706;
   --color-on-accent: #f3f1f7;
   --color-text: #f3f1f7;
@@ -72,26 +57,11 @@
   --color-line: #2e2a38;
   --color-success: #34d399;
   --color-danger: #f87171;
-  --color-ring: #a78bfa;
+  --color-ring: #fce7f3;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --chip-pilates-bg: rgba(59, 130, 246, 0.22);
-  --chip-pilates-border: rgba(59, 130, 246, 0.45);
-  --chip-pilates-text: #93c5fd;
-  --chip-yoga-bg: rgba(16, 185, 129, 0.22);
-  --chip-yoga-border: rgba(16, 185, 129, 0.45);
-  --chip-yoga-text: #6ee7b7;
-  --chip-hiit-bg: rgba(239, 68, 68, 0.22);
-  --chip-hiit-border: rgba(239, 68, 68, 0.45);
-  --chip-hiit-text: #fca5a5;
-  --chip-barre-bg: rgba(236, 72, 153, 0.22);
-  --chip-barre-border: rgba(236, 72, 153, 0.45);
-  --chip-barre-text: #f9a8d4;
-  --chip-cycle-bg: rgba(245, 158, 11, 0.22);
-  --chip-cycle-border: rgba(245, 158, 11, 0.45);
-  --chip-cycle-text: #fcd34d;
-  --chip-stretch-bg: rgba(20, 184, 166, 0.22);
-  --chip-stretch-border: rgba(20, 184, 166, 0.45);
-  --chip-stretch-text: #5eead4;
+  --chip-bg: rgba(var(--color-primary-rgb), 0.22);
+  --chip-border: rgba(var(--color-primary-rgb), 0.45);
+  --chip-text: var(--color-primary-bright);
   color-scheme: dark;
 }
 
@@ -111,8 +81,8 @@ html {
 }
 
 ::selection {
-  background: rgba(139, 92, 246, 0.4);
-  color: #fff;
+  background: rgba(var(--color-primary-rgb), 0.35);
+  color: var(--color-text);
 }
 
 body {
@@ -383,6 +353,166 @@ textarea.input {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-on-primary);
+}
+
+.cat-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.cat-filters__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.cat-filters__row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-block: 2px;
+  margin-inline: -2px;
+  padding-inline: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.cat-filters__row > .chip {
+  flex-shrink: 0;
+}
+
+.cat-filters__row::-webkit-scrollbar {
+  display: none;
+}
+
+.cat-filters__row--wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.cat-chip-composer {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  min-height: 40px;
+  padding-block: 0;
+  padding-inline: 12px 4px;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.1);
+}
+
+.cat-chip-composer__input {
+  width: 7.5rem;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  outline: none;
+}
+
+.cat-chip-composer__input::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.cat-chip-composer__go {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.cat-chip-composer__go:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.chip--add.selected {
+  border-style: solid;
+  background: rgba(var(--color-primary-rgb), 0.16);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+  color: var(--color-primary-bright);
+}
+
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.cat-chip__pick {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 10px 12px;
+  padding-inline-end: 4px;
+}
+
+.cat-chip__edit {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.75;
+}
+
+.cat-chip__edit:hover {
+  opacity: 1;
+  background: rgba(15, 23, 42, 0.1);
+}
+
+.cat-chip.selected .cat-chip__pick {
+  color: inherit;
+}
+
+.cat-chip__x {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-inline-end: 6px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.12);
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.75;
+}
+
+.cat-chip.selected .cat-chip__x {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--color-on-primary);
+}
+
+.cat-chip__x:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.22);
+  color: #f87171;
 }
 
 .coin {

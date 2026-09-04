@@ -6,6 +6,71 @@
   box-shadow: var(--shadow-card);
 }
 
+.teach-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.teach-menu-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.teach-menu-btn:hover,
+.teach-menu-btn:focus-visible {
+  background: rgba(var(--color-primary-rgb), 0.14);
+  color: var(--color-primary-bright);
+}
+
+.teach-menu {
+  position: absolute;
+  top: 100%;
+  inset-inline-end: 0;
+  z-index: 8;
+  min-width: 160px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--color-card-hover);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.3);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+.teach-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.teach-menu button:hover {
+  background: rgba(var(--color-primary-rgb), 0.16);
+}
+
+.teach-menu button.is-danger {
+  color: #fca5a5;
+}
+
+.teach-menu button.is-fav {
+  color: #fbbf24;
+}
+
 .teach-sheet__head {
   margin-bottom: 18px;
 }
@@ -41,7 +106,7 @@
 .teach-block {
   margin-top: 12px;
   padding: 10px 12px 6px;
-  border: 1px solid rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.18);
   border-radius: 14px;
   background: rgba(var(--color-bg-rgb), 0.4);
 }
@@ -59,7 +124,7 @@
 
 .teach-block__list {
   padding-inline-start: 10px;
-  border-inline-start: 2px solid rgba(167, 139, 250, 0.45);
+  border-inline-start: 2px solid rgba(var(--color-primary-rgb), 0.45);
 }
 
 .teach-ex {
@@ -96,7 +161,7 @@
   flex-shrink: 0;
   padding: 2px 6px;
   border-radius: 6px;
-  background: rgba(139, 92, 246, 0.14);
+  background: rgba(var(--color-primary-rgb), 0.14);
   font-size: 11px;
   font-weight: 700;
   color: var(--color-primary-bright);

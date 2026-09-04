@@ -58,14 +58,9 @@
     min-height: 48px;
   }
 
-  .auth-client-link {
-    margin-top: 12px;
-  }
-
   .keyboard-open .auth-page__header,
   .keyboard-open .auth-social,
   .keyboard-open .auth-divider,
-  .keyboard-open .auth-client-link,
   .keyboard-open .auth-lang {
     display: none;
   }
@@ -354,23 +349,6 @@
 .auth-instructor-pick__btn:disabled {
   opacity: 0.55;
   cursor: wait;
-}
-
-.auth-client-link {
-  margin-top: 20px;
-  border: none;
-  background: none;
-  color: var(--color-text-subtle);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: center;
-  padding: 8px;
-}
-
-.auth-client-link:hover {
-  color: var(--color-text-muted);
 }
 
 .auth-invite-banner {

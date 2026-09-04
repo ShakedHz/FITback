@@ -86,7 +86,7 @@
 }
 
 .exercise-video:hover .exercise-video__play {
-  background: rgba(139, 92, 246, 0.35);
+  background: rgba(var(--color-primary-rgb), 0.35);
 }
 
 .exercise-video__play svg {
@@ -96,12 +96,12 @@
 .exercise-video__badge {
   position: absolute;
   top: 6px;
-  left: 6px;
+  inset-inline-start: 6px;
   font-size: 10px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 10px;
-  background: rgba(139, 92, 246, 0.85);
+  background: rgba(var(--color-primary-rgb), 0.85);
   color: white;
 }
 
@@ -126,7 +126,7 @@
 .video-modal__close {
   position: absolute;
   top: -40px;
-  left: 0;
+  inset-inline-start: 0;
   background: rgba(255, 255, 255, 0.15);
   border: none;
   border-radius: 50%;
@@ -206,9 +206,9 @@
   width: 100%;
   margin-top: 12px;
   padding: 12px 14px;
-  border: 1px dashed rgba(167, 139, 250, 0.5);
+  border: 1px dashed rgba(var(--color-primary-rgb), 0.5);
   border-radius: 14px;
-  background: rgba(139, 92, 246, 0.06);
+  background: rgba(var(--color-primary-rgb), 0.06);
   color: inherit;
   font-family: inherit;
   text-align: start;
@@ -221,7 +221,7 @@
 }
 
 .ex-create:active {
-  background: rgba(139, 92, 246, 0.14);
+  background: rgba(var(--color-primary-rgb), 0.14);
 }
 
 .ex-create__icon {
@@ -231,7 +231,7 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(139, 92, 246, 0.22);
+  background: rgba(var(--color-primary-rgb), 0.22);
   color: var(--color-primary-bright);
 }
 
@@ -255,21 +255,25 @@
 }
 
 .ex-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   border-radius: 12px;
   border: 1px solid transparent;
   background: var(--color-card-hover);
 }
 
 .ex-row--on {
-  background: rgba(139, 92, 246, 0.18);
-  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(var(--color-primary-rgb), 0.18);
+  border-color: rgba(var(--color-primary-rgb), 0.35);
 }
 
 .ex-row__main {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 10px 12px;
   border: none;
   border-radius: 12px;
@@ -278,6 +282,18 @@
   font-family: inherit;
   text-align: start;
   cursor: pointer;
+}
+
+.ex-row__edit {
+  flex-shrink: 0;
+}
+
+.ex-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-inline-end: 6px;
 }
 
 .ex-row__box {
@@ -292,8 +308,8 @@
 }
 
 .ex-row--on .ex-row__box {
-  background: #8b5cf6;
-  border-color: #8b5cf6;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: #fff;
 }
 
@@ -317,7 +333,7 @@
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 999px;
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(var(--color-primary-rgb), 0.2);
   color: var(--color-primary-bright);
 }
 
@@ -356,7 +372,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 0;
-  border-top: 1px solid rgba(139, 92, 246, 0.1);
+  border-top: 1px solid rgba(var(--color-primary-rgb), 0.1);
 }
 
 .exercise-line__body {
@@ -401,20 +417,68 @@
   text-align: center;
 }
 
+.ex-create--banner {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border-style: solid;
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-primary-rgb), 0.14),
+    rgba(var(--color-primary-rgb), 0.06)
+  );
+  box-shadow: 0 2px 12px rgba(var(--color-primary-rgb), 0.12);
+}
+
+.ex-create--banner .ex-create__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.ex-picker__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 12px;
+}
+
+.ex-picker__actions .ex-picker__search {
+  margin-bottom: 0;
+}
+
+.ex-picker__empty-state {
+  margin: 8px 0 0;
+  padding: 20px 16px;
+  border-radius: 14px;
+  text-align: center;
+  background: var(--color-card-hover);
+}
+
+.ex-picker__empty-state p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.ex-picker__empty-state .ex-create {
+  margin-top: 0;
+}
+
 .add-exercise-upload {
-  border: 2px dashed rgba(139, 92, 246, 0.4);
+  border: 2px dashed rgba(var(--color-primary-rgb), 0.4);
   border-radius: 16px;
   padding: 32px 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: rgba(139, 92, 246, 0.05);
+  background: rgba(var(--color-primary-rgb), 0.05);
 }
 
 .add-exercise-upload:hover,
 .add-exercise-upload.has-file {
-  border-color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.12);
+  border-color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.12);
 }
 
 .add-exercise-upload input {

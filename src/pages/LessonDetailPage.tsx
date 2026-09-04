@@ -1,11 +1,12 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Star } from 'lucide-react';
+import { Trash2, Pencil, Star, CopyPlus, LayoutTemplate, MoreVertical } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { BackButton, IconButton, IconToolbar } from '@/components/IconToolbar';
+import { BackButton } from '@/components/IconToolbar';
 import { PilatesPropsGlance, SpringDots } from '@/components/PilatesSetup';
 import { isSpringSetupEmpty } from '@/data/pilatesSetup';
 import { canChooseTrainingType } from '@/data/trainingTypes';
-import { equipmentLabel, levelLabel, trainingLabel, useI18n } from '@/i18n';
+import { equipmentLabel, exerciseName, levelLabel, sectionTitle, trainingLabel, useI18n } from '@/i18n';
 import './LessonDetail.css';
 
 const MAX_REPS = 99;
@@ -20,11 +21,24 @@ function parseReps(value?: string) {
 export function LessonDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getLessonById, deleteCreatedLesson, isFavoriteLesson, toggleFavoriteLesson, instructor } = useApp();
-  const { t } = useI18n();
+  const { getLessonById, deleteCreatedLesson, duplicateCreatedLesson, saveLessonAsTemplate, isFavoriteLesson, toggleFavoriteLesson, instructor } = useApp();
+  const { t, locale } = useI18n();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const lesson = id ? getLessonById(id) : undefined;
   const favorite = lesson ? isFavoriteLesson(lesson.id) : false;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: PointerEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el?.closest('.teach-menu-wrap')) return;
+      setMenuOpen(false);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [menuOpen]);
+
   if (!lesson) return <div className="page"><p>{t('detail.notFound')}</p></div>;
 
   const genericDesc = t('preview.defaultDesc', {
@@ -47,29 +61,87 @@ export function LessonDetailPage() {
     navigate('/library');
   };
 
+  const handleDuplicate = () => {
+    const copy = duplicateCreatedLesson(lesson, t('detail.copyTitle', { title }));
+    navigate(`/lesson/${copy.id}`);
+  };
+
+  const handleSaveAsTemplate = () => {
+    saveLessonAsTemplate(lesson);
+    navigate('/library?tab=templates');
+  };
+
   return (
     <div className="page fade-in teach">
       <div className="page-toolbar">
         <BackButton to="/library" label={t('common.back')} />
-        <IconToolbar>
-          <IconButton
-            className={favorite ? 'is-fav' : ''}
-            aria-label={favorite ? t('library.removeFavorite') : t('library.addFavorite')}
-            aria-pressed={favorite}
-            onClick={() => toggleFavoriteLesson(lesson.id)}
+        <div className="teach-menu-wrap">
+          <button
+            type="button"
+            className="teach-menu-btn"
+            aria-label={t('library.itemMenu')}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
           >
-            <Star size={18} fill={favorite ? 'currentColor' : 'none'} />
-          </IconButton>
-          <IconButton danger onClick={handleDelete} aria-label={t('detail.delete')}>
-            <Trash2 size={18} />
-          </IconButton>
-          <IconButton
-            onClick={() => navigate(`/builder?lessonId=${lesson.id}`)}
-            aria-label={t('detail.edit')}
-          >
-            <Pencil size={18} />
-          </IconButton>
-        </IconToolbar>
+            <MoreVertical size={16} />
+          </button>
+          {menuOpen && (
+            <div className="teach-menu">
+              <button
+                type="button"
+                className={favorite ? 'is-fav' : undefined}
+                onClick={() => {
+                  toggleFavoriteLesson(lesson.id);
+                  setMenuOpen(false);
+                }}
+              >
+                <Star size={14} fill={favorite ? 'currentColor' : 'none'} />
+                {favorite ? t('library.removeFavorite') : t('library.addFavorite')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate(`/builder?lessonId=${lesson.id}&from=library`);
+                }}
+              >
+                <Pencil size={14} />
+                {t('detail.edit')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleDuplicate();
+                }}
+              >
+                <CopyPlus size={14} />
+                {t('detail.duplicate')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleSaveAsTemplate();
+                }}
+              >
+                <LayoutTemplate size={14} />
+                {t('detail.saveAsTemplate')}
+              </button>
+              <button
+                type="button"
+                className="is-danger"
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleDelete();
+                }}
+              >
+                <Trash2 size={14} />
+                {t('detail.delete')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <article className="teach-sheet">
@@ -91,7 +163,7 @@ export function LessonDetailPage() {
 
         {lesson.sections.map((section) => (
           <section key={section.id} className="teach-block">
-            <h2 className="teach-block__title">{section.title}</h2>
+            <h2 className="teach-block__title">{sectionTitle(section.title, t)}</h2>
             <div className="teach-block__list">
             {section.exercises.map((ex) => {
               const reps = parseReps(ex.reps);
@@ -99,7 +171,7 @@ export function LessonDetailPage() {
               return (
                 <div key={ex.id} className="teach-ex">
                   <div className="teach-ex__line">
-                    <span className="teach-ex__name">{ex.nameHe}</span>
+                    <span className="teach-ex__name">{exerciseName(ex, locale)}</span>
                     <span className="teach-ex__meta">
                       {springs ? <SpringDots setup={springs} size="md" /> : null}
                       {reps > 0 ? (

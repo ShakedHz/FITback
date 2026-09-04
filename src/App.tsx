@@ -58,6 +58,7 @@ function AppLayout() {
           <Route path="/builder" element={<Guard><LessonBuilderPage /></Guard>} />
           <Route path="/exercises" element={<Guard><ExerciseLibraryPage /></Guard>} />
           <Route path="/exercises/new" element={<Guard><AddExercisePage /></Guard>} />
+          <Route path="/exercises/:exerciseId/edit" element={<Guard><AddExercisePage /></Guard>} />
           <Route path="/profile" element={<Guard><ProfilePage /></Guard>} />
           <Route path="/settings" element={<Guard><SettingsPage /></Guard>} />
           <Route path="/studio" element={<Guard><StudioTeamPage /></Guard>} />

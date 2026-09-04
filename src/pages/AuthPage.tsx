@@ -218,7 +218,6 @@ export function AuthPage({
           <span className="auth-page__brand-fit">FIT</span>
           <span className="auth-page__brand-back">back</span>
         </h1>
-        <p className="auth-page__tagline">{t('auth.tagline')}</p>
       </div>
 
       <div className="auth-tabs">
