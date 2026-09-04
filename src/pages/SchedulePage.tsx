@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ChevronRight,
@@ -19,6 +19,7 @@ import {
   Unlink,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { type SurveyClient } from '@/services/surveyClients';
 import { ClientPicker } from '@/components/ClientPicker';
@@ -53,6 +54,23 @@ type SheetMode = 'add' | 'attach' | 'edit';
 
 function ScheduleOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   const shell = document.getElementById('app-shell');
+
+  useEffect(() => {
+    const content = document.querySelector('.app-content');
+    const prevOverflow = content instanceof HTMLElement ? content.style.overflow : '';
+    if (content instanceof HTMLElement) content.style.overflow = 'hidden';
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      if (content instanceof HTMLElement) content.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
   if (!shell) return null;
   return createPortal(
     <div className="schedule-overlay" onClick={onClose} role="presentation">
@@ -86,7 +104,10 @@ export function SchedulePage() {
     rosterClients,
     arboxClients,
   } = useApp();
+  const { isActiveStudioManager } = useAuth();
   const { t, dateLocale, locale } = useI18n();
+  const canEdit = !isActiveStudioManager;
+  const canEditEvent = (ev: ScheduleEvent) => canEdit && canAttachPlanToEvent(ev, arboxConnection);
   const showTypeChoice = canChooseTrainingType(instructor.specialties);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -102,6 +123,7 @@ export function SchedulePage() {
   const [addCapacity, setAddCapacity] = useState(DEFAULT_CAPACITY);
   const [capacityWarning, setCapacityWarning] = useState(false);
   const [editingEvent, setEditingEvent] = useState(false);
+  const openEventIdRef = useRef<string | null>(null);
 
   const attachLessonId = searchParams.get('attachLessonId');
 
@@ -125,18 +147,34 @@ export function SchedulePage() {
     setViewMode('day');
   }, [attachLessonId, schedulableLessons, searchParams, setSearchParams]);
 
+  const openEventSheet = useCallback((event: ScheduleEvent) => {
+    openEventIdRef.current = event.id;
+    setSelectedEvent(event);
+    setEditingEvent(false);
+  }, []);
+
+  const closeEventSheet = useCallback(() => {
+    openEventIdRef.current = null;
+    setSelectedEvent(null);
+    setEditingEvent(false);
+  }, []);
+
   useEffect(() => {
     setCapacityWarning(false);
     setEditingEvent(false);
   }, [selectedEvent?.id]);
 
-  // Keep event sheet in sync when attendees / feedback status change
+  // Keep open event sheet in sync when attendees / feedback status change
   useEffect(() => {
-    if (!selectedEvent) return;
-    const fresh = scheduleEvents.find((e) => e.id === selectedEvent.id);
+    const id = openEventIdRef.current;
+    if (!id) return;
+    const fresh = scheduleEvents.find((e) => e.id === id);
     if (fresh) setSelectedEvent(fresh);
-    else setSelectedEvent(null);
-  }, [scheduleEvents, selectedEvent?.id]);
+    else {
+      openEventIdRef.current = null;
+      setSelectedEvent(null);
+    }
+  }, [scheduleEvents]);
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -246,6 +284,7 @@ export function SchedulePage() {
   };
 
   const openAddSheet = () => {
+    if (!canEdit) return;
     setSheetMode('add');
     setAddTrainingType(null);
     setAddLessonId(null);
@@ -258,7 +297,8 @@ export function SchedulePage() {
   };
 
   const openAttachSheet = (event: ScheduleEvent) => {
-    if (!canAttachPlanToEvent(event, arboxConnection)) return;
+    if (!canEdit || !canAttachPlanToEvent(event, arboxConnection)) return;
+    openEventIdRef.current = event.id;
     setSelectedEvent(event);
     setSheetMode('attach');
     setAddTrainingType(null);
@@ -268,11 +308,13 @@ export function SchedulePage() {
 
   // Editing reuses the add sheet, pre-filled with what the class holds today.
   const openEditSheet = (event: ScheduleEvent) => {
+    if (!canEdit) return;
     const lesson = schedulableLessons.find(
       (l) => l.id === event.lessonId || l.id === event.lessonPlanId
     );
     const attending = pickerClients.filter((client) => isClientOnEvent(event, client));
 
+    openEventIdRef.current = event.id;
     setSelectedEvent(event);
     setSheetMode('edit');
     setSelectedDay(startOfDay(new Date(event.start)));
@@ -292,6 +334,11 @@ export function SchedulePage() {
     setAddClientIds([]);
     setAddCapacity(DEFAULT_CAPACITY);
     setCapacityWarning(false);
+    if (sheetMode === 'edit') {
+      openEventIdRef.current = null;
+      setSelectedEvent(null);
+      setEditingEvent(false);
+    }
     setSheetMode('add');
   };
 
@@ -351,7 +398,7 @@ export function SchedulePage() {
         capacity: addCapacity,
       });
       closeAddSheet();
-      setSelectedEvent(null);
+      closeEventSheet();
       return;
     }
 
@@ -365,7 +412,7 @@ export function SchedulePage() {
   const renderEventCard = (ev: ScheduleEvent, onClick: () => void) => {
     const colors = getEventColors(ev);
     const isFull = ev.enrolled != null && ev.capacity != null && ev.enrolled >= ev.capacity;
-    const canEditSlot = canAttachPlanToEvent(ev, arboxConnection);
+    const canEditSlot = canEditEvent(ev);
     const slotIsOwn = isOwnEvent(ev, arboxConnection);
     const isArbox = ev.source === 'arbox';
     const own = arboxConnection.connected && isArbox && slotIsOwn;
@@ -379,9 +426,9 @@ export function SchedulePage() {
         type="button"
         className={`schedule-card ${own ? 'schedule-card--own' : ''} ${otherInstructor ? 'schedule-card--other' : ''} ${showPlanStatus ? (hasPlan ? 'schedule-card--has-plan' : 'schedule-card--no-plan') : ''}`}
         onClick={onClick}
-        draggable={canAttachPlanToEvent(ev, arboxConnection)}
+        draggable={canEditEvent(ev)}
         onDragStart={(e) => {
-          if (!canAttachPlanToEvent(ev, arboxConnection)) {
+          if (!canEditEvent(ev)) {
             e.preventDefault();
             return;
           }
@@ -505,7 +552,7 @@ export function SchedulePage() {
             <h2 className="schedule-agenda__title">{formatFullDayLabel(selectedDay, dateLocale)}</h2>
             {dayEvents.length > 0 ? (
               <div className="schedule-agenda__list">
-                {dayEvents.map((ev) => renderEventCard(ev, () => setSelectedEvent(ev)))}
+                {dayEvents.map((ev) => renderEventCard(ev, () => openEventSheet(ev)))}
               </div>
             ) : arboxConnection.connected ? (
               <div className="schedule-empty">
@@ -531,9 +578,11 @@ export function SchedulePage() {
               <div className="schedule-empty">
                 <CalendarPlus size={36} strokeWidth={1.5} />
                 <p>{t('schedule.noClassesDay')}</p>
-                <button type="button" className="btn btn-secondary schedule-empty__btn" onClick={openAddSheet}>
-                  {t('schedule.addClass')}
-                </button>
+                {canEdit && (
+                  <button type="button" className="btn btn-secondary schedule-empty__btn" onClick={openAddSheet}>
+                    {t('schedule.addClass')}
+                  </button>
+                )}
               </div>
             )}
           </section>
@@ -554,7 +603,7 @@ export function SchedulePage() {
                     {isToday && <span className="schedule-week__today">{t('common.today')}</span>}
                   </h3>
                   <div className="schedule-agenda__list">
-                    {events.map((ev) => renderEventCard(ev, () => setSelectedEvent(ev)))}
+                    {events.map((ev) => renderEventCard(ev, () => openEventSheet(ev)))}
                   </div>
                 </div>
               );
@@ -569,9 +618,11 @@ export function SchedulePage() {
         )}
       </main>
 
-      <button type="button" className="schedule-fab" onClick={openAddSheet} aria-label={t('schedule.addAria')}>
-        <Plus size={24} />
-      </button>
+      {canEdit && (
+        <button type="button" className="schedule-fab" onClick={openAddSheet} aria-label={t('schedule.addAria')}>
+          <Plus size={24} />
+        </button>
+      )}
 
       {showAddSheet && (
         <ScheduleOverlay onClose={closeAddSheet}>
@@ -773,134 +824,139 @@ export function SchedulePage() {
       )}
 
       {selectedEvent && !showAddSheet && (
-        <ScheduleOverlay onClose={() => setSelectedEvent(null)}>
-          <div className="schedule-sheet" onClick={(e) => e.stopPropagation()}>
+        <ScheduleOverlay onClose={closeEventSheet}>
+          <div className="schedule-sheet schedule-sheet--detail" onClick={(e) => e.stopPropagation()}>
             <div
               className="schedule-sheet__accent"
               style={{ backgroundColor: getEventColors(selectedEvent).bg }}
             />
-            <IconToolbar className="schedule-sheet__toolbar">
-              {selectedEvent.source === 'flowpilates' && (
-                <IconButton
-                  danger
-                  onClick={() => {
-                    removeScheduleEvent(selectedEvent.id);
-                    setSelectedEvent(null);
-                  }}
-                  aria-label={t('schedule.removeFromSchedule')}
-                >
-                  <Trash2 size={18} />
-                </IconButton>
-              )}
-              {!editingEvent && canAttachPlanToEvent(selectedEvent, arboxConnection) && (
-                <IconButton
-                  onClick={() =>
-                    selectedEvent.source === 'flowpilates'
-                      ? openEditSheet(selectedEvent)
-                      : setEditingEvent(true)
-                  }
-                  aria-label={t('schedule.edit')}
-                >
-                  <Pencil size={18} />
-                </IconButton>
-              )}
-              <IconButton onClick={() => setSelectedEvent(null)} aria-label={t('common.close')}>
-                <X size={20} />
-              </IconButton>
-            </IconToolbar>
-            <h2 className="schedule-sheet__title">{selectedEvent.title}</h2>
-            <p className="schedule-sheet__sub">
-              <Clock size={14} />
-              {getEventTime(selectedEvent)} · {selectedEvent.duration} {t('common.min')}
-            </p>
-            <div className="schedule-sheet__details">
-              {showTypeChoice && shouldShowEventType(selectedEvent) && (
-                <div className="schedule-sheet__row">
-                  <span
-                    className="schedule-sheet__category"
-                    style={{ backgroundColor: getEventColors(selectedEvent).bg }}
+            <div className="schedule-sheet__top schedule-sheet__top--detail">
+              <IconToolbar className="schedule-sheet__toolbar">
+                {canEdit && selectedEvent.source === 'flowpilates' && (
+                  <IconButton
+                    danger
+                    onClick={() => {
+                      removeScheduleEvent(selectedEvent.id);
+                      closeEventSheet();
+                    }}
+                    aria-label={t('schedule.removeFromSchedule')}
                   >
-                    {eventCategoryLabel(getEventCategory(selectedEvent), t)}
-                  </span>
-                </div>
-              )}
-              {selectedEvent.location && selectedEvent.source === 'arbox' && (
-                <div className="schedule-sheet__row"><MapPin size={16} /><span>{selectedEvent.location}</span></div>
-              )}
-              {instructorNameFor(selectedEvent) && (
-                <div className="schedule-sheet__row">
-                  <User size={16} />
-                  <span>{instructorNameFor(selectedEvent)}</span>
-                </div>
-              )}
-              {selectedEvent.enrolled != null && selectedEvent.capacity != null && (
-                <div className="schedule-sheet__row">
-                  <Users size={16} />
-                  <span>{t('schedule.enrolledOf', { enrolled: selectedEvent.enrolled, capacity: selectedEvent.capacity })}</span>
-                </div>
-              )}
-              {selectedEvent.feedbackSentAt && (
-                <div className="schedule-sheet__row">
-                  <MessageSquare size={16} />
-                  <span>
-                    {t('schedule.surveySentAt', {
-                      when: new Date(selectedEvent.feedbackSentAt).toLocaleString(dateLocale, {
-                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                      }),
-                    })}
-                  </span>
-                </div>
-              )}
-              {arboxConnection.connected &&
-                selectedEvent.source === 'arbox' &&
-                !canAttachPlanToEvent(selectedEvent, arboxConnection) && (
-                <p className="schedule-sheet__readonly">
-                  {t('schedule.viewOnlyHint')}
-                </p>
-              )}
+                    <Trash2 size={18} />
+                  </IconButton>
+                )}
+                {canEdit && !editingEvent && canEditEvent(selectedEvent) && (
+                  <IconButton
+                    onClick={() =>
+                      selectedEvent.source === 'flowpilates'
+                        ? openEditSheet(selectedEvent)
+                        : setEditingEvent(true)
+                    }
+                    aria-label={t('schedule.edit')}
+                  >
+                    <Pencil size={18} />
+                  </IconButton>
+                )}
+                <IconButton onClick={closeEventSheet} aria-label={t('common.close')}>
+                  <X size={20} />
+                </IconButton>
+              </IconToolbar>
+              <h2 className="schedule-sheet__title">{selectedEvent.title}</h2>
+              <p className="schedule-sheet__sub">
+                <Clock size={14} />
+                {getEventTime(selectedEvent)} · {selectedEvent.duration} {t('common.min')}
+              </p>
+              <div className="schedule-sheet__details">
+                {showTypeChoice && shouldShowEventType(selectedEvent) && (
+                  <div className="schedule-sheet__row">
+                    <span
+                      className="schedule-sheet__category"
+                      style={{ backgroundColor: getEventColors(selectedEvent).bg }}
+                    >
+                      {eventCategoryLabel(getEventCategory(selectedEvent), t)}
+                    </span>
+                  </div>
+                )}
+                {selectedEvent.location && selectedEvent.source === 'arbox' && (
+                  <div className="schedule-sheet__row"><MapPin size={16} /><span>{selectedEvent.location}</span></div>
+                )}
+                {instructorNameFor(selectedEvent) && (
+                  <div className="schedule-sheet__row">
+                    <User size={16} />
+                    <span>{instructorNameFor(selectedEvent)}</span>
+                  </div>
+                )}
+                {selectedEvent.enrolled != null && selectedEvent.capacity != null && (
+                  <div className="schedule-sheet__row">
+                    <Users size={16} />
+                    <span>{t('schedule.enrolledOf', { enrolled: selectedEvent.enrolled, capacity: selectedEvent.capacity })}</span>
+                  </div>
+                )}
+                {selectedEvent.feedbackSentAt && (
+                  <div className="schedule-sheet__row">
+                    <MessageSquare size={16} />
+                    <span>
+                      {t('schedule.surveySentAt', {
+                        when: new Date(selectedEvent.feedbackSentAt).toLocaleString(dateLocale, {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                        }),
+                      })}
+                    </span>
+                  </div>
+                )}
+                {!canEdit && (
+                  <p className="schedule-sheet__readonly">
+                    {t('schedule.managerViewOnlyHint')}
+                  </p>
+                )}
+                {canEdit &&
+                  arboxConnection.connected &&
+                  selectedEvent.source === 'arbox' &&
+                  !canEditEvent(selectedEvent) && (
+                  <p className="schedule-sheet__readonly">
+                    {t('schedule.viewOnlyHint')}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <ClassFeedbackAttendees
-              key={selectedEvent.id}
-              event={selectedEvent}
-              onCloseSheet={() => setSelectedEvent(null)}
-            />
+            <div className="schedule-sheet__body">
+              <ClassFeedbackAttendees key={selectedEvent.id} event={selectedEvent} readOnly={!canEdit} />
 
-            {editingEvent && canAttachPlanToEvent(selectedEvent, arboxConnection) && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ marginTop: 12 }}
-                onClick={() => openAttachSheet(selectedEvent)}
-              >
-                <BookOpen size={16} />
-                {selectedEvent.lessonPlanId ? t('schedule.changePlan') : t('schedule.attachPlan')}
-              </button>
-            )}
+              {canEdit && selectedEvent.source !== 'flowpilates' && editingEvent && canEditEvent(selectedEvent) && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ marginTop: 12 }}
+                  onClick={() => openAttachSheet(selectedEvent)}
+                >
+                  <BookOpen size={16} />
+                  {selectedEvent.lessonPlanId ? t('schedule.changePlan') : t('schedule.attachPlan')}
+                </button>
+              )}
 
-            {editingEvent && selectedEvent.lessonPlanId && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ marginTop: 8 }}
-                onClick={() => detachLessonPlan(selectedEvent.id)}
-              >
-                <Unlink size={16} />
-                {t('schedule.removePlan')}
-              </button>
-            )}
+              {canEdit && selectedEvent.source !== 'flowpilates' && editingEvent && selectedEvent.lessonPlanId && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ marginTop: 8 }}
+                  onClick={() => detachLessonPlan(selectedEvent.id)}
+                >
+                  <Unlink size={16} />
+                  {t('schedule.removePlan')}
+                </button>
+              )}
 
-            {editingEvent && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                style={{ marginTop: 8 }}
-                onClick={() => setEditingEvent(false)}
-              >
-                {t('schedule.doneEditing')}
-              </button>
-            )}
-
+              {canEdit && selectedEvent.source !== 'flowpilates' && editingEvent && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ marginTop: 8 }}
+                  onClick={() => setEditingEvent(false)}
+                >
+                  {t('schedule.doneEditing')}
+                </button>
+              )}
+            </div>
           </div>
         </ScheduleOverlay>
       )}

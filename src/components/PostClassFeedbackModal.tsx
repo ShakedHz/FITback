@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Send, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -8,7 +8,9 @@ import {
   FEEDBACK_CHECK_EVENT,
   findPendingFeedbackEvents,
   getAttendeesWithPhone,
+  isFeedbackModalCooldownActive,
   isPublicSurveyOrigin,
+  startFeedbackModalCooldown,
   wasClassFeedbackDismissed,
 } from '@/services/classFeedback';
 import { sendStudioFeedbackToAttendees } from '@/services/whatsappCloud';
@@ -31,17 +33,20 @@ export function PostClassFeedbackModal() {
   const [progress, setProgress] = useState<{ sent: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const feedbackScope = useMemo(
-    () => ({ arboxConnection }),
-    [arboxConnection]
-  );
+  const feedbackRole = arboxConnection.role;
+  const feedbackConnected = arboxConnection.connected;
 
   const refreshPending = useCallback(() => {
-    if (!isLoggedIn || !autoClassFeedbackEnabled) {
+    if (!isLoggedIn || !autoClassFeedbackEnabled || isFeedbackModalCooldownActive()) {
       setEvent(null);
       return;
     }
-    const pending = findPendingFeedbackEvents(scheduleEvents, new Date(), feedbackScope).filter(
+    const scope = {
+      arboxConnection: feedbackConnected
+        ? { ...arboxConnection, role: feedbackRole, connected: feedbackConnected }
+        : arboxConnection,
+    };
+    const pending = findPendingFeedbackEvents(scheduleEvents, new Date(), scope).filter(
       (ev) => !wasClassFeedbackDismissed(ev.id)
     );
     const next = pending[0] ?? null;
@@ -49,7 +54,15 @@ export function PostClassFeedbackModal() {
       if (current && pending.some((ev) => ev.id === current.id)) return current;
       return next;
     });
-  }, [isLoggedIn, autoClassFeedbackEnabled, scheduleEvents, feedbackScope]);
+  }, [
+    isLoggedIn,
+    autoClassFeedbackEnabled,
+    scheduleEvents,
+    feedbackConnected,
+    feedbackRole,
+    arboxConnection.clubId,
+    arboxConnection.linkedInstructorId,
+  ]);
 
   useEffect(() => {
     refreshPending();
@@ -80,6 +93,23 @@ export function PostClassFeedbackModal() {
     setError(null);
   }, [event?.id]);
 
+  const skip = useCallback(() => {
+    if (!event) return;
+    dismissClassFeedback(event.id);
+    setEvent(null);
+    setRecipients([]);
+    startFeedbackModalCooldown();
+  }, [event]);
+
+  useEffect(() => {
+    if (!event) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busy) skip();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [event, busy, skip]);
+
   if (!event || recipients.length === 0) return null;
 
   const publicOrigin = isPublicSurveyOrigin();
@@ -88,13 +118,7 @@ export function PostClassFeedbackModal() {
     markEventFeedbackSent(event.id);
     setEvent(null);
     setRecipients([]);
-    window.setTimeout(refreshPending, 300);
-  };
-
-  const skip = () => {
-    dismissClassFeedback(event.id);
-    setEvent(null);
-    window.setTimeout(refreshPending, 300);
+    startFeedbackModalCooldown();
   };
 
   const sendAll = async () => {
@@ -123,8 +147,17 @@ export function PostClassFeedbackModal() {
       : t('schedule.sendWhatsAppToCount', { count: recipients.length });
 
   return createPortal(
-    <div className="post-feedback-overlay" role="dialog" aria-modal="true" aria-labelledby="post-feedback-title">
-      <div className="post-feedback-modal">
+    <div
+      className="post-feedback-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="post-feedback-title"
+      onClick={skip}
+    >
+      <div
+        className="post-feedback-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
           className="post-feedback-modal__close"

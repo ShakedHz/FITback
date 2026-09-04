@@ -21,8 +21,10 @@
   background: rgba(139, 92, 246, 0.15);
   border: none;
   border-radius: 50%;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;

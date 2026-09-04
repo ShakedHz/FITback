@@ -1,6 +1,6 @@
 import type { StudioRole } from '@/data/scheduleTypes';
 
-export type StudioJoinSource = 'arbox' | 'invite';
+export type StudioJoinSource = 'arbox' | 'invite' | 'local';
 
 export interface StudioMembership {
   clubId: string;
@@ -31,8 +31,10 @@ export interface StudioInvite {
 
 const INVITES_KEY = 'movana_studio_invites_v1';
 const STAFF_EMAILS_KEY = 'movana_studio_staff_emails_v1';
+const REMOVED_STAFF_KEY = 'movana_studio_removed_staff_v1';
 
 type StaffEmailMap = Record<string, Record<string, string>>;
+type RemovedStaffMap = Record<string, string[]>;
 
 function readInvites(): StudioInvite[] {
   try {
@@ -64,6 +66,21 @@ function writeStaffEmails(map: StaffEmailMap) {
   localStorage.setItem(STAFF_EMAILS_KEY, JSON.stringify(map));
 }
 
+function readRemovedStaff(): RemovedStaffMap {
+  try {
+    const raw = localStorage.getItem(REMOVED_STAFF_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as RemovedStaffMap;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeRemovedStaff(map: RemovedStaffMap) {
+  localStorage.setItem(REMOVED_STAFF_KEY, JSON.stringify(map));
+}
+
 export function upsertMembership(
   memberships: StudioMembership[] | undefined,
   next: StudioMembership
@@ -93,6 +110,45 @@ export function membershipsFromAccount(input: {
       source: 'arbox',
     },
   ];
+}
+
+export function getActiveMembership(input: {
+  memberships?: StudioMembership[];
+  activeStudioId?: string;
+  arboxClubId?: string;
+  arboxStaffId?: string;
+  role: StudioRole;
+  name: string;
+  createdAt: string;
+}): StudioMembership | undefined {
+  const memberships = membershipsFromAccount(input);
+  if (!memberships.length) return undefined;
+  return (
+    memberships.find((membership) => membership.clubId === input.activeStudioId) ??
+    memberships[0]
+  );
+}
+
+export function activeStudioRole(input: {
+  memberships?: StudioMembership[];
+  activeStudioId?: string;
+  arboxClubId?: string;
+  arboxStaffId?: string;
+  role: StudioRole;
+  name: string;
+  createdAt: string;
+}): StudioRole {
+  return getActiveMembership(input)?.role ?? input.role;
+}
+
+/** True when content belongs to the currently active studio view. */
+export function belongsToActiveStudio(
+  item: { clubId?: string },
+  activeClubId: string | undefined
+): boolean {
+  if (!activeClubId) return true;
+  if (!item.clubId) return false;
+  return item.clubId === activeClubId;
 }
 
 export function listInvitesForStudio(clubId: string): StudioInvite[] {
@@ -142,6 +198,33 @@ export function markInviteAccepted(clubId: string, email: string, userId: string
     };
   });
   writeInvites(invites);
+}
+
+export function revokeStudioInvites(
+  clubId: string,
+  match: { email?: string; staffId?: string; inviteId?: string }
+): void {
+  const normalizedEmail = match.email?.trim().toLowerCase();
+  const invites = readInvites().filter((invite) => {
+    if (invite.clubId !== clubId) return true;
+    if (match.inviteId && invite.id === match.inviteId) return false;
+    if (normalizedEmail && invite.email === normalizedEmail) return false;
+    if (match.staffId && invite.staffId === match.staffId) return false;
+    return true;
+  });
+  writeInvites(invites);
+}
+
+export function markStaffRemovedFromStudio(clubId: string, staffId: string) {
+  const map = readRemovedStaff();
+  const current = map[clubId] ?? [];
+  if (current.includes(staffId)) return;
+  map[clubId] = [...current, staffId];
+  writeRemovedStaff(map);
+}
+
+export function isStaffRemovedFromStudio(clubId: string, staffId: string): boolean {
+  return (readRemovedStaff()[clubId] ?? []).includes(staffId);
 }
 
 export type TeamMemberStatus = 'you' | 'joined' | 'invited' | 'uninvited';

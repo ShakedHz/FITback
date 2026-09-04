@@ -40,6 +40,8 @@ export interface ScheduleEvent {
   category?: EventCategory;
   attendees?: ScheduleAttendee[];
   feedbackSentAt?: string | null;
+  /** Studio this local event belongs to (flowpilates only). */
+  clubId?: string;
 }
 
 export interface ArboxStaffMember {
@@ -333,10 +335,15 @@ export function isOwnEvent(event: ScheduleEvent, connection: ArboxConnection): b
   return false;
 }
 
+export function canEditSchedule(connection: ArboxConnection): boolean {
+  return connection.role !== 'studio_manager';
+}
+
 export function canAttachPlanToEvent(
   event: ScheduleEvent,
   connection: ArboxConnection
 ): boolean {
+  if (!canEditSchedule(connection)) return false;
   if (!connection.connected) return event.source === 'flowpilates';
   return isOwnEvent(event, connection);
 }

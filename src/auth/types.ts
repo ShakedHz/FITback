@@ -58,6 +58,7 @@ export interface RegisterInput {
   email: string;
   password: string;
   specialties: TrainingType[];
+  role?: StudioRole;
 }
 
 export interface LoginInput {

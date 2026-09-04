@@ -63,6 +63,8 @@ export interface Lesson {
   /** Preview video uploaded by the instructor */
   coverVideo?: string;
   albumImages: string[];
+  /** Studio this lesson belongs to (scoped when switching views). */
+  clubId?: string;
 }
 
 export interface Instructor {

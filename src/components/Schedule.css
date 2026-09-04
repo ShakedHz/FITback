@@ -397,7 +397,7 @@
 .schedule-fab {
   position: fixed;
   bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-  left: 20px;
+  inset-inline-start: 20px;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -444,6 +444,57 @@
   padding: 0;
   max-height: min(82dvh, calc(var(--app-visible-height, 100dvh) - 48px));
   overflow: hidden;
+}
+
+.schedule-sheet--detail {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  max-height: min(90dvh, calc(var(--app-visible-height, 100dvh) - 32px));
+  overflow: hidden;
+}
+
+.schedule-sheet__top--detail {
+  flex-shrink: 0;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+  background: var(--color-card);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.schedule-sheet--detail .schedule-sheet__accent {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.schedule-sheet--detail .schedule-sheet__title {
+  margin-bottom: 4px;
+}
+
+.schedule-sheet--detail .schedule-sheet__sub {
+  margin-bottom: 12px;
+}
+
+.schedule-sheet--detail .schedule-sheet__details {
+  margin-bottom: 0;
+}
+
+.schedule-sheet--detail .schedule-sheet__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 20px max(20px, env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.schedule-sheet--detail .schedule-attendees {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .schedule-sheet__handle {
@@ -658,7 +709,9 @@
 }
 
 .schedule-sheet__toolbar {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 4;
 }
 
 .schedule-sheet__date {
@@ -1143,6 +1196,7 @@
   font-size: 12px;
   line-height: 1.4;
   color: var(--color-text-muted);
+  text-align: start;
 }
 
 .schedule-attendees__empty {
@@ -1393,4 +1447,133 @@
   font-size: 12px;
   line-height: 1.4;
   color: #fca5a5;
+}
+
+.schedule-attendees__pick {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.schedule-attendees__row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.schedule-attendees__pick-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: var(--color-card-hover);
+  color: var(--color-text);
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
+}
+
+.schedule-attendees__pick-btn--on {
+  background: rgba(var(--color-primary-rgb), 0.14);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+}
+
+.schedule-attendees__pick-btn:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.schedule-attendees__pick-check {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(148, 163, 184, 0.4);
+  color: transparent;
+}
+
+.schedule-attendees__pick-btn--on .schedule-attendees__pick-check {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.schedule-attendees__pick-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.schedule-attendees__wa {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  border-radius: 12px;
+  background: rgba(37, 211, 102, 0.12);
+  cursor: pointer;
+}
+
+.schedule-attendees__wa:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.schedule-attendees__readonly {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: var(--color-card-hover);
+}
+
+.schedule-attendees__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.schedule-attendees__actions .btn {
+  width: 100%;
+}
+
+.schedule-attendees__warn {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #fca5a5;
+}
+
+.schedule-attendees__queue {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.schedule-attendees__empty-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }

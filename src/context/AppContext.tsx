@@ -38,6 +38,7 @@ import {
   getArboxClients,
   refreshArboxConnection,
   setLinkedInstructor as saveLinkedInstructor,
+  syncStoredConnectionRole,
 } from '@/services/arboxApi';
 import { dispatchClassFeedback } from '@/services/autoFeedbackDispatch';
 import {
@@ -63,6 +64,7 @@ import {
 } from '@/services/surveyClients';
 import type { TrainingType } from '@/data/trainingTypes';
 import { bioFromSpecialties, trainingTypeToEventCategory } from '@/data/trainingTypes';
+import { belongsToActiveStudio } from '@/data/studioOrg';
 import { defaultPlanEquipment, type EquipmentType } from '@/data/equipmentTypes';
 import { isSpringSetupEmpty, type PilatesPropId } from '@/data/pilatesSetup';
 import { getLessonTemplate } from '@/data/lessonTemplates';
@@ -329,7 +331,7 @@ function saveCustomExercises(items: Exercise[]): void {
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated, logout: authLogout } = useAuth();
+  const { user, isAuthenticated, logout: authLogout, activeMembership, isActiveStudioManager } = useAuth();
   const [coins, setCoins] = useState(currentInstructor.coins);
   const [transactions, setTransactions] = useState<CoinTransaction[]>(initialTransactions);
   const [ownedLessonIds, setOwnedLessonIds] = useState<string[]>([]);
@@ -357,6 +359,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     getAllFeedback()
   );
   const [rosterClients, setRosterClients] = useState<SurveyClient[]>(() => loadSurveyClients());
+
+  const activeClubId = useMemo(
+    () => user?.activeStudioId || activeMembership?.clubId || user?.arboxClubId,
+    [user?.activeStudioId, activeMembership?.clubId, user?.arboxClubId]
+  );
+
+  // Tag legacy content that predates per-studio scoping.
+  useEffect(() => {
+    if (!user) return;
+    const fallbackClubId =
+      user.memberships.find((m) => m.role === 'instructor')?.clubId ||
+      user.activeStudioId ||
+      user.memberships[0]?.clubId ||
+      user.arboxClubId;
+    if (!fallbackClubId) return;
+
+    setUserLessons((prev) => {
+      if (!prev.some((l) => !l.clubId)) return prev;
+      return prev.map((l) => (l.clubId ? l : { ...l, clubId: fallbackClubId }));
+    });
+    setFlowEvents((prev) => {
+      if (!prev.some((e) => !e.clubId)) return prev;
+      return prev.map((e) => (e.clubId ? e : { ...e, clubId: fallbackClubId }));
+    });
+  }, [user?.id]);
 
   // Load Arbox data after login (connect happens on the login screen)
   const applyArboxSession = useCallback(() => {
@@ -393,6 +420,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const clubId = user.activeStudioId || user.arboxClubId;
     setArboxStorageOwner(user.id, { migrateLegacy: user.arboxLinked, clubId });
+    if (activeMembership) syncStoredConnectionRole(activeMembership.role);
 
     if (!applyArboxSession()) {
       setArboxConnection(EMPTY_ARBOX_CONNECTION);
@@ -403,7 +431,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     void refreshArboxFromStorage();
-  }, [isAuthenticated, user, applyArboxSession, refreshArboxFromStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- studio/account only; not week navigation
+  }, [isAuthenticated, user?.id, user?.activeStudioId, activeMembership?.clubId]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    setWeekStart(getDefaultWeekStart());
+  }, [isAuthenticated, user?.activeStudioId]);
 
   useEffect(() => {
     const sync = () => setFeedbackResponses(getAllFeedback());
@@ -458,9 +492,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAutoClassFeedbackEnabledState(enabled);
   }, []);
 
+  const studioFlowEvents = useMemo(
+    () => flowEvents.filter((event) => belongsToActiveStudio(event, activeClubId)),
+    [flowEvents, activeClubId]
+  );
+
   const scheduleEvents = useMemo(
-    () => [...arboxEvents, ...flowEvents].sort((a, b) => a.start.localeCompare(b.start)),
-    [arboxEvents, flowEvents]
+    () => [...arboxEvents, ...studioFlowEvents].sort((a, b) => a.start.localeCompare(b.start)),
+    [arboxEvents, studioFlowEvents]
   );
 
   const instructorMeta = useMemo(
@@ -478,6 +517,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createdLessons = useMemo(() => {
     const extras = userLessons
+      .filter((l) => belongsToActiveStudio(l, activeClubId))
       .filter((l) => specialties.length === 0 || specialties.includes(l.trainingType))
       .map((l) => ({
         ...l,
@@ -489,7 +529,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const deleted = new Set(deletedLessonIds);
     return extras.filter((l) => !deleted.has(l.id));
-  }, [specialties, instructorMeta, userLessons, deletedLessonIds]);
+  }, [specialties, instructorMeta, userLessons, deletedLessonIds, activeClubId]);
 
   const schedulableLessons = useMemo(() => createdLessons, [createdLessons]);
 
@@ -600,10 +640,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addCreatedLesson = useCallback((lesson: Lesson) => {
-    setUserLessons((prev) => [...prev, { ...lesson, isStarter: false }]);
+    const clubId = lesson.clubId ?? activeClubId;
+    setUserLessons((prev) => [...prev, { ...lesson, isStarter: false, clubId }]);
     setOwnedLessonIds((ids) => (ids.includes(lesson.id) ? ids : [...ids, lesson.id]));
     setDeletedLessonIds((ids) => ids.filter((id) => id !== lesson.id));
-  }, []);
+  }, [activeClubId]);
 
   const updateCreatedLesson = useCallback((lesson: Lesson) => {
     const stored: Lesson = { ...lesson, isStarter: false };
@@ -634,6 +675,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...lesson,
       id: `l-${stamp}`,
       title,
+      clubId: lesson.clubId ?? activeClubId,
       isStarter: false,
       isCreated: true,
       isOwned: true,
@@ -650,7 +692,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUserLessons((prev) => [...prev, copy]);
     setOwnedLessonIds((ids) => (ids.includes(copy.id) ? ids : [...ids, copy.id]));
     return copy;
-  }, []);
+  }, [activeClubId]);
 
   const deleteCreatedLesson = useCallback((lessonId: string) => {
     setUserLessons((prev) => {
@@ -758,6 +800,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [weekStart]);
 
   const attachLessonPlan = useCallback((eventId: string, lessonId: string) => {
+    if (isActiveStudioManager) return false;
     const lesson = lessons.find((l) => l.id === lessonId) ?? createdLessons.find((l) => l.id === lessonId);
     if (!lesson) return false;
 
@@ -780,9 +823,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
     );
     return true;
-  }, [arboxConnection, arboxEvents, flowEvents, createdLessons]);
+  }, [arboxConnection, arboxEvents, flowEvents, createdLessons, isActiveStudioManager]);
 
   const detachLessonPlan = useCallback((eventId: string) => {
+    if (isActiveStudioManager) return;
     const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
     if (!event || !canAttachPlanToEvent(event, arboxConnection)) return;
 
@@ -799,7 +843,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           : e
       )
     );
-  }, [arboxConnection, arboxEvents, flowEvents]);
+  }, [arboxConnection, arboxEvents, flowEvents, isActiveStudioManager]);
 
   const toggleAutoFeedback = useCallback((enabled: boolean) => {
     const updated = setAutoFeedbackEnabled(enabled);
@@ -869,6 +913,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleEventAttendee = useCallback(
     (eventId: string, client: { id: string; name: string; phone: string }) => {
+      if (isActiveStudioManager) return;
       const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
       if (!event) return;
       const phoneDigits = client.phone.replace(/\D/g, '');
@@ -881,7 +926,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       addEventAttendee(eventId, client);
     },
-    [arboxEvents, flowEvents, addEventAttendee, removeEventAttendee]
+    [arboxEvents, flowEvents, addEventAttendee, removeEventAttendee, isActiveStudioManager]
   );
 
   const markEventFeedbackSent = useCallback(
@@ -894,7 +939,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const runFeedbackAutomation = useCallback(async () => {
     const scope = { arboxConnection };
-    const pending = findPendingFeedbackEvents([...arboxEvents, ...flowEvents], new Date(), scope);
+    const pending = findPendingFeedbackEvents(scheduleEvents, new Date(), scope);
 
     let sent = 0;
     for (const event of pending) {
@@ -906,7 +951,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     return sent || pending.length;
-  }, [arboxConnection, arboxEvents, flowEvents, markEventFeedbackSent]);
+  }, [arboxConnection, scheduleEvents, markEventFeedbackSent]);
 
   const addLessonToSchedule = useCallback((
     lessonId: string,
@@ -914,6 +959,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     time: string,
     options?: { endedRecently?: boolean; rosterClients?: SurveyClient[]; capacity?: number }
   ): string | null => {
+    if (isActiveStudioManager) return null;
     const lesson = lessons.find((l) => l.id === lessonId) ?? createdLessons.find((l) => l.id === lessonId);
     if (!lesson) return null;
 
@@ -952,13 +998,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       enrolled: attendees.length,
       capacity: options?.capacity,
       feedbackSentAt: null,
+      clubId: activeClubId,
     };
     setFlowEvents((prev) => [...prev, event]);
     window.setTimeout(() => requestFeedbackCheck(), 200);
     return event.id;
-  }, [createdLessons, arboxConnection, user]);
+  }, [createdLessons, arboxConnection, user, isActiveStudioManager, activeClubId]);
 
   const moveScheduleEvent = useCallback((eventId: string, dateKey: string, time: string) => {
+    if (isActiveStudioManager) return;
     const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
     if (!event) return;
     if (!canAttachPlanToEvent(event, arboxConnection)) return;
@@ -970,7 +1018,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ev.id === eventId ? { ...ev, start: combineDateAndTime(dateKey, time) } : ev
       )
     );
-  }, [arboxConnection, arboxEvents, flowEvents]);
+  }, [arboxConnection, arboxEvents, flowEvents, isActiveStudioManager]);
 
   const updateScheduleEvent = useCallback((
     eventId: string,
@@ -982,6 +1030,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       capacity?: number;
     }
   ) => {
+    if (isActiveStudioManager) return;
     setFlowEvents((prev) =>
       prev.map((ev) => {
         if (ev.id !== eventId) return ev;
@@ -1017,11 +1066,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return next;
       })
     );
-  }, [createdLessons]);
+  }, [createdLessons, isActiveStudioManager]);
 
   const removeScheduleEvent = useCallback((eventId: string) => {
+    if (isActiveStudioManager) return;
     setFlowEvents((prev) => prev.filter((ev) => ev.id !== eventId));
-  }, []);
+  }, [isActiveStudioManager]);
 
   const logout = useCallback(() => {
     authLogout();
@@ -1042,13 +1092,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? user.bio?.trim() || bioFromSpecialties(user.specialties ?? [])
         : currentInstructor.bio,
       specialties: user ? user.specialties ?? [] : currentInstructor.specialties,
-      lessonsCount: userLessons.length,
+      lessonsCount: createdLessons.length,
       studentsCount:
         arboxConnection.connected && arboxConnection.dataSource === 'live'
           ? arboxClients.length
           : rosterClients.length,
     }),
-    [coins, user, userLessons.length, rosterClients.length, arboxConnection, arboxClients.length]
+    [coins, user, createdLessons.length, rosterClients.length, arboxConnection, arboxClients.length]
   );
 
   return (
