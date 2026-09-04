@@ -13,10 +13,6 @@ export const EQUIPMENT_LABELS: Record<EquipmentType, string> = {
 export const DEFAULT_EQUIPMENT: Record<TrainingType, EquipmentType> = {
   pilates: 'mat',
   yoga: 'mat',
-  hiit: 'none',
-  barre: 'barre',
-  cycle: 'bike',
-  stretch: 'mat',
 };
 
 export function inferEquipment(

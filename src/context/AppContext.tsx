@@ -8,7 +8,8 @@ import {
   useEffect,
 } from 'react';
 import { useAuth } from '@/auth/AuthContext';
-import { currentInstructor, lessons, exercises as defaultExercises, Lesson, Exercise, type LessonLevel, type ExercisePlanNotes } from '@/data/mockData';
+import { currentInstructor, lessons, Lesson, Exercise, type LessonLevel, type ExercisePlanNotes } from '@/data/mockData';
+import { BUILTIN_EXERCISES, migrateExerciseId } from '@/data/exerciseCatalog';
 import { COIN_PACKAGES, getTotalCoins } from '@/data/coinPackages';
 import type {
   ScheduleEvent,
@@ -38,6 +39,7 @@ import {
   getArboxClients,
   refreshArboxConnection,
   setLinkedInstructor as saveLinkedInstructor,
+  syncStoredConnectionRole,
 } from '@/services/arboxApi';
 import { dispatchClassFeedback } from '@/services/autoFeedbackDispatch';
 import {
@@ -62,10 +64,27 @@ import {
   type SurveyClient,
 } from '@/services/surveyClients';
 import type { TrainingType } from '@/data/trainingTypes';
-import { bioFromSpecialties, trainingTypeToEventCategory } from '@/data/trainingTypes';
+import { bioFromSpecialties, isTrainingType, trainingTypeToEventCategory } from '@/data/trainingTypes';
+import { belongsToActiveStudio } from '@/data/studioOrg';
 import { defaultPlanEquipment, type EquipmentType } from '@/data/equipmentTypes';
 import { isSpringSetupEmpty, type PilatesPropId } from '@/data/pilatesSetup';
-import { getLessonTemplate } from '@/data/lessonTemplates';
+import { getLessonSectionShell } from '@/data/lessonTemplates';
+import { DEFAULT_YOGA_STYLE, type YogaStyle } from '@/data/yogaStyles';
+import {
+  loadCustomExerciseAreas,
+  saveCustomExerciseAreas,
+  slugFromAreaName,
+  type CustomExerciseArea,
+} from '@/data/customExerciseAreas';
+import {
+  applyExerciseLibraryPrefs,
+  isBuiltinExerciseId,
+  loadExerciseLibraryPrefs,
+  saveExerciseLibraryPrefs,
+  type ExerciseLibraryPrefs,
+} from '@/data/exerciseLibraryPrefs';
+import { isStandardBodyPart, type BodyPart } from '@/data/bodyParts';
+import { bilingualName } from '@/utils/translateText';
 import { durationsFromExercises, DEFAULT_CLASS_DURATION } from '@/utils/lessonDuration';
 
 export interface CoinTransaction {
@@ -96,6 +115,8 @@ export interface LessonDraft {
   description: string;
   duration: number;
   trainingType: TrainingType;
+  /** Set when trainingType is yoga — drives section layout and exercise catalog. */
+  yogaStyle?: YogaStyle;
   equipment: EquipmentType;
   props?: PilatesPropId[];
   level: LessonLevel;
@@ -107,46 +128,19 @@ export interface LessonDraft {
   sections?: LessonDraftSection[];
   /** When set, builder is editing an existing library lesson */
   sourceLessonId?: string;
+  /** When set, builder is editing a saved template */
+  sourceTemplateId?: string;
 }
 
-function draftForTrainingType(trainingType: TrainingType, title = ''): LessonDraft {
-  const template = getLessonTemplate(trainingType);
-  const baseSections = template.map((s) => ({
-    id: s.id,
-    title: s.title,
-    duration: s.duration,
-    exerciseIds: [...s.exerciseIds],
-  }));
-  const { sections, exerciseIds } = durationsFromExercises(baseSections, defaultExercises);
-
-  return {
-    title,
-    description: '',
-    duration: DEFAULT_CLASS_DURATION,
-    trainingType,
-    equipment: defaultPlanEquipment(trainingType),
-    props: [],
-    level: 'Intermediate',
-    focus: '',
-    coverVideo: null,
-    albumImages: [],
-    exerciseIds,
-    sections,
-  };
-}
-
-/** Empty plan — instructor adds every exercise herself. */
+/** Empty plan — type-specific sections, instructor adds exercises. */
 function blankDraftForTrainingType(trainingType: TrainingType): LessonDraft {
-  const sections: LessonDraftSection[] = [
-    { id: 's1', title: 'Warm-up', duration: 0, exerciseIds: [] },
-    { id: 's2', title: 'Main section', duration: 0, exerciseIds: [] },
-    { id: 's3', title: 'Cool-down', duration: 0, exerciseIds: [] },
-  ];
+  const yogaStyle = trainingType === 'yoga' ? DEFAULT_YOGA_STYLE : undefined;
   return {
     title: '',
     description: '',
     duration: DEFAULT_CLASS_DURATION,
     trainingType,
+    yogaStyle,
     equipment: defaultPlanEquipment(trainingType),
     props: [],
     level: 'Intermediate',
@@ -154,25 +148,30 @@ function blankDraftForTrainingType(trainingType: TrainingType): LessonDraft {
     coverVideo: null,
     albumImages: [],
     exerciseIds: [],
-    sections,
+    sections: getLessonSectionShell(trainingType, yogaStyle),
   };
 }
 
-export type LessonDraftMode = 'blank' | 'template';
+export type LessonDraftMode = 'blank';
 
 interface AppState {
   instructor: typeof currentInstructor;
   ownedLessonIds: string[];
   createdLessons: Lesson[];
+  savedTemplates: Lesson[];
   coins: number;
   transactions: CoinTransaction[];
   customExercises: Exercise[];
+  customExerciseAreas: CustomExerciseArea[];
+  exerciseLibraryPrefs: ExerciseLibraryPrefs;
   allExercises: Exercise[];
   lessonDraft: LessonDraft;
   setLessonDraft: (patch: Partial<LessonDraft>) => void;
   setLessonCoverVideo: (url: string | null) => void;
-  resetLessonDraft: (mode?: LessonDraftMode) => void;
+  resetLessonDraft: () => void;
   loadLessonDraft: (lesson: Lesson) => void;
+  loadTemplateDraft: (template: Lesson) => void;
+  startLessonFromTemplate: (template: Lesson) => void;
   purchaseLesson: (lessonId: string, price: number) => boolean;
   purchaseCoinPackage: (packageId: string, coins: number, price: number) => boolean;
   addCoins: (amount: number) => void;
@@ -183,7 +182,23 @@ interface AppState {
   isFavoriteLesson: (lessonId: string) => boolean;
   toggleFavoriteLesson: (lessonId: string) => void;
   duplicateCreatedLesson: (lesson: Lesson, title: string) => Lesson;
-  addCustomExercise: (exercise: Omit<Exercise, 'id' | 'isCustom' | 'createdBy'>) => Exercise;
+  addSavedTemplate: (template: Lesson) => void;
+  updateSavedTemplate: (template: Lesson) => void;
+  deleteSavedTemplate: (templateId: string) => void;
+  duplicateSavedTemplate: (template: Lesson, title: string) => Lesson;
+  saveLessonAsTemplate: (lesson: Lesson) => Lesson;
+  getTemplateById: (id: string) => Lesson | undefined;
+  addCustomExercise: (
+    exercise: Omit<Exercise, 'id' | 'isCustom' | 'createdBy' | 'duration'> & { duration?: number }
+  ) => Exercise;
+  updateExercise: (
+    id: string,
+    patch: Omit<Exercise, 'id' | 'isCustom' | 'createdBy' | 'duration'> & { duration?: number }
+  ) => Exercise | null;
+  deleteExercise: (id: string) => boolean;
+  ensureCustomExerciseArea: (input: string) => CustomExerciseArea | null;
+  updateExerciseArea: (areaId: string, labels: { name: string; nameHe: string }) => void;
+  deleteExerciseArea: (areaId: string) => void;
   getLessonById: (id: string) => Lesson | undefined;
   weekStart: Date;
   setWeekStart: (date: Date) => void;
@@ -247,6 +262,7 @@ interface AppState {
 
 const FLOW_EVENTS_KEY = 'movana_flow_events_v1';
 const USER_LESSONS_KEY = 'movana_user_lessons_v1';
+const USER_TEMPLATES_KEY = 'movana_user_templates_v1';
 const DELETED_LESSONS_KEY = 'movana_deleted_lessons_v1';
 const FAVORITE_LESSONS_KEY = 'movana_favorite_lessons_v1';
 const CUSTOM_EXERCISES_KEY = 'movana_custom_exercises_v1';
@@ -266,12 +282,28 @@ function saveFlowEvents(events: ScheduleEvent[]): void {
   localStorage.setItem(FLOW_EVENTS_KEY, JSON.stringify(events));
 }
 
+function migrateLessonExercises(lesson: Lesson): Lesson {
+  return {
+    ...lesson,
+    trainingType: isTrainingType(lesson.trainingType) ? lesson.trainingType : 'pilates',
+    sections: lesson.sections.map((section) => ({
+      ...section,
+      exercises: section.exercises.map((ex) => ({
+        ...ex,
+        id: migrateExerciseId(ex.id),
+      })),
+    })),
+  };
+}
+
 function loadUserLessons(): Lesson[] {
   try {
     const raw = localStorage.getItem(USER_LESSONS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Lesson[];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.map(migrateLessonExercises).filter((l) => l?.id && !l.isStarter && !l.isTemplate)
+      : [];
   } catch {
     return [];
   }
@@ -279,6 +311,47 @@ function loadUserLessons(): Lesson[] {
 
 function saveUserLessons(lessons: Lesson[]): void {
   localStorage.setItem(USER_LESSONS_KEY, JSON.stringify(lessons));
+}
+
+function loadUserTemplates(): Lesson[] {
+  try {
+    const raw = localStorage.getItem(USER_TEMPLATES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Lesson[];
+    return Array.isArray(parsed)
+      ? parsed.map(migrateLessonExercises).filter((l) => l?.id)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveUserTemplates(templates: Lesson[]): void {
+  localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(templates));
+}
+
+function clonePlan(
+  lesson: Lesson,
+  opts: { id: string; title: string; isTemplate?: boolean }
+): Lesson {
+  return {
+    ...lesson,
+    id: opts.id,
+    title: opts.title,
+    isStarter: false,
+    isTemplate: Boolean(opts.isTemplate),
+    isCreated: true,
+    isOwned: true,
+    rating: 0,
+    reviews: 0,
+    likes: 0,
+    comments: 0,
+    sections: lesson.sections.map((section, i) => ({
+      ...section,
+      id: `${opts.id}-s${i}`,
+      exercises: section.exercises.map((e) => ({ ...e })),
+    })),
+  };
 }
 
 function loadDeletedLessonIds(): string[] {
@@ -329,15 +402,22 @@ function saveCustomExercises(items: Exercise[]): void {
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated, logout: authLogout } = useAuth();
+  const { user, isAuthenticated, logout: authLogout, activeMembership, isActiveStudioManager } = useAuth();
   const [coins, setCoins] = useState(currentInstructor.coins);
   const [transactions, setTransactions] = useState<CoinTransaction[]>(initialTransactions);
   const [ownedLessonIds, setOwnedLessonIds] = useState<string[]>([]);
   /** Lessons the instructor created in-app (not seed plans). */
   const [userLessons, setUserLessons] = useState<Lesson[]>(() => loadUserLessons());
+  const [userTemplates, setUserTemplates] = useState<Lesson[]>(() => loadUserTemplates());
   const [deletedLessonIds, setDeletedLessonIds] = useState<string[]>(() => loadDeletedLessonIds());
   const [favoriteLessonIds, setFavoriteLessonIds] = useState<string[]>(() => loadFavoriteLessonIds());
   const [customExercises, setCustomExercises] = useState<Exercise[]>(() => loadCustomExercises());
+  const [customExerciseAreas, setCustomExerciseAreas] = useState<CustomExerciseArea[]>(() =>
+    loadCustomExerciseAreas()
+  );
+  const [exerciseLibraryPrefs, setExerciseLibraryPrefs] = useState<ExerciseLibraryPrefs>(() =>
+    loadExerciseLibraryPrefs()
+  );
   const [lessonDraft, setLessonDraftState] = useState<LessonDraft>(() =>
     blankDraftForTrainingType('pilates')
   );
@@ -357,6 +437,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     getAllFeedback()
   );
   const [rosterClients, setRosterClients] = useState<SurveyClient[]>(() => loadSurveyClients());
+
+  const activeClubId = useMemo(
+    () => user?.activeStudioId || activeMembership?.clubId || user?.arboxClubId,
+    [user?.activeStudioId, activeMembership?.clubId, user?.arboxClubId]
+  );
+
+  // Tag legacy content that predates per-studio scoping.
+  useEffect(() => {
+    if (!user) return;
+    const fallbackClubId =
+      user.memberships.find((m) => m.role === 'instructor')?.clubId ||
+      user.activeStudioId ||
+      user.memberships[0]?.clubId ||
+      user.arboxClubId;
+    if (!fallbackClubId) return;
+
+    setUserLessons((prev) => {
+      if (!prev.some((l) => !l.clubId)) return prev;
+      return prev.map((l) => (l.clubId ? l : { ...l, clubId: fallbackClubId }));
+    });
+    setFlowEvents((prev) => {
+      if (!prev.some((e) => !e.clubId)) return prev;
+      return prev.map((e) => (e.clubId ? e : { ...e, clubId: fallbackClubId }));
+    });
+  }, [user?.id]);
 
   // Load Arbox data after login (connect happens on the login screen)
   const applyArboxSession = useCallback(() => {
@@ -393,6 +498,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const clubId = user.activeStudioId || user.arboxClubId;
     setArboxStorageOwner(user.id, { migrateLegacy: user.arboxLinked, clubId });
+    if (activeMembership) syncStoredConnectionRole(activeMembership.role);
 
     if (!applyArboxSession()) {
       setArboxConnection(EMPTY_ARBOX_CONNECTION);
@@ -403,7 +509,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     void refreshArboxFromStorage();
-  }, [isAuthenticated, user, applyArboxSession, refreshArboxFromStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- studio/account only; not week navigation
+  }, [isAuthenticated, user?.id, user?.activeStudioId, activeMembership?.clubId]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    setWeekStart(getDefaultWeekStart());
+  }, [isAuthenticated, user?.activeStudioId]);
 
   useEffect(() => {
     const sync = () => setFeedbackResponses(getAllFeedback());
@@ -442,6 +554,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [userLessons]);
 
   useEffect(() => {
+    saveUserTemplates(userTemplates);
+  }, [userTemplates]);
+
+  useEffect(() => {
     saveDeletedLessonIds(deletedLessonIds);
   }, [deletedLessonIds]);
 
@@ -453,14 +569,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveCustomExercises(customExercises);
   }, [customExercises]);
 
+  useEffect(() => {
+    saveCustomExerciseAreas(customExerciseAreas);
+  }, [customExerciseAreas]);
+
+  useEffect(() => {
+    saveExerciseLibraryPrefs(exerciseLibraryPrefs);
+  }, [exerciseLibraryPrefs]);
+
   const setAutoClassFeedbackEnabled = useCallback((enabled: boolean) => {
     saveAutoClassFeedbackEnabled(enabled);
     setAutoClassFeedbackEnabledState(enabled);
   }, []);
 
+  const studioFlowEvents = useMemo(
+    () => flowEvents.filter((event) => belongsToActiveStudio(event, activeClubId)),
+    [flowEvents, activeClubId]
+  );
+
   const scheduleEvents = useMemo(
-    () => [...arboxEvents, ...flowEvents].sort((a, b) => a.start.localeCompare(b.start)),
-    [arboxEvents, flowEvents]
+    () => [...arboxEvents, ...studioFlowEvents].sort((a, b) => a.start.localeCompare(b.start)),
+    [arboxEvents, studioFlowEvents]
   );
 
   const instructorMeta = useMemo(
@@ -478,6 +607,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createdLessons = useMemo(() => {
     const extras = userLessons
+      .filter((l) => belongsToActiveStudio(l, activeClubId))
       .filter((l) => specialties.length === 0 || specialties.includes(l.trainingType))
       .map((l) => ({
         ...l,
@@ -485,18 +615,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
         instructorName: instructorMeta.name,
         isCreated: true,
         isOwned: true,
+        isStarter: false,
+        isTemplate: false,
       }));
 
     const deleted = new Set(deletedLessonIds);
     return extras.filter((l) => !deleted.has(l.id));
-  }, [specialties, instructorMeta, userLessons, deletedLessonIds]);
+  }, [specialties, instructorMeta, userLessons, deletedLessonIds, activeClubId]);
+
+  const savedTemplates = useMemo(() => {
+    return userTemplates
+      .filter((l) => specialties.length === 0 || specialties.includes(l.trainingType))
+      .map((l) => ({
+        ...l,
+        instructorId: instructorMeta.id,
+        instructorName: instructorMeta.name,
+        isCreated: true,
+        isOwned: true,
+        isTemplate: true,
+        isStarter: false,
+      }));
+  }, [specialties, instructorMeta, userTemplates]);
 
   const schedulableLessons = useMemo(() => createdLessons, [createdLessons]);
 
-  const allExercises = useMemo(
-    () => [...defaultExercises, ...customExercises],
-    [customExercises]
-  );
+  const allExercises = customExercises;
+
+  const removeExerciseFromDraft = useCallback((exerciseId: string) => {
+    setLessonDraftState((prev) => {
+      if (!prev.sections?.length) return prev;
+      const sections = prev.sections.map((section) => ({
+        ...section,
+        exerciseIds: section.exerciseIds.filter((id) => id !== exerciseId),
+      }));
+      return {
+        ...prev,
+        sections,
+        exerciseIds: sections.flatMap((section) => section.exerciseIds),
+      };
+    });
+  }, []);
 
   const setLessonDraft = useCallback((patch: Partial<LessonDraft>) => {
     setLessonDraftState((prev) => ({ ...prev, ...patch }));
@@ -511,51 +669,73 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const resetLessonDraft = useCallback((mode: LessonDraftMode = 'blank') => {
+  const resetLessonDraft = useCallback(() => {
     const type = specialties[0] ?? 'pilates';
-    setLessonDraftState(
-      mode === 'template' ? draftForTrainingType(type) : blankDraftForTrainingType(type)
-    );
+    setLessonDraftState(blankDraftForTrainingType(type));
   }, [specialties]);
 
-  const loadLessonDraft = useCallback((lesson: Lesson) => {
-    const baseSections = lesson.sections.map((s) => {
-      const notes: Record<string, ExercisePlanNotes> = {};
-      s.exercises.forEach((e) => {
-        const springs = isSpringSetupEmpty(e.springs) ? undefined : e.springs;
-        if (e.reps || e.cue || springs) notes[e.id] = { reps: e.reps, cue: e.cue, springs };
+  const planToDraft = useCallback(
+    (lesson: Lesson, source: { sourceLessonId?: string; sourceTemplateId?: string }): LessonDraft => {
+      const migrated = migrateLessonExercises(lesson);
+      const baseSections = migrated.sections.map((s) => {
+        const notes: Record<string, ExercisePlanNotes> = {};
+        s.exercises.forEach((e) => {
+          const springs = isSpringSetupEmpty(e.springs) ? undefined : e.springs;
+          if (e.reps || e.cue || springs) notes[e.id] = { reps: e.reps, cue: e.cue, springs };
+        });
+        return {
+          id: s.id,
+          title: s.title,
+          duration: s.duration,
+          exerciseIds: s.exercises.map((e) => e.id),
+          notes: Object.keys(notes).length ? notes : undefined,
+        };
       });
-      return {
-        id: s.id,
-        title: s.title,
-        duration: s.duration,
-        exerciseIds: s.exercises.map((e) => e.id),
-        notes: Object.keys(notes).length ? notes : undefined,
-      };
-    });
-    const exercisePool = [
-      ...defaultExercises,
-      ...customExercises,
-      ...lesson.sections.flatMap((s) => s.exercises),
-    ];
-    const timed = durationsFromExercises(baseSections, exercisePool);
+      const exercisePool = [...allExercises, ...migrated.sections.flatMap((s) => s.exercises)];
+      const timed = durationsFromExercises(baseSections, exercisePool);
 
-    setLessonDraftState({
-      title: lesson.title,
-      description: lesson.description ?? '',
-      duration: lesson.duration || DEFAULT_CLASS_DURATION,
-      trainingType: lesson.trainingType,
-      equipment: lesson.equipment ?? defaultPlanEquipment(lesson.trainingType),
-      props: lesson.props ?? [],
-      level: lesson.level ?? 'Intermediate',
-      focus: lesson.focus ?? '',
-      coverVideo: lesson.coverVideo ?? null,
-      albumImages: [],
-      exerciseIds: timed.exerciseIds,
-      sections: timed.sections,
-      sourceLessonId: lesson.id,
-    });
-  }, [customExercises]);
+      return {
+        title: migrated.title,
+        description: migrated.description ?? '',
+        duration: migrated.duration || DEFAULT_CLASS_DURATION,
+        trainingType: migrated.trainingType,
+        yogaStyle:
+          migrated.trainingType === 'yoga' ? migrated.yogaStyle ?? DEFAULT_YOGA_STYLE : undefined,
+        equipment: migrated.equipment ?? defaultPlanEquipment(migrated.trainingType),
+        props: migrated.props ?? [],
+        level: migrated.level ?? 'Intermediate',
+        focus: migrated.focus ?? '',
+        coverVideo: migrated.coverVideo ?? null,
+        albumImages: [],
+        exerciseIds: timed.exerciseIds,
+        sections: timed.sections,
+        sourceLessonId: source.sourceLessonId,
+        sourceTemplateId: source.sourceTemplateId,
+      };
+    },
+    [allExercises]
+  );
+
+  const loadLessonDraft = useCallback(
+    (lesson: Lesson) => {
+      setLessonDraftState(planToDraft(lesson, { sourceLessonId: lesson.id }));
+    },
+    [planToDraft]
+  );
+
+  const loadTemplateDraft = useCallback(
+    (template: Lesson) => {
+      setLessonDraftState(planToDraft(template, { sourceTemplateId: template.id }));
+    },
+    [planToDraft]
+  );
+
+  const startLessonFromTemplate = useCallback(
+    (template: Lesson) => {
+      setLessonDraftState(planToDraft(template, {}));
+    },
+    [planToDraft]
+  );
 
   const getLessonById = useCallback((id: string) => {
     return createdLessons.find((l) => l.id === id) ?? lessons.find((l) => l.id === id);
@@ -600,10 +780,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addCreatedLesson = useCallback((lesson: Lesson) => {
-    setUserLessons((prev) => [...prev, { ...lesson, isStarter: false }]);
+    const clubId = lesson.clubId ?? activeClubId;
+    setUserLessons((prev) => [...prev, { ...lesson, isStarter: false, clubId }]);
     setOwnedLessonIds((ids) => (ids.includes(lesson.id) ? ids : [...ids, lesson.id]));
     setDeletedLessonIds((ids) => ids.filter((id) => id !== lesson.id));
-  }, []);
+  }, [activeClubId]);
 
   const updateCreatedLesson = useCallback((lesson: Lesson) => {
     const stored: Lesson = { ...lesson, isStarter: false };
@@ -629,28 +810,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const duplicateCreatedLesson = useCallback((lesson: Lesson, title: string) => {
-    const stamp = Date.now();
     const copy: Lesson = {
-      ...lesson,
-      id: `l-${stamp}`,
-      title,
-      isStarter: false,
-      isCreated: true,
-      isOwned: true,
-      rating: 0,
-      reviews: 0,
-      likes: 0,
-      comments: 0,
-      sections: lesson.sections.map((section, i) => ({
-        ...section,
-        id: `sec-${stamp}-${i}`,
-        exercises: section.exercises.map((e) => ({ ...e })),
-      })),
+      ...clonePlan(lesson, { id: `l-${Date.now()}`, title, isTemplate: false }),
+      clubId: lesson.clubId ?? activeClubId,
     };
     setUserLessons((prev) => [...prev, copy]);
     setOwnedLessonIds((ids) => (ids.includes(copy.id) ? ids : [...ids, copy.id]));
     return copy;
+  }, [activeClubId]);
+
+  const addSavedTemplate = useCallback((template: Lesson) => {
+    setUserTemplates((prev) => [...prev, { ...template, isTemplate: true, isStarter: false }]);
   }, []);
+
+  const updateSavedTemplate = useCallback((template: Lesson) => {
+    const stored: Lesson = { ...template, isTemplate: true, isStarter: false };
+    setUserTemplates((prev) => {
+      const idx = prev.findIndex((l) => l.id === stored.id);
+      if (idx >= 0) return prev.map((l) => (l.id === stored.id ? stored : l));
+      return [...prev, stored];
+    });
+  }, []);
+
+  const deleteSavedTemplate = useCallback((templateId: string) => {
+    setUserTemplates((prev) => {
+      const removed = prev.find((l) => l.id === templateId);
+      if (removed?.coverVideo?.startsWith('blob:')) {
+        URL.revokeObjectURL(removed.coverVideo);
+      }
+      return prev.filter((l) => l.id !== templateId);
+    });
+  }, []);
+
+  const duplicateSavedTemplate = useCallback((template: Lesson, title: string) => {
+    const copy = clonePlan(template, { id: `t-${Date.now()}`, title, isTemplate: true });
+    setUserTemplates((prev) => [...prev, copy]);
+    return copy;
+  }, []);
+
+  const saveLessonAsTemplate = useCallback((lesson: Lesson) => {
+    const copy = clonePlan(lesson, {
+      id: `t-${Date.now()}`,
+      title: lesson.title,
+      isTemplate: true,
+    });
+    setUserTemplates((prev) => [...prev, copy]);
+    return copy;
+  }, []);
+
+  const getTemplateById = useCallback(
+    (id: string) => savedTemplates.find((l) => l.id === id),
+    [savedTemplates]
+  );
 
   const deleteCreatedLesson = useCallback((lessonId: string) => {
     setUserLessons((prev) => {
@@ -683,16 +894,195 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const addCustomExercise = useCallback((data: Omit<Exercise, 'id' | 'isCustom' | 'createdBy'>) => {
-    const exercise: Exercise = {
-      ...data,
-      id: `custom-${Date.now()}`,
-      isCustom: true,
-      createdBy: instructorMeta.id,
-    };
-    setCustomExercises((prev) => [...prev, exercise]);
-    return exercise;
-  }, [instructorMeta.id]);
+  const addCustomExercise = useCallback(
+    (data: Omit<Exercise, 'id' | 'isCustom' | 'createdBy' | 'duration'> & { duration?: number }) => {
+      const exercise: Exercise = {
+        ...data,
+        duration: data.duration ?? 0,
+        id: `custom-${Date.now()}`,
+        isCustom: true,
+        createdBy: instructorMeta.id,
+      };
+      setCustomExercises((prev) => [...prev, exercise]);
+      return exercise;
+    },
+    [instructorMeta.id]
+  );
+
+  const updateExercise = useCallback(
+    (
+      id: string,
+      data: Omit<Exercise, 'id' | 'isCustom' | 'createdBy' | 'duration'> & { duration?: number }
+    ) => {
+      const custom = customExercises.find((ex) => ex.id === id && ex.isCustom);
+      if (custom) {
+        const updated: Exercise = {
+          ...custom,
+          ...data,
+          duration: data.duration ?? custom.duration,
+        };
+        setCustomExercises((prev) => prev.map((ex) => (ex.id === id ? updated : ex)));
+        return updated;
+      }
+
+      if (!isBuiltinExerciseId(id)) return null;
+
+      const base = BUILTIN_EXERCISES.find((exercise) => exercise.id === id);
+      if (!base) return null;
+
+      const [merged] = applyExerciseLibraryPrefs([base], exerciseLibraryPrefs);
+      const updated: Exercise = {
+        ...merged,
+        ...data,
+        duration: data.duration ?? merged.duration,
+      };
+
+      setExerciseLibraryPrefs((prev) => ({
+        ...prev,
+        builtinExercisePatches: {
+          ...prev.builtinExercisePatches,
+          [id]: {
+            ...prev.builtinExercisePatches[id],
+            name: updated.name,
+            nameHe: updated.nameHe,
+            category: updated.category,
+            bodyPart: updated.bodyPart,
+            customAreaId: updated.customAreaId,
+            videoUrl: updated.videoUrl,
+            duration: updated.duration,
+          },
+        },
+      }));
+
+      return updated;
+    },
+    [customExercises, exerciseLibraryPrefs]
+  );
+
+  const deleteExercise = useCallback(
+    (id: string) => {
+      if (customExercises.some((exercise) => exercise.id === id && exercise.isCustom)) {
+        setCustomExercises((prev) => prev.filter((exercise) => exercise.id !== id));
+        removeExerciseFromDraft(id);
+        return true;
+      }
+
+      if (!isBuiltinExerciseId(id)) return false;
+
+      setExerciseLibraryPrefs((prev) => ({
+        ...prev,
+        hiddenBuiltinExerciseIds: prev.hiddenBuiltinExerciseIds.includes(id)
+          ? prev.hiddenBuiltinExerciseIds
+          : [...prev.hiddenBuiltinExerciseIds, id],
+      }));
+      removeExerciseFromDraft(id);
+      return true;
+    },
+    [customExercises, removeExerciseFromDraft]
+  );
+
+  const reassignExerciseArea = useCallback((fromAreaId: string, fallback: BodyPart = 'core') => {
+    setCustomExercises((prev) =>
+      prev.map((exercise) => {
+        if (exercise.customAreaId === fromAreaId) {
+          return { ...exercise, customAreaId: undefined, bodyPart: fallback };
+        }
+        if (
+          isStandardBodyPart(fromAreaId) &&
+          !exercise.customAreaId &&
+          (exercise.bodyPart ?? 'core') === fromAreaId
+        ) {
+          return { ...exercise, bodyPart: fallback };
+        }
+        return exercise;
+      })
+    );
+
+    if (!isStandardBodyPart(fromAreaId)) return;
+
+    setExerciseLibraryPrefs((prev) => {
+      const nextPatches = { ...prev.builtinExercisePatches };
+      for (const exercise of BUILTIN_EXERCISES) {
+        const merged = { ...exercise, ...nextPatches[exercise.id] };
+        const area = merged.customAreaId ?? merged.bodyPart ?? exercise.bodyPart;
+        if (area === fromAreaId) {
+          nextPatches[exercise.id] = {
+            ...nextPatches[exercise.id],
+            bodyPart: fallback,
+            customAreaId: undefined,
+          };
+        }
+      }
+      return { ...prev, builtinExercisePatches: nextPatches };
+    });
+  }, []);
+
+  const ensureCustomExerciseArea = useCallback((input: string): CustomExerciseArea | null => {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+
+    const matches = (area: CustomExerciseArea) =>
+      area.name.toLowerCase() === trimmed.toLowerCase() ||
+      area.nameHe.toLowerCase() === trimmed.toLowerCase();
+
+    const existing = customExerciseAreas.find(matches);
+    if (existing) return existing;
+
+    let slug = slugFromAreaName(trimmed);
+    let id = `custom-${slug}`;
+    let n = 2;
+    while (customExerciseAreas.some((area) => area.id === id)) {
+      id = `custom-${slug}-${n}`;
+      n += 1;
+    }
+
+    const area: CustomExerciseArea = { id, name: trimmed, nameHe: trimmed };
+    setCustomExerciseAreas((prev) => (prev.some(matches) ? prev : [...prev, area]));
+
+    void bilingualName(trimmed).then(({ name, nameHe }) => {
+      setCustomExerciseAreas((prev) =>
+        prev.map((item) => (item.id === area.id ? { ...item, name, nameHe } : item))
+      );
+    });
+
+    return area;
+  }, [customExerciseAreas]);
+
+  const updateExerciseArea = useCallback((areaId: string, labels: { name: string; nameHe: string }) => {
+    if (isStandardBodyPart(areaId)) {
+      setExerciseLibraryPrefs((prev) => ({
+        ...prev,
+        bodyPartLabels: {
+          ...prev.bodyPartLabels,
+          [areaId]: labels,
+        },
+      }));
+      return;
+    }
+
+    setCustomExerciseAreas((prev) =>
+      prev.map((area) => (area.id === areaId ? { ...area, ...labels } : area))
+    );
+  }, []);
+
+  const deleteExerciseArea = useCallback(
+    (areaId: string) => {
+      if (isStandardBodyPart(areaId)) {
+        setExerciseLibraryPrefs((prev) => ({
+          ...prev,
+          hiddenBodyParts: prev.hiddenBodyParts.includes(areaId)
+            ? prev.hiddenBodyParts
+            : [...prev.hiddenBodyParts, areaId],
+        }));
+        reassignExerciseArea(areaId);
+        return;
+      }
+
+      setCustomExerciseAreas((prev) => prev.filter((area) => area.id !== areaId));
+      reassignExerciseArea(areaId);
+    },
+    [reassignExerciseArea]
+  );
 
   const connectArbox = useCallback(async (apiKey: string, role?: StudioRole) => {
     if (!validateArboxApiKey(apiKey)) {
@@ -758,6 +1148,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [weekStart]);
 
   const attachLessonPlan = useCallback((eventId: string, lessonId: string) => {
+    if (isActiveStudioManager) return false;
     const lesson = lessons.find((l) => l.id === lessonId) ?? createdLessons.find((l) => l.id === lessonId);
     if (!lesson) return false;
 
@@ -780,9 +1171,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
     );
     return true;
-  }, [arboxConnection, arboxEvents, flowEvents, createdLessons]);
+  }, [arboxConnection, arboxEvents, flowEvents, createdLessons, isActiveStudioManager]);
 
   const detachLessonPlan = useCallback((eventId: string) => {
+    if (isActiveStudioManager) return;
     const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
     if (!event || !canAttachPlanToEvent(event, arboxConnection)) return;
 
@@ -799,7 +1191,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           : e
       )
     );
-  }, [arboxConnection, arboxEvents, flowEvents]);
+  }, [arboxConnection, arboxEvents, flowEvents, isActiveStudioManager]);
 
   const toggleAutoFeedback = useCallback((enabled: boolean) => {
     const updated = setAutoFeedbackEnabled(enabled);
@@ -869,6 +1261,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleEventAttendee = useCallback(
     (eventId: string, client: { id: string; name: string; phone: string }) => {
+      if (isActiveStudioManager) return;
       const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
       if (!event) return;
       const phoneDigits = client.phone.replace(/\D/g, '');
@@ -881,7 +1274,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       addEventAttendee(eventId, client);
     },
-    [arboxEvents, flowEvents, addEventAttendee, removeEventAttendee]
+    [arboxEvents, flowEvents, addEventAttendee, removeEventAttendee, isActiveStudioManager]
   );
 
   const markEventFeedbackSent = useCallback(
@@ -894,7 +1287,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const runFeedbackAutomation = useCallback(async () => {
     const scope = { arboxConnection };
-    const pending = findPendingFeedbackEvents([...arboxEvents, ...flowEvents], new Date(), scope);
+    const pending = findPendingFeedbackEvents(scheduleEvents, new Date(), scope);
 
     let sent = 0;
     for (const event of pending) {
@@ -906,7 +1299,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     return sent || pending.length;
-  }, [arboxConnection, arboxEvents, flowEvents, markEventFeedbackSent]);
+  }, [arboxConnection, scheduleEvents, markEventFeedbackSent]);
 
   const addLessonToSchedule = useCallback((
     lessonId: string,
@@ -914,6 +1307,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     time: string,
     options?: { endedRecently?: boolean; rosterClients?: SurveyClient[]; capacity?: number }
   ): string | null => {
+    if (isActiveStudioManager) return null;
     const lesson = lessons.find((l) => l.id === lessonId) ?? createdLessons.find((l) => l.id === lessonId);
     if (!lesson) return null;
 
@@ -952,13 +1346,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       enrolled: attendees.length,
       capacity: options?.capacity,
       feedbackSentAt: null,
+      clubId: activeClubId,
     };
     setFlowEvents((prev) => [...prev, event]);
     window.setTimeout(() => requestFeedbackCheck(), 200);
     return event.id;
-  }, [createdLessons, arboxConnection, user]);
+  }, [createdLessons, arboxConnection, user, isActiveStudioManager, activeClubId]);
 
   const moveScheduleEvent = useCallback((eventId: string, dateKey: string, time: string) => {
+    if (isActiveStudioManager) return;
     const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
     if (!event) return;
     if (!canAttachPlanToEvent(event, arboxConnection)) return;
@@ -970,7 +1366,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ev.id === eventId ? { ...ev, start: combineDateAndTime(dateKey, time) } : ev
       )
     );
-  }, [arboxConnection, arboxEvents, flowEvents]);
+  }, [arboxConnection, arboxEvents, flowEvents, isActiveStudioManager]);
 
   const updateScheduleEvent = useCallback((
     eventId: string,
@@ -982,6 +1378,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       capacity?: number;
     }
   ) => {
+    if (isActiveStudioManager) return;
     setFlowEvents((prev) =>
       prev.map((ev) => {
         if (ev.id !== eventId) return ev;
@@ -1017,11 +1414,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return next;
       })
     );
-  }, [createdLessons]);
+  }, [createdLessons, isActiveStudioManager]);
 
   const removeScheduleEvent = useCallback((eventId: string) => {
+    if (isActiveStudioManager) return;
     setFlowEvents((prev) => prev.filter((ev) => ev.id !== eventId));
-  }, []);
+  }, [isActiveStudioManager]);
 
   const logout = useCallback(() => {
     authLogout();
@@ -1042,13 +1440,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? user.bio?.trim() || bioFromSpecialties(user.specialties ?? [])
         : currentInstructor.bio,
       specialties: user ? user.specialties ?? [] : currentInstructor.specialties,
-      lessonsCount: userLessons.length,
+      lessonsCount: createdLessons.length,
       studentsCount:
         arboxConnection.connected && arboxConnection.dataSource === 'live'
           ? arboxClients.length
           : rosterClients.length,
     }),
-    [coins, user, userLessons.length, rosterClients.length, arboxConnection, arboxClients.length]
+    [coins, user, createdLessons.length, rosterClients.length, arboxConnection, arboxClients.length]
   );
 
   return (
@@ -1057,15 +1455,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         instructor,
         ownedLessonIds,
         createdLessons,
+        savedTemplates,
         coins,
         transactions,
         customExercises,
+        customExerciseAreas,
+        exerciseLibraryPrefs,
         allExercises,
         lessonDraft,
         setLessonDraft,
         setLessonCoverVideo,
         resetLessonDraft,
         loadLessonDraft,
+        loadTemplateDraft,
+        startLessonFromTemplate,
         purchaseLesson,
         purchaseCoinPackage,
         addCoins,
@@ -1076,7 +1479,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isFavoriteLesson,
         toggleFavoriteLesson,
         duplicateCreatedLesson,
+        addSavedTemplate,
+        updateSavedTemplate,
+        deleteSavedTemplate,
+        duplicateSavedTemplate,
+        saveLessonAsTemplate,
+        getTemplateById,
         addCustomExercise,
+        updateExercise,
+        deleteExercise,
+        ensureCustomExerciseArea,
+        updateExerciseArea,
+        deleteExerciseArea,
         getLessonById,
         weekStart,
         setWeekStart,

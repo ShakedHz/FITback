@@ -1,0 +1,87 @@
+/* Pastel accent palettes — baby pink is the default in index.css :root. */
+
+[data-accent='pink'] {
+  --color-primary: #f9a8d4;
+  --color-primary-deep: #f472b6;
+  --color-primary-bright: #ec4899;
+  --color-primary-rgb: 249, 168, 212;
+  --color-ring: #fbcfe8;
+}
+
+[data-theme='dark'][data-accent='pink'] {
+  --color-primary: #fbcfe8;
+  --color-primary-deep: #f9a8d4;
+  --color-primary-bright: #fce7f3;
+  --color-primary-rgb: 251, 207, 232;
+  --color-on-primary: #1a1228;
+  --color-ring: #fce7f3;
+}
+
+[data-accent='purple'] {
+  --color-primary: #c4b5fd;
+  --color-primary-deep: #a78bfa;
+  --color-primary-bright: #8b5cf6;
+  --color-primary-rgb: 196, 181, 253;
+  --color-ring: #ddd6fe;
+}
+
+[data-theme='dark'][data-accent='purple'] {
+  --color-primary: #ddd6fe;
+  --color-primary-deep: #c4b5fd;
+  --color-primary-bright: #ede9fe;
+  --color-primary-rgb: 221, 214, 254;
+  --color-on-primary: #1a1228;
+  --color-ring: #ede9fe;
+}
+
+[data-accent='sky'] {
+  --color-primary: #93c5fd;
+  --color-primary-deep: #60a5fa;
+  --color-primary-bright: #3b82f6;
+  --color-primary-rgb: 147, 197, 253;
+  --color-ring: #bae6fd;
+}
+
+[data-theme='dark'][data-accent='sky'] {
+  --color-primary: #bae6fd;
+  --color-primary-deep: #93c5fd;
+  --color-primary-bright: #e0f2fe;
+  --color-primary-rgb: 186, 230, 253;
+  --color-on-primary: #1a1228;
+  --color-ring: #e0f2fe;
+}
+
+[data-accent='teal'] {
+  --color-primary: #5eead4;
+  --color-primary-deep: #2dd4bf;
+  --color-primary-bright: #14b8a6;
+  --color-primary-rgb: 94, 234, 212;
+  --color-ring: #99f6e4;
+}
+
+[data-theme='dark'][data-accent='teal'] {
+  --color-primary: #99f6e4;
+  --color-primary-deep: #5eead4;
+  --color-primary-bright: #ccfbf1;
+  --color-primary-rgb: 153, 246, 228;
+  --color-on-primary: #1a1228;
+  --color-ring: #ccfbf1;
+}
+
+[data-accent='amber'] {
+  --color-primary: #fde68a;
+  --color-primary-deep: #fcd34d;
+  --color-primary-bright: #ca8a04;
+  --color-primary-rgb: 253, 230, 138;
+  --color-on-primary: #1a1228;
+  --color-ring: #fef9c3;
+}
+
+[data-theme='dark'][data-accent='amber'] {
+  --color-primary: #fef08a;
+  --color-primary-deep: #fde047;
+  --color-primary-bright: #fef9c3;
+  --color-primary-rgb: 254, 240, 138;
+  --color-on-primary: #1a1228;
+  --color-ring: #fefce8;
+}

@@ -1,5 +1,4 @@
 import type { Lesson } from './mockData';
-import { exercises } from './mockData';
 import {
   resolveLessonAnalytics,
   resolveOverallAnalytics,
@@ -7,7 +6,7 @@ import {
   type AiTheme,
   type LessonAnalytics,
 } from './lessonAnalytics';
-import { getLessonTemplate, type SectionTemplate } from './lessonTemplates';
+import { getLessonSectionShell, type SectionTemplate } from './lessonTemplates';
 import { TRAINING_TYPE_LABELS, type TrainingType } from './trainingTypes';
 import { durationsFromExercises, DEFAULT_CLASS_DURATION } from '@/utils/lessonDuration';
 
@@ -108,11 +107,27 @@ function aggregateClientSignals(lessons: Lesson[]): {
   };
 }
 
+function planFromOwnLessons(lessons: Lesson[], type: TrainingType): SectionTemplate[] {
+  const source = [...lessons]
+    .filter((l) => l.trainingType === type && l.sections.some((s) => s.exercises.length > 0))
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
+
+  if (!source) return getLessonSectionShell(type);
+
+  return source.sections.map((section, i) => ({
+    id: section.id || `s${i + 1}`,
+    title: section.title,
+    duration: section.duration,
+    exerciseIds: section.exercises.map((e) => e.id),
+  }));
+}
+
 function adjustTemplate(
   type: TrainingType,
-  themes: AiTheme[]
+  themes: AiTheme[],
+  lessons: Lesson[]
 ): { sections: SectionTemplate[]; titleFocus: string } {
-  const base = getLessonTemplate(type).map((s) => ({
+  const base = planFromOwnLessons(lessons, type).map((s) => ({
     ...s,
     exerciseIds: [...s.exerciseIds],
   }));
@@ -122,11 +137,6 @@ function adjustTemplate(
     themes.some((t) => t.theme.toLowerCase().includes(part.toLowerCase()));
 
   if (has('Cool-down') || has('recovery')) {
-    const cool = base[base.length - 1];
-    if (cool) {
-      if (!cool.exerciseIds.includes('e10')) cool.exerciseIds.push('e10');
-      if (!cool.exerciseIds.includes('e9')) cool.exerciseIds.push('e9');
-    }
     titleFocus = 'Recovery-focused';
   }
 
@@ -139,13 +149,6 @@ function adjustTemplate(
   }
 
   if (has('Difficulty')) {
-    const main = base[1];
-    if (main) {
-      main.exerciseIds = ['e8', 'e9', 'e6', 'e3'].filter((id) =>
-        exercises.some((e) => e.id === id)
-      );
-      main.title = 'Accessible main block';
-    }
     titleFocus = 'Accessible';
   }
 
@@ -182,7 +185,8 @@ export function suggestLessonFromClientData(
       ? specialties[0]
       : bestType;
 
-  const { sections, titleFocus } = adjustTemplate(type, themes);
+  const { sections, titleFocus } = adjustTemplate(type, themes, source);
+  const exercisePool = source.flatMap((l) => l.sections.flatMap((s) => s.exercises));
   const timed = durationsFromExercises(
     sections.map((s) => ({
       id: s.id,
@@ -190,7 +194,7 @@ export function suggestLessonFromClientData(
       duration: s.duration,
       exerciseIds: s.exerciseIds,
     })),
-    exercises
+    exercisePool
   );
 
   const typeAvg = avgRatingByType.get(type);

@@ -40,6 +40,8 @@ export interface ScheduleEvent {
   category?: EventCategory;
   attendees?: ScheduleAttendee[];
   feedbackSentAt?: string | null;
+  /** Studio this local event belongs to (flowpilates only). */
+  clubId?: string;
 }
 
 export interface ArboxStaffMember {
@@ -85,17 +87,23 @@ export interface ArboxMessageLog {
   status: 'sent' | 'pending' | 'failed';
 }
 
+const ACCENT_EVENT = {
+  bg: 'var(--color-primary-bright)',
+  border: 'var(--color-primary-deep)',
+  text: 'var(--color-on-primary)',
+};
+
 export const EVENT_CATEGORY_COLORS: Record<EventCategory, { bg: string; border: string; text: string }> = {
-  pilates: { bg: '#3B82F6', border: '#2563EB', text: '#ffffff' },
-  reformer: { bg: '#147A6E', border: '#0F5C54', text: '#ffffff' },
-  prenatal: { bg: '#EC4899', border: '#DB2777', text: '#ffffff' },
-  stretch: { bg: '#14B8A6', border: '#0D9488', text: '#ffffff' },
-  power: { bg: '#F59E0B', border: '#D97706', text: '#ffffff' },
-  yoga: { bg: '#10B981', border: '#059669', text: '#ffffff' },
-  hiit: { bg: '#EF4444', border: '#DC2626', text: '#ffffff' },
-  barre: { bg: '#F472B6', border: '#EC4899', text: '#ffffff' },
-  cycle: { bg: '#F59E0B', border: '#D97706', text: '#1e293b' },
-  movana: { bg: '#2A9D8F', border: '#147A6E', text: '#ffffff' },
+  pilates: ACCENT_EVENT,
+  reformer: ACCENT_EVENT,
+  prenatal: ACCENT_EVENT,
+  stretch: ACCENT_EVENT,
+  power: ACCENT_EVENT,
+  yoga: ACCENT_EVENT,
+  hiit: ACCENT_EVENT,
+  barre: ACCENT_EVENT,
+  cycle: ACCENT_EVENT,
+  movana: ACCENT_EVENT,
 };
 
 export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {
@@ -333,10 +341,15 @@ export function isOwnEvent(event: ScheduleEvent, connection: ArboxConnection): b
   return false;
 }
 
+export function canEditSchedule(connection: ArboxConnection): boolean {
+  return connection.role !== 'studio_manager';
+}
+
 export function canAttachPlanToEvent(
   event: ScheduleEvent,
   connection: ArboxConnection
 ): boolean {
+  if (!canEditSchedule(connection)) return false;
   if (!connection.connected) return event.source === 'flowpilates';
   return isOwnEvent(event, connection);
 }

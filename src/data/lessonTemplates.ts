@@ -1,49 +1,84 @@
 import type { TrainingType } from './trainingTypes';
+import type { YogaStyle } from './yogaStyles';
+import { DEFAULT_YOGA_STYLE } from './yogaStyles';
 
-export interface SectionTemplate {
+export interface SectionShell {
   id: string;
   title: string;
   duration: number;
+}
+
+export interface SectionTemplate extends SectionShell {
   exerciseIds: string[];
 }
 
-export const LESSON_TEMPLATES: Record<TrainingType, SectionTemplate[]> = {
+/**
+ * General class outline: warm-up, one side, other side, finish.
+ */
+export const LESSON_SECTION_SHELLS: Record<TrainingType, SectionShell[]> = {
   pilates: [
-    { id: 's1', title: 'Warm-up', duration: 10, exerciseIds: ['e1', 'e2', 'e3', 'e4'] },
-    { id: 's2', title: 'Main section — Core', duration: 30, exerciseIds: ['e5', 'e6', 'e7'] },
-    { id: 's3', title: 'Cool-down', duration: 10, exerciseIds: ['e9', 'e10'] },
+    { id: 's1', title: 'Warm-up', duration: 10 },
+    { id: 's2', title: 'Main section - Right side', duration: 15 },
+    { id: 's3', title: 'Main section - Left side', duration: 15 },
+    { id: 's4', title: 'Cool-down', duration: 10 },
   ],
   yoga: [
-    { id: 's1', title: 'Breath & center', duration: 10, exerciseIds: ['e9', 'e10'] },
-    { id: 's2', title: 'Vinyasa flow', duration: 35, exerciseIds: ['e1', 'e2', 'e6', 'e8'] },
-    { id: 's3', title: 'Savasana', duration: 10, exerciseIds: ['e10'] },
-  ],
-  hiit: [
-    { id: 's1', title: 'Dynamic warm-up', duration: 8, exerciseIds: ['e1', 'e2', 'e3'] },
-    { id: 's2', title: 'Intervals', duration: 22, exerciseIds: ['e4', 'e5', 'e7'] },
-    { id: 's3', title: 'Cool-down', duration: 5, exerciseIds: ['e9', 'e10'] },
-  ],
-  barre: [
-    { id: 's1', title: 'Barre warm-up', duration: 10, exerciseIds: ['e2', 'e3', 'e4'] },
-    { id: 's2', title: 'Strength & plyometrics', duration: 30, exerciseIds: ['e5', 'e6', 'e7'] },
-    { id: 's3', title: 'Stretching', duration: 10, exerciseIds: ['e8', 'e9'] },
-  ],
-  cycle: [
-    { id: 's1', title: 'Ride warm-up', duration: 10, exerciseIds: ['e1', 'e2'] },
-    { id: 's2', title: 'Climbs & sprints', duration: 30, exerciseIds: ['e4', 'e5', 'e7'] },
-    { id: 's3', title: 'Cool-down', duration: 5, exerciseIds: ['e9', 'e10'] },
-  ],
-  stretch: [
-    { id: 's1', title: 'Gentle warm-up', duration: 8, exerciseIds: ['e1', 'e2'] },
-    { id: 's2', title: 'Targeted stretches', duration: 25, exerciseIds: ['e8', 'e9', 'e6'] },
-    { id: 's3', title: 'Relaxation', duration: 7, exerciseIds: ['e10'] },
+    { id: 's1', title: 'Breath & center', duration: 10 },
+    { id: 's2', title: 'Main section', duration: 30 },
+    { id: 's3', title: 'Savasana', duration: 10 },
   ],
 };
 
-export function getLessonTemplate(type: TrainingType): SectionTemplate[] {
-  return LESSON_TEMPLATES[type];
+const YOGA_GENERAL: SectionShell[] = [
+  { id: 's1', title: 'Breath & center', duration: 10 },
+  { id: 's2', title: 'Main section', duration: 30 },
+  { id: 's3', title: 'Savasana', duration: 10 },
+];
+
+export const YOGA_SECTION_SHELLS: Record<YogaStyle, SectionShell[]> = {
+  vinyasa: YOGA_GENERAL,
+  ashtanga: YOGA_GENERAL,
+  hatha: YOGA_GENERAL,
+  yin: YOGA_GENERAL,
+  restorative: YOGA_GENERAL,
+};
+
+function shellsFor(type: TrainingType, yogaStyle: YogaStyle): SectionShell[] {
+  if (type === 'yoga') return YOGA_SECTION_SHELLS[yogaStyle];
+  return LESSON_SECTION_SHELLS[type];
 }
 
-export function getTemplateDuration(type: TrainingType): number {
-  return LESSON_TEMPLATES[type].reduce((sum, s) => sum + s.duration, 0);
+function buildLessonTemplate(type: TrainingType, yogaStyle: YogaStyle = DEFAULT_YOGA_STYLE): SectionTemplate[] {
+  return shellsFor(type, yogaStyle).map((shell) => ({
+    ...shell,
+    exerciseIds: [],
+  }));
+}
+
+/** Section outlines for new lessons and AI — titles and durations only. */
+export const LESSON_TEMPLATES: Record<TrainingType, SectionTemplate[]> = {
+  pilates: buildLessonTemplate('pilates'),
+  yoga: buildLessonTemplate('yoga'),
+};
+
+export function getLessonTemplate(
+  type: TrainingType,
+  yogaStyle: YogaStyle = DEFAULT_YOGA_STYLE
+): SectionTemplate[] {
+  return buildLessonTemplate(type, yogaStyle);
+}
+
+/** Section outline for new lessons — titles and durations only, no exercises. */
+export function getLessonSectionShell(
+  type: TrainingType,
+  yogaStyle: YogaStyle = DEFAULT_YOGA_STYLE
+): SectionTemplate[] {
+  return shellsFor(type, yogaStyle).map((shell) => ({
+    ...shell,
+    exerciseIds: [],
+  }));
+}
+
+export function getTemplateDuration(type: TrainingType, yogaStyle: YogaStyle = DEFAULT_YOGA_STYLE): number {
+  return shellsFor(type, yogaStyle).reduce((sum, s) => sum + s.duration, 0);
 }

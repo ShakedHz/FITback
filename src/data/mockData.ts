@@ -16,6 +16,12 @@ export interface Exercise {
   duration: number;
   category: string;
   videoUrl: string;
+  /** Primary muscle / area focus. */
+  bodyPart?: import('./bodyParts').BodyPart;
+  /** User-defined area tag (shown in filters). */
+  customAreaId?: string;
+  /** Built-in catalog only — which lesson types include this move. */
+  trainingTypes?: import('./trainingTypes').TrainingType[];
   isCustom?: boolean;
   createdBy?: string;
   /** Reps / timing for this exercise in a plan (not the catalog). */
@@ -44,6 +50,8 @@ export interface Lesson {
   focus?: string;
   trainingType: TrainingType;
   equipment: EquipmentType;
+  /** Yoga sub-style when trainingType is yoga. */
+  yogaStyle?: import('./yogaStyles').YogaStyle;
   /** Reformer props to set up for the class (weight, circle, ball, jumpboard). */
   props?: PilatesPropId[];
   tags: string[];
@@ -58,11 +66,15 @@ export interface Lesson {
   isCreated?: boolean;
   /** Seeded starter plan, not yet customized by the instructor. */
   isStarter?: boolean;
+  /** Reusable outline the instructor saved to create lessons from. */
+  isTemplate?: boolean;
   /** Cover image (legacy seed data) */
   coverImage?: string;
   /** Preview video uploaded by the instructor */
   coverVideo?: string;
   albumImages: string[];
+  /** Studio this lesson belongs to (scoped when switching views). */
+  clubId?: string;
 }
 
 export interface Instructor {
@@ -83,13 +95,28 @@ import { computeLessonPrice } from './instructorTiers';
 import type { TrainingType } from './trainingTypes';
 import { inferEquipment, type EquipmentType } from './equipmentTypes';
 import type { PilatesPropId, SpringSetup } from './pilatesSetup';
+import { BUILTIN_EXERCISES as exercises } from './exerciseCatalog';
+import { getLessonTemplate } from './lessonTemplates';
+
+export { exercises };
+
+function sectionsForType(type: TrainingType): LessonSection[] {
+  return getLessonTemplate(type).map((section) => ({
+    id: section.id,
+    title: section.title,
+    duration: section.duration,
+    exercises: section.exerciseIds
+      .map((id) => exercises.find((e) => e.id === id))
+      .filter((e): e is (typeof exercises)[number] => e != null),
+  }));
+}
 
 export const currentInstructor: Instructor = {
   id: 'maya',
   name: 'Maya Cohen',
   avatar: getInstructorAvatar('maya'),
-  bio: 'Certified fitness instructor | Pilates, yoga & recovery',
-  specialties: ['pilates', 'yoga', 'stretch'],
+  bio: 'Certified fitness instructor | Pilates & yoga',
+  specialties: ['pilates', 'yoga'],
   lessonsCount: 133,
   studentsCount: 340,
   retention: 87,
@@ -97,39 +124,7 @@ export const currentInstructor: Instructor = {
   coins: 1250,
 };
 
-export const exercises: Exercise[] = [
-  { id: 'e1', name: 'Hundred', nameHe: 'Hundred', duration: 2, category: 'Warm-up', videoUrl: '' },
-  { id: 'e2', name: 'Roll Up', nameHe: 'Roll Up', duration: 2, category: 'Warm-up', videoUrl: '' },
-  { id: 'e3', name: 'Single Leg Stretch', nameHe: 'Single Leg Stretch', duration: 2, category: 'Warm-up', videoUrl: '' },
-  { id: 'e4', name: 'Double Leg Stretch', nameHe: 'Double Leg Stretch', duration: 2, category: 'Core', videoUrl: '' },
-  { id: 'e5', name: 'Criss Cross', nameHe: 'Criss Cross', duration: 3, category: 'Core', videoUrl: '' },
-  { id: 'e6', name: 'Swan Dive', nameHe: 'Swan Dive', duration: 3, category: 'Back', videoUrl: '' },
-  { id: 'e7', name: 'Teaser', nameHe: 'Teaser', duration: 3, category: 'Core', videoUrl: '' },
-  { id: 'e8', name: 'Saw', nameHe: 'Saw', duration: 2, category: 'Stretching', videoUrl: '' },
-  { id: 'e9', name: 'Spine Stretch', nameHe: 'Spine Stretch', duration: 2, category: 'Stretching', videoUrl: '' },
-  { id: 'e10', name: 'Child Pose', nameHe: 'Child Pose', duration: 2, category: 'Cool-down', videoUrl: '' },
-];
-
-const defaultSections: LessonSection[] = [
-  {
-    id: 's1',
-    title: 'Warm-up',
-    duration: 10,
-    exercises: exercises.slice(0, 4),
-  },
-  {
-    id: 's2',
-    title: 'Main section',
-    duration: 30,
-    exercises: exercises.slice(4, 8),
-  },
-  {
-    id: 's3',
-    title: 'Cool-down',
-    duration: 10,
-    exercises: exercises.slice(8, 10),
-  },
-];
+const defaultSections = sectionsForType('pilates');
 
 const lessonsData: Omit<Lesson, 'equipment'>[] = [
   {
@@ -231,7 +226,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     instructorName: 'Dana Levy',
     duration: 30,
     level: 'Advanced',
-    trainingType: 'hiit',
+    trainingType: 'pilates',
     tags: ['Intense', 'Calorie burn', '30 min'],
     rating: 4.8,
     reviews: 63,
@@ -321,7 +316,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     instructorName: 'Shira Abraham',
     duration: 30,
     level: 'Beginner',
-    trainingType: 'stretch',
+    trainingType: 'yoga',
     tags: ['Stretching', 'Morning', 'Calm'],
     rating: 4.7,
     reviews: 67,
@@ -359,7 +354,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     instructorName: 'Shira Abraham',
     duration: 40,
     level: 'Intermediate',
-    trainingType: 'stretch',
+    trainingType: 'yoga',
     tags: ['Flexibility', 'Stretching', 'Flow'],
     rating: 4.7,
     reviews: 55,
@@ -395,7 +390,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     instructorName: 'Shira Abraham',
     duration: 45,
     level: 'Intermediate',
-    trainingType: 'barre',
+    trainingType: 'pilates',
     tags: ['Barre', 'Strength', 'Upper body'],
     rating: 4.8,
     reviews: 58,
@@ -431,7 +426,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     instructorName: 'Yael Friedman',
     duration: 30,
     level: 'Beginner',
-    trainingType: 'stretch',
+    trainingType: 'yoga',
     tags: ['Short', 'Stretching', 'Morning'],
     rating: 4.5,
     reviews: 28,
@@ -485,7 +480,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     instructorName: 'Yael Friedman',
     duration: 45,
     level: 'Advanced',
-    trainingType: 'cycle',
+    trainingType: 'pilates',
     tags: ['Bike', 'Endurance', 'Intense'],
     rating: 4.7,
     reviews: 52,
@@ -563,7 +558,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     instructorName: 'Maya Cohen',
     duration: 35,
     level: 'Beginner',
-    trainingType: 'stretch',
+    trainingType: 'yoga',
     tags: ['Stretching', 'Evening', 'Relaxation'],
     rating: 4.7,
     reviews: 38,
@@ -623,7 +618,7 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
     instructorName: 'Maya Cohen',
     duration: 50,
     level: 'Intermediate',
-    trainingType: 'stretch',
+    trainingType: 'yoga',
     tags: ['Weekend', 'Recovery', 'Flexibility'],
     rating: 4.8,
     reviews: 51,
@@ -642,5 +637,6 @@ const lessonsData: Omit<Lesson, 'equipment'>[] = [
 export const lessons: Lesson[] = lessonsData.map((l) => ({
   ...l,
   equipment: inferEquipment(l.trainingType, l.tags),
+  sections: sectionsForType(l.trainingType),
 }));
 

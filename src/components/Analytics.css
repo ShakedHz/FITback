@@ -8,7 +8,7 @@
   flex: 1;
   padding: 8px;
   border-radius: 10px;
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
   background: var(--color-card-hover);
   color: var(--color-text-muted);
   font-family: inherit;
@@ -17,8 +17,8 @@
 }
 
 .analytics-period button.active {
-  background: rgba(139, 92, 246, 0.25);
-  border-color: #8b5cf6;
+  background: rgba(var(--color-primary-rgb), 0.25);
+  border-color: var(--color-primary);
   color: #fff;
 }
 
@@ -31,7 +31,7 @@
 
 .analytics-kpi {
   background: var(--color-card);
-  border: 1px solid rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.15);
   border-radius: 12px;
   padding: 10px 8px;
   text-align: center;
@@ -87,7 +87,7 @@
   width: 100%;
   max-width: 28px;
   border-radius: 6px 6px 2px 2px;
-  background: linear-gradient(180deg, #a78bfa, #6d28d9);
+  background: linear-gradient(180deg, var(--color-primary-bright), var(--color-primary-deep));
   min-height: 4px;
   transition: height 0.3s ease, filter 0.15s ease;
 }
@@ -104,7 +104,7 @@
   padding: 4px 8px;
   border-radius: 8px;
   background: rgba(var(--color-bg-rgb), 0.96);
-  border: 1px solid rgba(167, 139, 250, 0.35);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.35);
   color: #ede9fe;
   font-size: 11px;
   font-weight: 600;
@@ -143,7 +143,7 @@
 
 .analytics-progress__track {
   height: 8px;
-  background: rgba(139, 92, 246, 0.12);
+  background: rgba(var(--color-primary-rgb), 0.12);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -151,7 +151,7 @@
 .analytics-progress__fill {
   height: 100%;
   border-radius: 4px;
-  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-bright));
 }
 
 .analytics-lesson-row {
@@ -186,7 +186,7 @@
 .analytics-lesson-row__spark-bar {
   width: 4px;
   border-radius: 2px;
-  background: rgba(167, 139, 250, 0.5);
+  background: rgba(var(--color-primary-rgb), 0.5);
 }
 
 .analytics-compare-grid {
@@ -199,7 +199,7 @@
   padding: 10px;
   border-radius: 12px;
   background: var(--color-card-hover);
-  border: 1px solid rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.12);
 }
 
 .analytics-compare__label {
@@ -237,7 +237,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
 }
 
 .analytics-section-row:last-child {
@@ -253,7 +253,7 @@
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
-  border: 3px solid #8b5cf6;
+  border: 3px solid var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -264,7 +264,7 @@
 .analytics-highlight {
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #a78bfa, #34d399);
+  background: linear-gradient(135deg, var(--color-primary-bright), #34d399);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -365,7 +365,7 @@
   flex-shrink: 0;
   padding: 8px 14px;
   border-radius: 20px;
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
   background: var(--color-card-hover);
   color: var(--color-text-muted);
   font-family: inherit;
@@ -375,8 +375,8 @@
 }
 
 .analytics-type-filter.active {
-  background: rgba(139, 92, 246, 0.28);
-  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(var(--color-primary-rgb), 0.28);
+  border-color: rgba(var(--color-primary-rgb), 0.5);
   color: var(--color-primary-bright);
   font-weight: 600;
 }
@@ -528,7 +528,7 @@
   padding: 8px 10px;
   border-radius: 10px;
   background: rgba(var(--color-bg-rgb), 0.96);
-  border: 1px solid rgba(167, 139, 250, 0.35);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.35);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   pointer-events: none;
   z-index: 3;
@@ -647,7 +647,7 @@
   padding: 6px 10px;
   border-radius: 10px;
   background: rgba(var(--color-bg-rgb), 0.96);
-  border: 1px solid rgba(167, 139, 250, 0.35);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.35);
   color: #ede9fe;
   font-size: 11px;
   font-weight: 600;
@@ -752,7 +752,7 @@
   padding: 12px;
   border-radius: 14px;
   background: var(--color-card);
-  border: 1px solid rgba(139, 92, 246, 0.16);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.16);
 }
 
 .ratings-kpi__value {
@@ -829,8 +829,8 @@ button.ratings-action {
 }
 
 .ratings-action--neutral {
-  border-color: rgba(167, 139, 250, 0.28);
-  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(var(--color-primary-rgb), 0.28);
+  background: rgba(var(--color-primary-rgb), 0.1);
   color: #ddd6fe;
 }
 
@@ -855,7 +855,7 @@ button.ratings-action {
   text-align: left;
   padding: 14px;
   cursor: pointer;
-  border: 1px solid rgba(139, 92, 246, 0.16);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.16);
   font-family: inherit;
   color: inherit;
 }
@@ -915,7 +915,7 @@ button.ratings-action {
   text-align: left;
   font-family: inherit;
   color: inherit;
-  border: 1px solid rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.12);
 }
 
 .ratings-lesson-card__metrics {
@@ -983,8 +983,8 @@ button.ratings-action {
 }
 
 .ratings-focus-card--neutral {
-  border-color: rgba(167, 139, 250, 0.3);
-  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(var(--color-primary-rgb), 0.3);
+  background: rgba(var(--color-primary-rgb), 0.1);
 }
 
 .insight-warning {
@@ -998,8 +998,8 @@ button.ratings-action {
 }
 
 .insight-neutral {
-  border: 1px solid rgba(167, 139, 250, 0.25);
-  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.25);
+  background: rgba(var(--color-primary-rgb), 0.1);
 }
 
 .ratings-empty-line {
@@ -1046,8 +1046,8 @@ button.ratings-action {
 .ratings-ai-card {
   margin-bottom: 16px;
   padding: 14px;
-  border-color: rgba(167, 139, 250, 0.28);
-  background: linear-gradient(160deg, rgba(139, 92, 246, 0.14), var(--color-card));
+  border-color: rgba(var(--color-primary-rgb), 0.28);
+  background: linear-gradient(160deg, rgba(var(--color-primary-rgb), 0.14), var(--color-card));
 }
 
 .ratings-ai-card__summary {
@@ -1079,7 +1079,7 @@ button.ratings-action {
 .rating-bars__track {
   height: 8px;
   border-radius: 4px;
-  background: rgba(139, 92, 246, 0.12);
+  background: rgba(var(--color-primary-rgb), 0.12);
   overflow: hidden;
 }
 
@@ -1118,7 +1118,7 @@ button.ratings-action {
   font-style: normal;
   font-size: 11px;
   color: var(--color-primary-bright);
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(var(--color-primary-rgb), 0.2);
   border-radius: 10px;
   padding: 1px 6px;
 }
@@ -1194,8 +1194,8 @@ button.ratings-action {
 }
 
 .ratings-rec--medium {
-  border-color: rgba(167, 139, 250, 0.28);
-  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(var(--color-primary-rgb), 0.28);
+  background: rgba(var(--color-primary-rgb), 0.1);
 }
 
 .ratings-rec--low {

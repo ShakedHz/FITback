@@ -13,10 +13,12 @@ import {
   connectArboxAccount,
   disconnectArboxAccount,
   getDefaultWeekStart,
+  isDemoApiKey,
   moveArboxScope,
   setArboxStorageOwner,
   setLinkedInstructor,
   syncArboxSchedule,
+  syncStoredConnectionRole,
 } from '@/services/arboxApi';
 import { signInWithApple, isAppleConfigured } from './apple';
 import { signInWithGoogle, isGoogleConfigured } from './google';
@@ -29,7 +31,7 @@ import type {
   RegisterInput,
   StoredAccount,
 } from './types';
-import { bioFromSpecialties, type TrainingType } from '@/data/trainingTypes';
+import { bioFromSpecialties, TRAINING_TYPES, type TrainingType } from '@/data/trainingTypes';
 import {
   accountToUser,
   clearSession,
@@ -38,11 +40,16 @@ import {
   findAccountById,
   loadSession,
   lookupAccount,
+  removeStudioMembershipFromAccounts,
   saveAccount,
   saveSession,
 } from './userStore';
 import {
+  getActiveMembership,
+  markStaffRemovedFromStudio,
   membershipsFromAccount,
+  revokeStudioInvites,
+  saveStaffEmail,
   upsertMembership,
   type StudioMembership,
 } from '@/data/studioOrg';
@@ -55,6 +62,8 @@ import {
 
 interface AuthContextValue {
   user: AuthUser | null;
+  activeMembership: StudioMembership | undefined;
+  isActiveStudioManager: boolean;
   isAuthenticated: boolean;
   isReady: boolean;
   isLoading: boolean;
@@ -74,7 +83,17 @@ interface AuthContextValue {
     apiKey: string,
     linkedInstructorId?: string
   ) => Promise<ArboxLoginOutcome>;
+  createDemoStudio: (name?: string) => Promise<AuthUser>;
+  createLocalStudio: (name: string) => Promise<AuthUser>;
   switchStudio: (clubId: string) => void;
+  switchStudioView: (clubId: string) => StudioMembership | undefined;
+  removeStudioInstructor: (input: {
+    clubId: string;
+    name: string;
+    email?: string;
+    staffId?: string;
+    inviteId?: string;
+  }) => void;
   acceptStudioInvite: (payload: StudioInvitePayload, options?: { allowEmailMismatch?: boolean }) => AuthUser;
   updateAvatar: (avatar: string | undefined) => void;
   updateProfileDetails: (input: ProfileDetailsInput) => void;
@@ -86,14 +105,16 @@ export function hasInstructorProfile(user: AuthUser | null | undefined): boolean
 }
 
 export function canAccessApp(user: AuthUser | null | undefined): boolean {
-  return Boolean(
-    user &&
-      (hasInstructorProfile(user) || user.arboxLinked || (user.memberships?.length ?? 0) > 0)
-  );
+  if (!user) return false;
+  if ((user.memberships?.length ?? 0) > 0) return true;
+  if (user.role === 'studio_manager') return true;
+  if (user.arboxLinked) return true;
+  return hasInstructorProfile(user);
 }
 
 function normalizeSpecialties(specialties: TrainingType[]): TrainingType[] {
-  return [...new Set(specialties)];
+  const next = [...new Set(specialties.filter((type) => TRAINING_TYPES.includes(type)))];
+  return next;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -222,6 +243,10 @@ function upsertOAuthAccount(input: {
   return persistAuth(account);
 }
 
+export function homePathForMembership(membership: StudioMembership): string {
+  return membership.role === 'studio_manager' ? '/studio/overview' : '/dashboard';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -248,12 +273,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const name = input.name.trim();
       const password = input.password;
 
+      const pendingInvite = peekPendingInvite();
+      const role = pendingInvite?.role ?? input.role ?? 'instructor';
       const specialties = normalizeSpecialties(input.specialties);
 
       if (name.length < 2) throw new Error('Please enter your full name');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid email address');
       if (password.length < 8) throw new Error('Password must be at least 8 characters');
-      if (specialties.length === 0 && !peekPendingInvite()) {
+      if (
+        role !== 'studio_manager' &&
+        specialties.length === 0 &&
+        !pendingInvite
+      ) {
         throw new Error('Choose at least one class type');
       }
       if (findAccountByEmail(email)) throw new Error('An account with this email already exists');
@@ -267,7 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         bio: bioFromSpecialties(specialties),
         specialties,
         provider: 'email',
-        role: 'instructor',
+        role,
         arboxLinked: false,
         passwordHash: hash,
         passwordSalt: salt,
@@ -367,11 +398,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const weekStart = getDefaultWeekStart();
+      const autoLinked =
+        linkedInstructorId ??
+        (isDemoApiKey(apiKey) ? 'staff-manager' : undefined);
       const { connection } = await connectArboxAccount(apiKey, undefined, weekStart, {
-        linkedInstructorId,
+        linkedInstructorId: autoLinked,
       });
       const team = connection.team ?? [];
-      const linked = linkedInstructorId || connection.linkedInstructorId;
+      const linked = autoLinked || connection.linkedInstructorId;
       if (team.length > 1 && !linked) {
         return { kind: 'pick_instructor', team: team.map((m) => ({ id: m.id, name: m.name, role: m.role })) };
       }
@@ -433,11 +467,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setArboxStorageOwner(account.id, { clubId: '_adding' });
       const weekStart = getDefaultWeekStart();
+      const autoLinked =
+        linkedInstructorId ??
+        (isDemoApiKey(apiKey) ? 'staff-manager' : undefined);
       const { connection } = await connectArboxAccount(apiKey, undefined, weekStart, {
-        linkedInstructorId,
+        linkedInstructorId: autoLinked,
       });
       const team = connection.team ?? [];
-      const linked = linkedInstructorId || connection.linkedInstructorId;
+      const linked = autoLinked || connection.linkedInstructorId;
       if (team.length > 1 && !linked) {
         return { kind: 'pick_instructor', team: team.map((m) => ({ id: m.id, name: m.name, role: m.role })) };
       }
@@ -475,6 +512,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const createDemoStudio = useCallback(async (name?: string) => {
+    if (!user) throw new Error('Sign in first to add a studio');
+    const account = findAccountById(user.id);
+    if (!account) throw new Error('Sign in first to add a studio');
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const clubId = `demo-${createId('club').slice(5, 15)}`;
+      const clubName = name?.trim() || `${account.name.split(' ')[0] || 'My'} Studio`;
+      const apiKey = `demo-${clubId}`;
+      setArboxStorageOwner(account.id, { clubId });
+      const weekStart = getDefaultWeekStart();
+      const { connection } = await connectArboxAccount(apiKey, undefined, weekStart, {
+        linkedInstructorId: 'staff-manager',
+        clubId,
+        clubName,
+      });
+      const bound = setLinkedInstructor('staff-manager') ?? connection;
+      await syncArboxSchedule(bound, weekStart);
+      const staffId = bound.linkedInstructorId || bound.staffId || 'staff-manager';
+      const updated = saveAccount({
+        ...applyMembership(account, {
+          clubId,
+          clubName,
+          role: bound.role,
+          staffId,
+          staffName: bound.staffName,
+          joinedAt: new Date().toISOString(),
+          source: 'arbox',
+        }),
+        arboxLinked: true,
+      });
+      bindPendingArboxToUser(updated.id, clubId);
+      const nextUser = accountToUser(updated);
+      setUser(nextUser);
+      return nextUser;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not create demo studio';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  const createLocalStudio = useCallback(async (name: string) => {
+    if (!user) throw new Error('Sign in first to add a studio');
+    const account = findAccountById(user.id);
+    if (!account) throw new Error('Sign in first to add a studio');
+    const clubName = name.trim();
+    if (clubName.length < 2) throw new Error('Please enter a studio name');
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const clubId = `local-${createId('club').slice(5, 15)}`;
+      const updated = saveAccount({
+        ...applyMembership(account, {
+          clubId,
+          clubName,
+          role: 'studio_manager',
+          joinedAt: new Date().toISOString(),
+          source: 'local',
+        }),
+      });
+      setArboxStorageOwner(updated.id, { clubId });
+      const nextUser = accountToUser(updated);
+      setUser(nextUser);
+      return nextUser;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not create studio';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
   const switchStudio = useCallback((clubId: string) => {
     setUser((current) => {
       if (!current) return current;
@@ -493,9 +609,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date().toISOString(),
       });
       setArboxStorageOwner(updated.id, { clubId: membership.clubId });
+      syncStoredConnectionRole(membership.role);
       return accountToUser(updated);
     });
   }, []);
+
+  const switchStudioView = useCallback((clubId: string): StudioMembership | undefined => {
+    const account = user ? findAccountById(user.id) : undefined;
+    if (!account) return undefined;
+    const memberships = membershipsFromAccount(account);
+    const membership = memberships.find((m) => m.clubId === clubId);
+    if (!membership || membership.clubId === account.activeStudioId) return membership;
+
+    const updated = saveAccount({
+      ...account,
+      memberships,
+      activeStudioId: membership.clubId,
+      role: membership.role,
+      arboxClubId: membership.clubId,
+      arboxStaffId: membership.staffId,
+      updatedAt: new Date().toISOString(),
+    });
+    setArboxStorageOwner(updated.id, { clubId: membership.clubId });
+    syncStoredConnectionRole(membership.role);
+    setUser(accountToUser(updated));
+    return membership;
+  }, [user]);
+
+  const removeStudioInstructor = useCallback((input: {
+    clubId: string;
+    name: string;
+    email?: string;
+    staffId?: string;
+    inviteId?: string;
+  }) => {
+    if (!user) throw new Error('Sign in required');
+    const managerMembership = getActiveMembership(user);
+    if (
+      !managerMembership ||
+      managerMembership.clubId !== input.clubId ||
+      managerMembership.role !== 'studio_manager'
+    ) {
+      throw new Error('Only studio managers can remove instructors');
+    }
+
+    const normalizedEmail = input.email?.trim().toLowerCase();
+    if (normalizedEmail && normalizedEmail === user.email.trim().toLowerCase()) {
+      throw new Error('Cannot remove yourself');
+    }
+    if (input.staffId && input.staffId === user.arboxStaffId) {
+      throw new Error('Cannot remove yourself');
+    }
+
+    revokeStudioInvites(input.clubId, {
+      email: normalizedEmail,
+      staffId: input.staffId,
+      inviteId: input.inviteId,
+    });
+    removeStudioMembershipFromAccounts(input.clubId, {
+      email: normalizedEmail,
+      staffId: input.staffId,
+    });
+    if (input.staffId) {
+      markStaffRemovedFromStudio(input.clubId, input.staffId);
+      saveStaffEmail(input.clubId, input.staffId, '');
+    }
+  }, [user]);
 
   const acceptStudioInvite = useCallback((
     payload: StudioInvitePayload,
@@ -568,9 +747,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
+  const activeMembership = useMemo(
+    () => (user ? getActiveMembership(user) : undefined),
+    [user]
+  );
+
+  const isActiveStudioManager = activeMembership
+    ? activeMembership.role === 'studio_manager'
+    : user?.role === 'studio_manager';
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
+      activeMembership,
+      isActiveStudioManager,
       isAuthenticated: Boolean(user),
       isReady,
       isLoading,
@@ -584,7 +774,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginWithApple,
       loginWithArbox,
       addStudioWithArbox,
+      createDemoStudio,
+      createLocalStudio,
       switchStudio,
+      switchStudioView,
+      removeStudioInstructor,
       acceptStudioInvite,
       updateAvatar,
       updateProfileDetails,
@@ -592,6 +786,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }),
     [
       user,
+      activeMembership,
+      isActiveStudioManager,
       isReady,
       isLoading,
       error,
@@ -602,7 +798,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginWithApple,
       loginWithArbox,
       addStudioWithArbox,
+      createDemoStudio,
+      createLocalStudio,
       switchStudio,
+      switchStudioView,
+      removeStudioInstructor,
       acceptStudioInvite,
       updateAvatar,
       updateProfileDetails,

@@ -276,6 +276,22 @@ export function validateArboxApiKey(key: string): boolean {
   return key.trim().length >= 8;
 }
 
+export const DEMO_MANAGER_API_KEY = 'demo-manager';
+export const DEMO_INSTRUCTOR_API_KEY = 'demo-instructor';
+
+export function isDemoApiKey(key: string): boolean {
+  const k = key.trim().toLowerCase();
+  return k.startsWith('demo') || k.startsWith('mock');
+}
+
+function shouldAllowDemoFallback(): boolean {
+  return import.meta.env.DEV || import.meta.env.VITE_ARBOX_ALLOW_DEMO === 'true';
+}
+
+export function demoApiKeyHint(): string {
+  return `${DEMO_MANAGER_API_KEY} · ${DEMO_INSTRUCTOR_API_KEY}`;
+}
+
 export function inferRoleFromKey(key: string): StudioRole {
   const k = key.trim().toLowerCase();
   if (k.includes('manager') || k.startsWith('mgr') || k.startsWith('admin')) {
@@ -358,18 +374,73 @@ export function refreshArboxConnection(
   );
 }
 
+interface DemoConnectOptions {
+  linkedInstructorId?: string;
+  clubId?: string;
+  clubName?: string;
+}
+
+function connectDemoArboxAccount(
+  key: string,
+  weekStart: Date,
+  options?: DemoConnectOptions,
+  prev?: StoredArboxState | null,
+  previousConnection?: ArboxConnection
+): ConnectResult {
+  const demoTeam = [MANAGER, ...STUDIO_TEAM];
+  const clubId = options?.clubId ?? 'club-maya-001';
+  const clubName = options?.clubName ?? "Maya's Studio";
+  const connection: ArboxConnection = withLinkedInstructor(
+    {
+      connected: true,
+      apiKey: key,
+      lastSyncedAt: new Date().toISOString(),
+      clubName,
+      clubId,
+      role: inferRoleFromKey(key),
+      staffId: MANAGER.id,
+      staffName: MANAGER.name,
+      team: demoTeam,
+      autoFeedbackEnabled: false,
+      dataSource: 'demo',
+      ...(options?.linkedInstructorId ? { linkedInstructorId: options.linkedInstructorId } : {}),
+    },
+    previousConnection ?? prev?.connection ?? null
+  );
+
+  const events = buildWeekEvents(
+    weekStart,
+    prev?.planAttachments ?? {},
+    Object.fromEntries(
+      (prev?.events ?? [])
+        .filter((e) => e.feedbackSentAt)
+        .map((e) => [e.id, e.feedbackSentAt as string])
+    )
+  );
+
+  saveState({
+    connection,
+    events,
+    clients: ATTENDEE_POOL.slice(0, 4).map((client) => ({ ...client })),
+    messages: prev?.messages ?? [],
+    planAttachments: prev?.planAttachments ?? {},
+  });
+
+  return { connection, events, clients: ATTENDEE_POOL.slice(0, 4).map((client) => ({ ...client })) };
+}
+
 export async function connectArboxAccount(
   apiKey: string,
   _roleOverride?: StudioRole,
   weekStartOverride?: Date,
-  options?: { linkedInstructorId?: string }
+  options?: DemoConnectOptions
 ): Promise<ConnectResult> {
   const key = apiKey.trim();
   if (!validateArboxApiKey(key)) {
     throw new Error('API key must be at least 8 characters');
   }
 
-  await delay(700);
+  await delay(isDemoApiKey(key) ? 200 : 700);
 
   const weekStart = weekStartOverride ?? getDefaultWeekStart();
   const prev = loadState();
@@ -381,7 +452,21 @@ export async function connectArboxAccount(
           : {}),
       }
     : undefined;
-  const live = await tryLiveArboxConnect(key, weekStart, options?.linkedInstructorId);
+
+  if (isDemoApiKey(key)) {
+    return connectDemoArboxAccount(key, weekStart, options, prev, previousConnection);
+  }
+
+  let live: ConnectResult | null = null;
+  try {
+    live = await tryLiveArboxConnect(key, weekStart, options?.linkedInstructorId);
+  } catch (err) {
+    if (!shouldAllowDemoFallback()) {
+      if (err instanceof Error) throw err;
+      throw new Error('Could not connect to Arbox');
+    }
+  }
+
   if (live) {
     const state: StoredArboxState = {
       connection: refreshArboxConnection(
@@ -411,55 +496,17 @@ export async function connectArboxAccount(
     };
   }
 
+  if (shouldAllowDemoFallback()) {
+    return connectDemoArboxAccount(key, weekStart, options, prev, previousConnection);
+  }
+
   if (hasArboxProxy()) {
     throw new Error(
       'Could not connect to Arbox. Check your API key in Arbox → Settings → Club Information.'
     );
   }
 
-  const allowDemo = import.meta.env.VITE_ARBOX_ALLOW_DEMO === 'true';
-  if (!allowDemo) {
-    throw new Error('Arbox proxy is not running. Start the app with npm run dev.');
-  }
-
-  const demoTeam = [MANAGER, ...STUDIO_TEAM];
-  const connection: ArboxConnection = withLinkedInstructor(
-    {
-      connected: true,
-      apiKey: key,
-      lastSyncedAt: null,
-      clubName: "Maya's Studio",
-      clubId: 'club-maya-001',
-      role: 'instructor',
-      staffId: MANAGER.id,
-      staffName: MANAGER.name,
-      team: demoTeam,
-      autoFeedbackEnabled: false,
-      dataSource: 'demo',
-      ...(options?.linkedInstructorId ? { linkedInstructorId: options.linkedInstructorId } : {}),
-    },
-    previousConnection ?? null
-  );
-
-  const events = buildWeekEvents(
-    new Date(),
-    prev?.planAttachments ?? {},
-    Object.fromEntries(
-      (prev?.events ?? [])
-        .filter((e) => e.feedbackSentAt)
-        .map((e) => [e.id, e.feedbackSentAt as string])
-    )
-  );
-
-  saveState({
-    connection,
-    events,
-    clients: [],
-    messages: prev?.messages ?? [],
-    planAttachments: prev?.planAttachments ?? {},
-  });
-
-  return { connection, events, clients: [] };
+  throw new Error('Arbox proxy is not running. Start the app with npm run dev.');
 }
 
 export async function syncArboxSchedule(
@@ -535,6 +582,15 @@ export function restoreArboxSession(): StoredArboxState | null {
   const state = loadState();
   if (!state?.connection.connected) return null;
   return state;
+}
+
+export function syncStoredConnectionRole(role: StudioRole): void {
+  const prev = loadState();
+  if (!prev?.connection.connected || prev.connection.role === role) return;
+  saveState({
+    ...prev,
+    connection: { ...prev.connection, role },
+  });
 }
 
 export function disconnectArboxAccount() {

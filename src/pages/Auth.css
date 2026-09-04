@@ -58,14 +58,9 @@
     min-height: 48px;
   }
 
-  .auth-client-link {
-    margin-top: 12px;
-  }
-
   .keyboard-open .auth-page__header,
   .keyboard-open .auth-social,
   .keyboard-open .auth-divider,
-  .keyboard-open .auth-client-link,
   .keyboard-open .auth-lang {
     display: none;
   }
@@ -146,6 +141,49 @@
   background: transparent;
   color: var(--color-text);
   border-bottom-color: var(--color-primary);
+}
+
+.auth-role-pick {
+  margin-bottom: 12px;
+}
+
+.auth-role-pick__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.auth-role-pick__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.auth-role-pick__btn {
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-card);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-role-pick__btn.active {
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: var(--color-primary-bright);
+}
+
+.auth-role-pick__hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }
 
 .auth-social {
@@ -311,23 +349,6 @@
 .auth-instructor-pick__btn:disabled {
   opacity: 0.55;
   cursor: wait;
-}
-
-.auth-client-link {
-  margin-top: 20px;
-  border: none;
-  background: none;
-  color: var(--color-text-subtle);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: center;
-  padding: 8px;
-}
-
-.auth-client-link:hover {
-  color: var(--color-text-muted);
 }
 
 .auth-invite-banner {

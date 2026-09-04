@@ -22,6 +22,7 @@ import { ProfilePage } from '@/pages/ProfilePage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { StudioTeamPage } from '@/pages/StudioTeamPage';
+import { ManagerOverviewPage } from '@/pages/ManagerOverviewPage';
 import { JoinStudioPage } from '@/pages/JoinStudioPage';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { PostClassFeedbackModal } from '@/components/PostClassFeedbackModal';
@@ -40,6 +41,7 @@ function AppLayout() {
           <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register/manager" element={<RegisterPage />} />
           <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
           <Route path="/feedback/:id?" element={<FeedbackPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
@@ -56,9 +58,11 @@ function AppLayout() {
           <Route path="/builder" element={<Guard><LessonBuilderPage /></Guard>} />
           <Route path="/exercises" element={<Guard><ExerciseLibraryPage /></Guard>} />
           <Route path="/exercises/new" element={<Guard><AddExercisePage /></Guard>} />
+          <Route path="/exercises/:exerciseId/edit" element={<Guard><AddExercisePage /></Guard>} />
           <Route path="/profile" element={<Guard><ProfilePage /></Guard>} />
           <Route path="/settings" element={<Guard><SettingsPage /></Guard>} />
           <Route path="/studio" element={<Guard><StudioTeamPage /></Guard>} />
+          <Route path="/studio/overview" element={<Guard><ManagerOverviewPage /></Guard>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -57,3 +57,7 @@ export function applyDocumentTheme(preference: ThemePreference) {
     );
   }
 }
+
+export { applyDocumentAccent, readStoredAccent, persistAccent, DEFAULT_ACCENT } from './accent';
+export type { AccentColor } from './accent';
+export { ACCENT_OPTIONS, ACCENT_SWATCH } from './accent';

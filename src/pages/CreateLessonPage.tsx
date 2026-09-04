@@ -1,96 +1,85 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PenLine, LayoutTemplate, Sparkles } from 'lucide-react';
+import { PenLine, LayoutTemplate, Sparkles, ChevronRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { TemplatePicker } from '@/components/TemplatePicker';
+import type { Lesson } from '@/data/mockData';
 import { useI18n } from '@/i18n';
-
-const options = [
-  {
-    id: 'new',
-    icon: PenLine,
-    titleKey: 'create.buildTitle',
-    descKey: 'create.buildDesc',
-    path: '/builder?blank=1&from=create',
-    color: '#8b5cf6',
-    draftMode: 'blank' as const,
-  },
-  {
-    id: 'template',
-    icon: LayoutTemplate,
-    titleKey: 'create.templateTitle',
-    descKey: 'create.templateDesc',
-    path: '/builder?template=1&from=create',
-    color: '#fbbf24',
-    draftMode: 'template' as const,
-  },
-  {
-    id: 'ai',
-    icon: Sparkles,
-    titleKey: 'create.aiTitle',
-    descKey: 'create.aiDesc',
-    path: '/create/ai',
-    color: '#34d399',
-    highlight: true,
-  },
-];
+import './CreateLesson.css';
 
 export function CreateLessonPage() {
   const navigate = useNavigate();
-  const { resetLessonDraft } = useApp();
+  const { resetLessonDraft, savedTemplates, startLessonFromTemplate } = useApp();
   const { t } = useI18n();
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
-  const open = (path: string, draftMode?: 'blank' | 'template') => {
-    if (draftMode) resetLessonDraft(draftMode);
-    navigate(path);
+  const openBlank = () => {
+    resetLessonDraft();
+    navigate('/builder?blank=1&from=create');
+  };
+
+  const openFromTemplate = (template: Lesson) => {
+    startLessonFromTemplate(template);
+    setShowTemplatePicker(false);
+    navigate(`/builder?fromTemplateId=${template.id}&from=create`);
+  };
+
+  const onTemplateClick = () => {
+    if (savedTemplates.length === 0) {
+      navigate('/library?tab=templates');
+      return;
+    }
+    setShowTemplatePicker(true);
   };
 
   return (
-    <div className="page fade-in">
+    <div className="page fade-in create-page">
       <div className="page-header">
         <h1 className="page-title">{t('create.title')}</h1>
         <p className="page-subtitle">{t('create.subtitle')}</p>
       </div>
 
-      {options.map((opt) => {
-        const Icon = opt.icon;
-        return (
-          <div
-            key={opt.id}
-            className="card card-glow"
-            style={{
-              cursor: 'pointer',
-              ...(opt.highlight
-                ? {
-                    borderColor: 'rgba(52, 211, 153, 0.35)',
-                    background:
-                      'linear-gradient(145deg, rgba(52, 211, 153, 0.12), rgba(26, 18, 40, 0.92))',
-                  }
-                : undefined),
-            }}
-            onClick={() => open(opt.path, opt.draftMode)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: `${opt.color}22`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Icon size={24} color={opt.color} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontWeight: 600, marginBottom: 4 }}>{t(opt.titleKey)}</p>
-                <p style={{ fontSize: 13, color: '#94a3b8' }}>{t(opt.descKey)}</p>
-              </div>
-              <span className="rtl-flip" style={{ color: opt.highlight ? '#34d399' : '#a78bfa' }}>→</span>
-            </div>
-          </div>
-        );
-      })}
+      <div className="create-list">
+        <button type="button" className="create-option" onClick={openBlank}>
+          <span className="create-option__icon" style={{ background: 'var(--color-primary)22', color: 'var(--color-primary)' }}>
+            <PenLine size={22} />
+          </span>
+          <span className="create-option__body">
+            <span className="create-option__title">{t('create.buildTitle')}</span>
+            <span className="create-option__desc">{t('create.buildDesc')}</span>
+          </span>
+          <ChevronRight className="rtl-flip create-option__chevron" size={18} />
+        </button>
+
+        <button type="button" className="create-option" onClick={onTemplateClick}>
+          <span className="create-option__icon" style={{ background: '#fbbf2422', color: '#fbbf24' }}>
+            <LayoutTemplate size={22} />
+          </span>
+          <span className="create-option__body">
+            <span className="create-option__title">{t('create.templateTitle')}</span>
+            <span className="create-option__desc">{t('create.templateDesc')}</span>
+          </span>
+          <ChevronRight className="rtl-flip create-option__chevron" size={18} />
+        </button>
+
+        <button type="button" className="create-option create-option--highlight" onClick={() => navigate('/create/ai')}>
+          <span className="create-option__icon" style={{ background: '#34d39922', color: '#34d399' }}>
+            <Sparkles size={22} />
+          </span>
+          <span className="create-option__body">
+            <span className="create-option__title">{t('create.aiTitle')}</span>
+            <span className="create-option__desc">{t('create.aiDesc')}</span>
+          </span>
+          <ChevronRight className="rtl-flip create-option__chevron" size={18} />
+        </button>
+      </div>
+      {showTemplatePicker && (
+        <TemplatePicker
+          templates={savedTemplates}
+          onSelect={openFromTemplate}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
     </div>
   );
 }

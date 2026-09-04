@@ -1,13 +1,13 @@
-import { useState, useMemo, type ReactNode } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { IconButton } from '@/components/IconToolbar';
+import { TemplatePicker } from '@/components/TemplatePicker';
 import { useApp } from '@/context/AppContext';
 import { LessonCover } from '@/components/LessonCover';
 import { PilatesPropsGlance } from '@/components/PilatesSetup';
 import { LESSON_LEVELS, type Lesson, type LessonLevel } from '@/data/mockData';
 import {
-  TRAINING_TYPE_COLORS,
   canChooseTrainingType,
   type TrainingType,
 } from '@/data/trainingTypes';
@@ -16,13 +16,17 @@ import { lessonHasMedia } from '@/utils/lessonCover';
 import {
   BookOpen,
   ChevronRight,
+  CopyPlus,
   LayoutTemplate,
+  MoreVertical,
   PenLine,
+  Pencil,
   Plus,
   Search,
   SlidersHorizontal,
   Sparkles,
   Star,
+  Trash2,
   X,
 } from 'lucide-react';
 import './Library.css';
@@ -30,6 +34,7 @@ import './Library.css';
 type TypeFilter = 'all' | TrainingType;
 type LevelFilter = 'all' | LessonLevel;
 type FavoritesFilter = 'all' | 'favorites';
+type LibraryTab = 'lessons' | 'templates';
 
 const START_OPTIONS = [
   {
@@ -38,17 +43,16 @@ const START_OPTIONS = [
     titleKey: 'create.buildTitle',
     descKey: 'create.buildDesc',
     path: '/builder?blank=1&from=library',
-    color: '#8b5cf6',
-    draftMode: 'blank' as const,
+    color: 'var(--color-primary)',
+    resetDraft: true,
   },
   {
     id: 'template',
     icon: LayoutTemplate,
     titleKey: 'create.templateTitle',
     descKey: 'create.templateDesc',
-    path: '/builder?template=1&from=library',
+    path: '',
     color: '#fbbf24',
-    draftMode: 'template' as const,
   },
   {
     id: 'ai',
@@ -58,7 +62,7 @@ const START_OPTIONS = [
     path: '/create/ai?from=library',
     color: '#34d399',
   },
-];
+] as const;
 
 export function LibraryPage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -68,11 +72,46 @@ export function LibraryPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showStartSheet, setShowStartSheet] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { createdLessons, resetLessonDraft, favoriteLessonIds, isFavoriteLesson, toggleFavoriteLesson, instructor } = useApp();
+  const {
+    createdLessons,
+    savedTemplates,
+    resetLessonDraft,
+    startLessonFromTemplate,
+    loadTemplateDraft,
+    favoriteLessonIds,
+    isFavoriteLesson,
+    toggleFavoriteLesson,
+    instructor,
+    deleteCreatedLesson,
+    duplicateCreatedLesson,
+    deleteSavedTemplate,
+    duplicateSavedTemplate,
+  } = useApp();
   const { t } = useI18n();
 
-  const items = createdLessons;
+  const tab: LibraryTab = searchParams.get('tab') === 'templates' ? 'templates' : 'lessons';
+  const setTab = (next: LibraryTab) => {
+    setSearchParams(next === 'templates' ? { tab: 'templates' } : {}, { replace: true });
+    setFavoritesFilter('all');
+    setOpenMenuId(null);
+  };
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const onDown = (e: PointerEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el?.closest('.library-recipe__menu-wrap')) return;
+      setOpenMenuId(null);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [openMenuId]);
+
+  const items = tab === 'templates' ? savedTemplates : createdLessons;
   const showTypeChoice = canChooseTrainingType(instructor.specialties);
   const favoriteSet = useMemo(() => new Set(favoriteLessonIds), [favoriteLessonIds]);
 
@@ -86,7 +125,9 @@ export function LibraryPage() {
   const filteredItems = useMemo(() => {
     const term = query.trim().toLowerCase();
     return items.filter((lesson) => {
-      if (favoritesFilter === 'favorites' && !favoriteSet.has(lesson.id)) return false;
+      if (tab === 'lessons' && favoritesFilter === 'favorites' && !favoriteSet.has(lesson.id)) {
+        return false;
+      }
       if (typeFilter !== 'all' && lesson.trainingType !== typeFilter) return false;
       if (levelFilter !== 'all' && lesson.level !== levelFilter) return false;
       if (term && !lesson.title.toLowerCase().includes(term) && !(lesson.focus ?? '').toLowerCase().includes(term)) {
@@ -94,25 +135,45 @@ export function LibraryPage() {
       }
       return true;
     });
-  }, [items, typeFilter, levelFilter, favoritesFilter, favoriteSet, query]);
+  }, [items, tab, typeFilter, levelFilter, favoritesFilter, favoriteSet, query]);
 
-  const ownPlans = useMemo(
+  const sortedItems = useMemo(
     () =>
-      filteredItems
-        .filter((l) => !l.isStarter)
-        .sort((a, b) => Number(favoriteSet.has(b.id)) - Number(favoriteSet.has(a.id))),
-    [filteredItems, favoriteSet]
-  );
-  const starterPlans = useMemo(
-    () =>
-      filteredItems
-        .filter((l) => l.isStarter)
-        .sort((a, b) => Number(favoriteSet.has(b.id)) - Number(favoriteSet.has(a.id))),
-    [filteredItems, favoriteSet]
+      [...filteredItems].sort((a, b) =>
+        tab === 'lessons' ? Number(favoriteSet.has(b.id)) - Number(favoriteSet.has(a.id)) : 0
+      ),
+    [filteredItems, favoriteSet, tab]
   );
 
-  const startLesson = (path: string, draftMode?: 'blank' | 'template') => {
-    if (draftMode) resetLessonDraft(draftMode);
+  const openTemplateAsLesson = (template: Lesson) => {
+    startLessonFromTemplate(template);
+    setShowTemplatePicker(false);
+    setShowStartSheet(false);
+    navigate(`/builder?fromTemplateId=${template.id}&from=library`);
+  };
+
+  const startBlankLesson = () => {
+    resetLessonDraft();
+    setShowStartSheet(false);
+    navigate('/builder?blank=1&from=library');
+  };
+
+  const startNewTemplate = () => {
+    resetLessonDraft();
+    navigate('/builder?blank=1&kind=template&from=library');
+  };
+
+  const startLessonOption = (id: (typeof START_OPTIONS)[number]['id'], path: string, resetDraft?: boolean) => {
+    if (id === 'template') {
+      setShowStartSheet(false);
+      if (savedTemplates.length === 0) {
+        setTab('templates');
+        return;
+      }
+      setShowTemplatePicker(true);
+      return;
+    }
+    if (resetDraft) resetLessonDraft();
     setShowStartSheet(false);
     navigate(path);
   };
@@ -157,7 +218,7 @@ export function LibraryPage() {
               key={opt.id}
               type="button"
               className="library-start library-start--sheet"
-              onClick={() => startLesson(opt.path, opt.draftMode)}
+              onClick={() => startLessonOption(opt.id, opt.path, 'resetDraft' in opt && opt.resetDraft)}
             >
               <span className="library-start__icon" style={{ background: `${opt.color}22` }}>
                 <Icon size={22} color={opt.color} />
@@ -166,7 +227,7 @@ export function LibraryPage() {
                 <span className="library-start__title">{t(opt.titleKey)}</span>
                 <span className="library-start__desc">{t(opt.descKey)}</span>
               </span>
-              <ChevronRight className="rtl-flip" size={18} color="#a78bfa" />
+              <ChevronRight className="rtl-flip" size={18} color="var(--color-primary-bright)" />
             </button>
           );
         })
@@ -237,11 +298,11 @@ export function LibraryPage() {
     : null;
 
   const renderCard = (lesson: Lesson) => {
-    const typeStyle = TRAINING_TYPE_COLORS[lesson.trainingType];
+    const isTemplate = tab === 'templates';
     const hasMedia = lessonHasMedia(lesson);
-    const title = lesson.title.trim() || t('library.untitled');
+    const title = lesson.title.trim() || (isTemplate ? t('library.untitledTemplate') : t('library.untitled'));
     const isApparatus = lesson.trainingType === 'pilates' && lesson.equipment === 'reformer';
-    const favorite = isFavoriteLesson(lesson.id);
+    const favorite = !isTemplate && isFavoriteLesson(lesson.id);
     const facts = [
       `${lesson.duration} ${t('common.min')}`,
       levelLabel(lesson.level, t),
@@ -252,21 +313,26 @@ export function LibraryPage() {
           : []),
     ];
 
+    const openMain = () => {
+      if (isTemplate) {
+        openTemplateAsLesson(lesson);
+        return;
+      }
+      navigate(`/lesson/${lesson.id}`);
+    };
+
     return (
       <div
         key={lesson.id}
-        className={`library-recipe${hasMedia ? ' has-media' : ''}${lesson.isStarter ? ' is-starter' : ''}`}
+        className={`library-recipe${hasMedia ? ' has-media' : ''}${openMenuId === lesson.id ? ' is-menu-open' : ''}`}
       >
         <button
           type="button"
           className="library-recipe__main"
-          onClick={() => navigate(`/lesson/${lesson.id}`)}
+          onClick={openMain}
+          aria-label={isTemplate ? t('library.useTemplate') : undefined}
         >
-          <span
-            className="library-recipe__accent"
-            style={{ background: typeStyle.text }}
-            aria-hidden
-          />
+          <span className="library-recipe__accent" aria-hidden />
           {hasMedia ? (
             <span className="library-recipe__thumb">
               <LessonCover lesson={lesson} alt="" size="sm" />
@@ -275,8 +341,8 @@ export function LibraryPage() {
           <span className="library-recipe__body">
             <span className="library-recipe__title-row">
               <span className="library-recipe__title">{title}</span>
-              {lesson.isStarter ? (
-                <span className="library-recipe__starter">{t('library.starter')}</span>
+              {favorite ? (
+                <Star className="library-recipe__fav-mark" size={13} fill="currentColor" aria-hidden />
               ) : null}
             </span>
             <span className="library-recipe__facts">
@@ -289,207 +355,308 @@ export function LibraryPage() {
             ) : null}
           </span>
         </button>
-        <IconButton
-          className={`library-recipe__fav${favorite ? ' is-fav' : ''}`}
-          aria-label={favorite ? t('library.removeFavorite') : t('library.addFavorite')}
-          aria-pressed={favorite}
-          onClick={() => toggleFavoriteLesson(lesson.id)}
-        >
-          <Star size={16} fill={favorite ? 'currentColor' : 'none'} />
-        </IconButton>
+        <div className="library-recipe__menu-wrap">
+          <button
+            type="button"
+            className="library-recipe__menu-btn"
+            aria-label={t('library.itemMenu')}
+            aria-expanded={openMenuId === lesson.id}
+            onClick={() => setOpenMenuId((id) => (id === lesson.id ? null : lesson.id))}
+          >
+            <MoreVertical size={16} />
+          </button>
+          {openMenuId === lesson.id && (
+            <div className="library-recipe__menu">
+              {isTemplate ? null : (
+                <button
+                  type="button"
+                  className={favorite ? 'is-fav' : undefined}
+                  onClick={() => {
+                    toggleFavoriteLesson(lesson.id);
+                    setOpenMenuId(null);
+                  }}
+                >
+                  <Star size={14} fill={favorite ? 'currentColor' : 'none'} />
+                  {favorite ? t('library.removeFavorite') : t('library.addFavorite')}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenMenuId(null);
+                  if (isTemplate) {
+                    loadTemplateDraft(lesson);
+                    navigate(`/builder?templateId=${lesson.id}&kind=template&from=library`);
+                    return;
+                  }
+                  navigate(`/builder?lessonId=${lesson.id}&from=library`);
+                }}
+              >
+                <Pencil size={14} />
+                {t('detail.edit')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isTemplate) {
+                    duplicateSavedTemplate(lesson, t('detail.copyTitle', { title }));
+                  } else {
+                    duplicateCreatedLesson(lesson, t('detail.copyTitle', { title }));
+                  }
+                  setOpenMenuId(null);
+                }}
+              >
+                <CopyPlus size={14} />
+                {t('detail.duplicate')}
+              </button>
+              <button
+                type="button"
+                className="is-danger"
+                onClick={() => {
+                  setOpenMenuId(null);
+                  const ok = window.confirm(
+                    isTemplate
+                      ? t('library.deleteTemplateConfirm', { title })
+                      : t('detail.deleteConfirm', { title })
+                  );
+                  if (!ok) return;
+                  if (isTemplate) deleteSavedTemplate(lesson.id);
+                  else deleteCreatedLesson(lesson.id);
+                }}
+              >
+                <Trash2 size={14} />
+                {t('detail.delete')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
 
-  if (items.length === 0) {
-    const [blank, ...alts] = START_OPTIONS;
-    const BlankIcon = blank.icon;
-    return (
-      <div className="page fade-in">
-        <div className="library-top">
-          <div className="library-top__copy">
-            <h1 className="page-title">{t('library.title')}</h1>
-          </div>
+  const empty = items.length === 0;
+  const alts = START_OPTIONS.filter((opt) => opt.id !== 'new');
+
+  return (
+    <div className="page fade-in library-page">
+      <div className="library-top">
+        <div className="library-top__copy">
+          <h1 className="page-title">{t('library.title')}</h1>
+          {empty && (
+            <p className="library-top__sub">
+              {tab === 'templates' ? t('library.subtitleTemplates') : t('library.subtitle')}
+            </p>
+          )}
         </div>
+        {!empty && (
+          <IconButton
+            className={showSearch || query ? 'is-on' : ''}
+            aria-label={tab === 'templates' ? t('library.searchTemplate') : t('library.search')}
+            aria-expanded={showSearch || Boolean(query)}
+            onClick={() => {
+              setShowSearch((open) => {
+                if (open) setQuery('');
+                return !open;
+              });
+            }}
+          >
+            <Search size={18} />
+          </IconButton>
+        )}
+      </div>
+
+      <div className="library-tabs" role="tablist" aria-label={t('library.title')}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'lessons'}
+          className={tab === 'lessons' ? 'active' : undefined}
+          onClick={() => setTab('lessons')}
+        >
+          {t('library.tabLessons')}
+          <span className="library-tabs__n">{createdLessons.length}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'templates'}
+          className={tab === 'templates' ? 'active' : undefined}
+          onClick={() => setTab('templates')}
+        >
+          {t('library.tabTemplates')}
+          <span className="library-tabs__n">{savedTemplates.length}</span>
+        </button>
+      </div>
+
+      {empty ? (
         <div className="library-welcome">
           <span className="library-welcome__glow" aria-hidden />
           <span className="library-welcome__mark" aria-hidden>
-            <BookOpen size={28} />
+            {tab === 'templates' ? <LayoutTemplate size={28} /> : <BookOpen size={28} />}
           </span>
-          <h2 className="library-welcome__title">{t('library.emptyTitle')}</h2>
-          <p className="library-welcome__text">{t('library.emptyDesc')}</p>
-          <button
-            type="button"
-            className="library-welcome__primary"
-            onClick={() => startLesson(blank.path, blank.draftMode)}
-          >
-            <BlankIcon size={18} />
-            {t('library.emptyPrimary')}
-          </button>
-          <p className="library-welcome__alts-label">{t('library.emptyAlts')}</p>
-          <div className="library-welcome__alts">
-            {alts.map((opt) => {
-              const Icon = opt.icon;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className="library-welcome__alt"
-                  onClick={() => startLesson(opt.path, opt.draftMode)}
-                >
-                  <span className="library-welcome__alt-icon" style={{ background: `${opt.color}22` }}>
-                    <Icon size={18} color={opt.color} />
-                  </span>
-                  <span className="library-welcome__alt-title">{t(opt.titleKey)}</span>
-                  <span className="library-welcome__alt-desc">{t(opt.descKey)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="page fade-in">
-      <div className="library-top">
-        <div className="library-top__copy">
-          <h1 className="page-title">
-            {t('library.title')}
-            <span className="library-top__pill">{items.length}</span>
-          </h1>
-          <p className="library-top__sub">{t('library.subtitle')}</p>
-        </div>
-        <IconButton
-          className={showSearch || query ? 'is-on' : ''}
-          aria-label={t('library.search')}
-          aria-expanded={showSearch || Boolean(query)}
-          onClick={() => {
-            setShowSearch((open) => {
-              if (open) setQuery('');
-              return !open;
-            });
-          }}
-        >
-          <Search size={18} />
-        </IconButton>
-      </div>
-
-      {(showSearch || query) && (
-        <div className="library-search">
-          <Search size={16} className="library-search__icon" aria-hidden />
-          <input
-            className="input"
-            type="search"
-            placeholder={t('library.search')}
-            value={query}
-            autoFocus
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-      )}
-
-      <div className="library-chips" role="toolbar" aria-label={t('library.filter')}>
-        <button
-          type="button"
-          className={`library-chip library-chip--fav${favoritesOn ? ' is-on' : ''}`}
-          aria-pressed={favoritesOn}
-          onClick={() => setFavoritesFilter(favoritesOn ? 'all' : 'favorites')}
-        >
-          <Star size={14} fill={favoritesOn ? 'currentColor' : 'none'} />
-          {t('library.favorites')}
-        </button>
-        <button
-          type="button"
-          className={`library-chip library-chip--more${facetCount > 0 || showFilters ? ' is-on' : ''}`}
-          aria-label={t('library.moreFilters')}
-          aria-expanded={showFilters}
-          onClick={() => setShowFilters(true)}
-        >
-          <SlidersHorizontal size={14} />
-          {t('library.filter')}
-          {facetCount > 0 ? <span className="library-chip__n">{facetCount}</span> : null}
-        </button>
-      </div>
-
-      {facetCount > 0 && (
-        <div className="library-applied">
-          {showTypeChoice && typeFilter !== 'all' && (
-            <button
-              type="button"
-              className="library-applied__chip"
-              aria-label={t('library.removeFilter', { name: trainingLabel(typeFilter, t) })}
-              onClick={() => setTypeFilter('all')}
-            >
-              {trainingLabel(typeFilter, t)}
-              <X size={12} />
-            </button>
-          )}
-          {levelFilter !== 'all' && (
-            <button
-              type="button"
-              className="library-applied__chip"
-              aria-label={t('library.removeFilter', { name: levelLabel(levelFilter, t) })}
-              onClick={() => setLevelFilter('all')}
-            >
-              {levelLabel(levelFilter, t)}
-              <X size={12} />
-            </button>
-          )}
-        </div>
-      )}
-
-      {filteredItems.length === 0 ? (
-        <div className="library-no-match">
-          <p>
-            {query.trim()
-              ? t('library.noMatch')
-              : favoritesFilter === 'favorites' &&
-                  typeFilter === 'all' &&
-                  levelFilter === 'all'
-                ? t('library.emptyFavorites')
-                : t('library.emptyFilter')}
+          <h2 className="library-welcome__title">
+            {tab === 'templates' ? t('library.emptyTemplatesTitle') : t('library.emptyTitle')}
+          </h2>
+          <p className="library-welcome__text">
+            {tab === 'templates' ? t('library.emptyTemplatesDesc') : t('library.emptyDesc')}
           </p>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={clearFilters}
-          >
-            {t('library.clearFilter')}
-          </button>
-        </div>
-      ) : (
-        <div className="library-list">
-          {ownPlans.length > 0 && starterPlans.length > 0 && (
-            <p className="library-group">
-              {t('library.yoursSection')}
-              <span className="library-group__n">{ownPlans.length}</span>
-            </p>
-          )}
-          {ownPlans.map((lesson) => renderCard(lesson))}
-          {starterPlans.length > 0 && (
+          {tab === 'templates' ? (
+            <button
+              type="button"
+              className="library-welcome__primary"
+              onClick={startNewTemplate}
+            >
+              <LayoutTemplate size={18} />
+              {t('library.emptyTemplatesPrimary')}
+            </button>
+          ) : (
             <>
-              <p className="library-group library-group--starters">
-                {t('library.startersSection')}
-                <span className="library-group__n">{starterPlans.length}</span>
-              </p>
-              {starterPlans.map((lesson) => renderCard(lesson))}
+              <button
+                type="button"
+                className="library-welcome__primary"
+                onClick={startBlankLesson}
+              >
+                <PenLine size={18} />
+                {t('library.emptyPrimary')}
+              </button>
+              <p className="library-welcome__alts-label">{t('library.emptyAlts')}</p>
+              <div className="library-welcome__alts">
+                {alts.map((opt) => {
+                  const Icon = opt.icon;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className="library-welcome__alt"
+                      onClick={() => startLessonOption(opt.id, opt.path)}
+                    >
+                      <span className="library-welcome__alt-icon" style={{ background: `${opt.color}22` }}>
+                        <Icon size={18} color={opt.color} />
+                      </span>
+                      <span className="library-welcome__alt-title">{t(opt.titleKey)}</span>
+                      <span className="library-welcome__alt-desc">{t(opt.descKey)}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </>
           )}
         </div>
+      ) : (
+        <>
+          {(showSearch || query) && (
+            <div className="library-search">
+              <Search size={16} className="library-search__icon" aria-hidden />
+              <input
+                className="input"
+                type="search"
+                placeholder={tab === 'templates' ? t('library.searchTemplate') : t('library.search')}
+                value={query}
+                autoFocus
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="library-chips" role="toolbar" aria-label={t('library.filter')}>
+            {tab === 'lessons' && (
+              <button
+                type="button"
+                className={`library-chip library-chip--fav${favoritesOn ? ' is-on' : ''}`}
+                aria-pressed={favoritesOn}
+                onClick={() => setFavoritesFilter(favoritesOn ? 'all' : 'favorites')}
+              >
+                <Star size={14} fill={favoritesOn ? 'currentColor' : 'none'} />
+                {t('library.favorites')}
+              </button>
+            )}
+            <button
+              type="button"
+              className={`library-chip library-chip--more${facetCount > 0 || showFilters ? ' is-on' : ''}`}
+              aria-label={t('library.moreFilters')}
+              aria-expanded={showFilters}
+              onClick={() => setShowFilters(true)}
+            >
+              <SlidersHorizontal size={14} />
+              {t('library.filter')}
+              {facetCount > 0 ? <span className="library-chip__n">{facetCount}</span> : null}
+            </button>
+          </div>
+
+          {facetCount > 0 && (
+            <div className="library-applied">
+              {showTypeChoice && typeFilter !== 'all' && (
+                <button
+                  type="button"
+                  className="library-applied__chip"
+                  aria-label={t('library.removeFilter', { name: trainingLabel(typeFilter, t) })}
+                  onClick={() => setTypeFilter('all')}
+                >
+                  {trainingLabel(typeFilter, t)}
+                  <X size={12} />
+                </button>
+              )}
+              {levelFilter !== 'all' && (
+                <button
+                  type="button"
+                  className="library-applied__chip"
+                  aria-label={t('library.removeFilter', { name: levelLabel(levelFilter, t) })}
+                  onClick={() => setLevelFilter('all')}
+                >
+                  {levelLabel(levelFilter, t)}
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {sortedItems.length === 0 ? (
+            <div className="library-no-match">
+              <p>
+                {query.trim()
+                  ? t('library.noMatch')
+                  : favoritesFilter === 'favorites' &&
+                      typeFilter === 'all' &&
+                      levelFilter === 'all'
+                    ? t('library.emptyFavorites')
+                    : t('library.emptyFilter')}
+              </p>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={clearFilters}
+              >
+                {t('library.clearFilter')}
+              </button>
+            </div>
+          ) : (
+            <div className="library-list">
+              {sortedItems.map((lesson) => renderCard(lesson))}
+            </div>
+          )}
+        </>
       )}
 
       <button
         type="button"
         className="library-fab"
-        onClick={() => setShowStartSheet(true)}
-        aria-label={t('library.create')}
+        onClick={() => {
+          if (tab === 'templates') startNewTemplate();
+          else setShowStartSheet(true);
+        }}
+        aria-label={tab === 'templates' ? t('library.createTemplate') : t('library.create')}
       >
         <Plus size={24} />
       </button>
       {startSheet}
       {filterSheet}
+      {showTemplatePicker && (
+        <TemplatePicker
+          templates={savedTemplates}
+          onSelect={openTemplateAsLesson}
+          onClose={() => setShowTemplatePicker(false)}
+        />
+      )}
     </div>
   );
 }

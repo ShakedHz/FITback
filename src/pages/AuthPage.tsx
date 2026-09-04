@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { canAccessApp, useAuth } from '@/auth/AuthContext';
 import { peekPendingInvite } from '@/auth/studioInvite';
 import type { AuthUser } from '@/auth/types';
@@ -41,7 +41,16 @@ function staffRoleLabel(role: StudioRole, t: (key: string) => string): string {
 
 function destinationFor(user: AuthUser | null | undefined, from?: string): string {
   if (!canAccessApp(user)) return '/onboarding';
-  return safeReturnPath(from) ?? '/dashboard';
+  const path = safeReturnPath(from);
+  if (path) return path;
+  if (
+    user?.role === 'studio_manager' &&
+    !user.arboxLinked &&
+    (user.memberships?.length ?? 0) === 0
+  ) {
+    return '/studio';
+  }
+  return '/dashboard';
 }
 
 function GoogleIcon() {
@@ -63,7 +72,13 @@ function AppleIcon() {
   );
 }
 
-export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
+export function AuthPage({
+  initialMode = 'login',
+  initialSignupRole = 'instructor',
+}: {
+  initialMode?: Mode;
+  initialSignupRole?: StudioRole;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const mode: Mode =
@@ -97,8 +112,12 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
     { id: string; name: string; role: StudioRole }[] | null
   >(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [signupRole, setSignupRole] = useState<StudioRole>(
+    pendingInvite?.role ?? initialSignupRole
+  );
 
   const fromPath = (location.state as { from?: string } | null)?.from;
+  const isManagerSignup = signupRole === 'studio_manager';
 
   if (isReady && isAuthenticated) {
     return <Navigate to={destinationFor(user, fromPath)} replace />;
@@ -107,6 +126,9 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
   const go = (next: Mode) => {
     clearError();
     setLocalError(null);
+    if (next === 'register' && !pendingInvite) {
+      setSignupRole(initialSignupRole);
+    }
     navigate(next === 'login' ? '/login' : '/register', { replace: true });
   };
 
@@ -145,11 +167,17 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           setLocalError(t('errors.name'));
           return;
         }
-        if (specialties.length === 0 && !pendingInvite) {
+        if (specialties.length === 0 && !pendingInvite && signupRole !== 'studio_manager') {
           setLocalError(t('errors.classType'));
           return;
         }
-        const authUser = await register({ name, email, password, specialties });
+        const authUser = await register({
+          name,
+          email,
+          password,
+          specialties,
+          role: signupRole,
+        });
         afterAuth(authUser);
       } else {
         const authUser = await loginWithEmail({ email, password });
@@ -190,7 +218,6 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           <span className="auth-page__brand-fit">FIT</span>
           <span className="auth-page__brand-back">back</span>
         </h1>
-        <p className="auth-page__tagline">{t('auth.tagline')}</p>
       </div>
 
       <div className="auth-tabs">
@@ -278,6 +305,9 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           ) : (
             <>
               <p className="auth-arbox-panel__hint">{t('auth.arboxHint')}</p>
+              {import.meta.env.DEV && (
+                <p className="auth-arbox-panel__hint">{t('auth.arboxDemoHint')}</p>
+              )}
               <input
                 className="input"
                 type="password"
@@ -323,6 +353,31 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           />
         )}
 
+        {mode === 'register' && !pendingInvite && (
+          <div className="auth-role-pick">
+            <span className="auth-role-pick__label">{t('auth.signupAs')}</span>
+            <div className="auth-role-pick__options">
+              <button
+                type="button"
+                className={`auth-role-pick__btn ${signupRole === 'instructor' ? 'active' : ''}`}
+                onClick={() => setSignupRole('instructor')}
+              >
+                {t('auth.instructor')}
+              </button>
+              <button
+                type="button"
+                className={`auth-role-pick__btn ${signupRole === 'studio_manager' ? 'active' : ''}`}
+                onClick={() => setSignupRole('studio_manager')}
+              >
+                {t('auth.studioManager')}
+              </button>
+            </div>
+            {isManagerSignup && (
+              <p className="auth-role-pick__hint">{t('auth.managerSignupHint')}</p>
+            )}
+          </div>
+        )}
+
         <input
           className="input"
           type="email"
@@ -355,7 +410,7 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
           onFocus={(e) => scrollFieldIntoView(e.currentTarget)}
         />
 
-        {mode === 'register' && (
+        {mode === 'register' && !isManagerSignup && (
           <>
             <SpecialtyPicker
               value={specialties}
@@ -382,6 +437,16 @@ export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
         </button>
       </form>
 
+      {mode === 'login' && (
+        <button
+          type="button"
+          className="auth-client-link"
+          onClick={() => navigate('/register/manager')}
+        >
+          {t('auth.signupAsManager')}
+        </button>
+      )}
+
       <button
         type="button"
         className="auth-client-link"
@@ -398,5 +463,11 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
-  return <AuthPage initialMode="register" />;
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const initialSignupRole: StudioRole =
+    location.pathname === '/register/manager' || params.get('as') === 'manager'
+      ? 'studio_manager'
+      : 'instructor';
+  return <AuthPage initialMode="register" initialSignupRole={initialSignupRole} />;
 }

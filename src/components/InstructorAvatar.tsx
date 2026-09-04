@@ -9,27 +9,9 @@ interface InstructorAvatarProps {
 
 const sizes = { sm: 36, md: 44, lg: 56, xl: 88 };
 
-const AVATAR_COLORS = [
-  '#7C3AED',
-  '#8B5CF6',
-  '#6D28D9',
-  '#A78BFA',
-  '#5B21B6',
-  '#C4B5FD',
-  '#7C3AED',
-  '#9333EA',
-  '#4C1D95',
-  '#A855F7',
-];
-
-/** Stable color from a name — same person always gets the same color. */
-export function avatarColorForName(name: string): string {
-  const key = name.trim() || '?';
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) {
-    hash = key.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+/** Fallback avatar fill — follows the app accent. */
+export function avatarColorForName(_name: string): string {
+  return 'var(--color-primary-deep)';
 }
 
 export function avatarInitials(name: string): string {
@@ -66,7 +48,7 @@ export function InstructorAvatar({ src, name, size = 'md' }: InstructorAvatarPro
   return (
     <div
       className={`instructor-avatar instructor-avatar--fallback instructor-avatar--${size}`}
-      style={{ background: avatarColorForName(name), width: px, height: px }}
+      style={{ width: px, height: px }}
       role="img"
       aria-label={name}
     >

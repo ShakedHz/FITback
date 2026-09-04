@@ -1,24 +1,40 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Users, RefreshCw, LogOut, Camera, Building2, Settings } from 'lucide-react';
+import { BookOpen, Users, RefreshCw, LogOut, Camera, Settings } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
+import { IconButton, IconToolbar } from '@/components/IconToolbar';
+import { StudioViewSwitcher } from '@/components/StudioViewSwitcher';
+import type { StudioRole } from '@/data/scheduleTypes';
 import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
 import { instructorBio, trainingLabel, useI18n } from '@/i18n';
 import { fileToAvatarDataUrl } from '@/utils/avatarImage';
 import './Profile.css';
 
+function roleLabel(role: StudioRole, t: (key: string) => string): string {
+  switch (role) {
+    case 'studio_manager':
+      return t('auth.studioManager');
+    case 'instructor':
+      return t('auth.instructor');
+    default: {
+      const _exhaustive: never = role;
+      return _exhaustive;
+    }
+  }
+}
+
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { user, updateAvatar } = useAuth();
+  const { user, updateAvatar, activeMembership } = useAuth();
   const { instructor, logout } = useApp();
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
 
-  const activeStudio = user?.memberships?.find((m) => m.clubId === user.activeStudioId);
+  const activeStudio = activeMembership ?? user?.memberships?.find((m) => m.clubId === user.activeStudioId);
   const bio = instructor.specialties.length > 0
     ? instructorBio(instructor.specialties, t)
     : instructor.bio;
@@ -53,6 +69,18 @@ export function ProfilePage() {
 
   return (
     <div className="page fade-in">
+      <div className="page-toolbar profile-toolbar">
+        <span aria-hidden />
+        <IconToolbar>
+          <IconButton
+            aria-label={t('profile.settings')}
+            onClick={() => navigate('/settings')}
+          >
+            <Settings size={18} />
+          </IconButton>
+        </IconToolbar>
+      </div>
+
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div className="profile-avatar">
           <button
@@ -84,6 +112,8 @@ export function ProfilePage() {
         {activeStudio && (
           <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginTop: 4 }}>
             {activeStudio.clubName}
+            {' · '}
+            {roleLabel(activeStudio.role, t)}
           </p>
         )}
 
@@ -118,6 +148,15 @@ export function ProfilePage() {
         )}
       </div>
 
+      <section className="profile-view-section" aria-labelledby="profile-switch-view-title">
+        <h2 id="profile-switch-view-title" className="profile-view-section__label">
+          {t('settings.switchView')}
+        </h2>
+        <div className="card profile-view-section__card">
+          <StudioViewSwitcher memberships={user?.memberships ?? []} />
+        </div>
+      </section>
+
       <div className="stat-grid" style={{ marginBottom: 20 }}>
         {stats.map(({ icon: Icon, value, label }) => (
           <div key={label} className="stat-box">
@@ -134,12 +173,6 @@ export function ProfilePage() {
           onClick={() => navigate('/settings')}
         >
           <Settings size={18} /> {t('profile.settings')}
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={() => navigate('/studio')}
-        >
-          <Building2 size={18} /> {t('profile.studios')}
         </button>
         <button
           className="btn btn-ghost"

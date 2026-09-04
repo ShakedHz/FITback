@@ -52,6 +52,38 @@ export function isClassEnded(event: ScheduleEvent, now = new Date()): boolean {
   return getEventEndTime(event).getTime() <= now.getTime();
 }
 
+/** Only prompt for feedback soon after a class ends — not every old slot on the schedule. */
+export const FEEDBACK_PROMPT_WINDOW_MS = 90 * 60 * 1000;
+
+export function classEndedRecently(event: ScheduleEvent, now = new Date()): boolean {
+  if (!isClassEnded(event, now)) return false;
+  const endedAt = getEventEndTime(event).getTime();
+  return now.getTime() - endedAt <= FEEDBACK_PROMPT_WINDOW_MS;
+}
+
+const FEEDBACK_MODAL_COOLDOWN_KEY = 'movana_feedback_modal_cooldown_v1';
+const FEEDBACK_MODAL_COOLDOWN_MS = 5 * 60 * 1000;
+
+export function isFeedbackModalCooldownActive(): boolean {
+  try {
+    const until = Number(sessionStorage.getItem(FEEDBACK_MODAL_COOLDOWN_KEY) || 0);
+    return Number.isFinite(until) && Date.now() < until;
+  } catch {
+    return false;
+  }
+}
+
+export function startFeedbackModalCooldown(): void {
+  try {
+    sessionStorage.setItem(
+      FEEDBACK_MODAL_COOLDOWN_KEY,
+      String(Date.now() + FEEDBACK_MODAL_COOLDOWN_MS)
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 function isPrivateIPv4(hostname: string): boolean {
   const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(hostname);
   if (!match) return false;
@@ -82,10 +114,10 @@ export function isPublicSurveyOrigin(origin?: string): boolean {
   }
 }
 
-/** Class ended, has phones, survey not sent yet. */
+/** Class ended recently, has phones, survey not sent yet. */
 export function needsClassFeedback(event: ScheduleEvent, now = new Date()): boolean {
   if (event.feedbackSentAt) return false;
-  if (!isClassEnded(event, now)) return false;
+  if (!classEndedRecently(event, now)) return false;
   return getAttendeesWithPhone(event).length > 0;
 }
 
