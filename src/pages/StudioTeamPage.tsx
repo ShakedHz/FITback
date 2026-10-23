@@ -1,18 +1,15 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, ChevronRight, Settings, Trash2, Users } from 'lucide-react';
+import { ChevronRight, Settings, Trash2, Users, X } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
-import {
-  createStudioInvite,
-  openMailtoInvite,
-} from '@/auth/studioInvite';
+import { createStudioInvite } from '@/auth/studioInvite';
 import { findAccountByEmail } from '@/auth/userStore';
 import { IconButton, IconToolbar } from '@/components/IconToolbar';
 import { useApp } from '@/context/AppContext';
 import type { StudioRole } from '@/data/scheduleTypes';
 import {
+  filterRemovedStudioTeam,
   getStaffEmail,
-  isStaffRemovedFromStudio,
   listInvitesForStudio,
   membershipsFromAccount,
   resolveMemberStatus,
@@ -21,6 +18,7 @@ import {
   type TeamMemberStatus,
 } from '@/data/studioOrg';
 import { translateError, useI18n } from '@/i18n';
+import { buildInviteEmailHtml, sendEmail } from '@/services/emailCloud';
 import './StudioTeam.css';
 
 function roleLabel(role: StudioRole, t: (key: string) => string): string {
@@ -63,7 +61,7 @@ export function StudioTeamPage() {
     activeMembership,
     removeStudioInstructor,
   } = useAuth();
-  const { arboxConnection } = useApp();
+  const { arboxConnection, removeArboxTeamMember, updateArboxTeamMember } = useApp();
   const { t } = useI18n();
 
   const memberships = user?.memberships ?? [];
@@ -82,16 +80,18 @@ export function StudioTeamPage() {
   const [localStudioName, setLocalStudioName] = useState('');
   const [pickTeam, setPickTeam] = useState<{ id: string; name: string; role: StudioRole }[] | null>(null);
   const [teamRevision, setTeamRevision] = useState(0);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState('');
+  const [draftEmail, setDraftEmail] = useState('');
 
   const teamRows = useMemo(() => {
     if (!clubId) return [];
-    const staff = (arboxConnection.team ?? []).filter(
-      (member) =>
-        member.role !== 'instructor' || !isStaffRemovedFromStudio(clubId, member.id)
-    );
+    const staff = filterRemovedStudioTeam(clubId, arboxConnection.team);
     const invites = listInvitesForStudio(clubId);
     const rows: StudioTeamRow[] = staff.map((member) => {
-      const email = (emails[member.id] ?? getStaffEmail(clubId, member.id)).trim().toLowerCase();
+      const typed = emails[member.id];
+      const saved = typed !== undefined ? typed : getStaffEmail(clubId, member.id);
+      const email = (saved.trim() || member.email || '').trim().toLowerCase();
       const account = email ? findAccountByEmail(email) : undefined;
       const joinedOnDevice = Boolean(
         account && membershipsFromAccount(account).some((m) => m.clubId === clubId)
@@ -102,6 +102,7 @@ export function StudioTeamPage() {
         role: member.role,
         staffId: member.id,
         email,
+        onRoster: true,
         status:
           member.id === user?.arboxStaffId
             ? 'you'
@@ -124,6 +125,7 @@ export function StudioTeamPage() {
         role: invite.role,
         staffId: invite.staffId,
         email: invite.email,
+        onRoster: false,
         status: resolveMemberStatus({
           email: invite.email,
           currentUserEmail: user?.email,
@@ -136,6 +138,25 @@ export function StudioTeamPage() {
     }
     return rows;
   }, [arboxConnection.team, clubId, emails, user?.email, user?.arboxStaffId, teamRevision]);
+
+  const selected = useMemo(
+    () => teamRows.find((row) => row.key === selectedKey) ?? null,
+    [teamRows, selectedKey]
+  );
+
+  useEffect(() => {
+    if (!selected) return;
+    setDraftName(selected.name);
+    setDraftEmail(emails[selected.staffId ?? selected.key] ?? selected.email);
+  }, [selected, emails]);
+
+  const openMember = (row: StudioTeamRow) => {
+    setLocalError(null);
+    setFlash(null);
+    setSelectedKey(row.key);
+  };
+
+  const closeSheet = () => setSelectedKey(null);
 
   const handleRemoveInstructor = (row: StudioTeamRow) => {
     if (!clubId) return;
@@ -150,11 +171,37 @@ export function StudioTeamPage() {
         staffId: row.staffId,
         inviteId: row.staffId ? undefined : row.key,
       });
+      if (row.staffId) removeArboxTeamMember(row.staffId);
       setFlash(t('studio.removed', { name: row.name }));
       setTeamRevision((v) => v + 1);
+      closeSheet();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : t('errors.loginFailed'));
     }
+  };
+
+  const saveMember = () => {
+    if (!selected || !clubId) return;
+    const name = draftName.trim();
+    const email = draftEmail.trim().toLowerCase();
+    if (!name) {
+      setLocalError(t('studio.namePlaceholder'));
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setLocalError(t('errors.email'));
+      return;
+    }
+    setLocalError(null);
+    const key = selected.staffId ?? selected.key;
+    setEmails((prev) => ({ ...prev, [key]: email }));
+    if (selected.staffId) {
+      saveStaffEmail(clubId, selected.staffId, email);
+      updateArboxTeamMember(selected.staffId, { name, email });
+    }
+    setFlash(t('studio.memberSaved'));
+    setTeamRevision((v) => v + 1);
+    closeSheet();
   };
 
   const sendInvite = async (input: {
@@ -182,24 +229,39 @@ export function StudioTeamPage() {
       invitedByName: user.name,
     });
     const role = roleLabel(input.role, t);
-    openMailtoInvite(
-      email,
-      t('studio.inviteSubject', { studio: clubName }),
-      t('studio.inviteBody', {
-        name: input.name || email,
-        from: user.name,
-        studio: clubName,
-        role,
-        url,
-      })
-    );
+    const subject = t('studio.inviteSubject', { studio: clubName });
+    const body = t('studio.inviteBody', {
+      name: input.name || email,
+      from: user.name,
+      studio: clubName,
+      role,
+      url,
+    });
     setFlash(t('studio.sending'));
     try {
-      await navigator.clipboard.writeText(url);
-      setFlash(t('studio.linkCopied'));
-    } catch {
-      // mailto is enough
+      await sendEmail({
+        to: email,
+        subject,
+        text: body,
+        html: buildInviteEmailHtml(body, url, t('studio.inviteLinkLabel')),
+      });
+      try {
+        await navigator.clipboard.writeText(url);
+        setFlash(t('studio.inviteSentCopied'));
+      } catch {
+        setFlash(t('studio.inviteSent'));
+      }
+    } catch (err) {
+      setLocalError(translateError(t, err instanceof Error ? err.message : 'Email send failed'));
+      setFlash(null);
+      try {
+        await navigator.clipboard.writeText(url);
+        setFlash(t('studio.linkCopied'));
+      } catch {
+        /* ignore */
+      }
     }
+    setTeamRevision((v) => v + 1);
   };
 
   const copyInvite = async (input: {
@@ -227,6 +289,7 @@ export function StudioTeamPage() {
     });
     await navigator.clipboard.writeText(url);
     setFlash(t('studio.linkCopied'));
+    setTeamRevision((v) => v + 1);
   };
 
   const onGuestInvite = (e: FormEvent) => {
@@ -235,6 +298,9 @@ export function StudioTeamPage() {
       email: guestEmail,
       name: guestName || guestEmail,
       role: 'instructor',
+    }).then(() => {
+      setGuestName('');
+      setGuestEmail('');
     });
   };
 
@@ -269,6 +335,17 @@ export function StudioTeamPage() {
     });
   };
 
+  const canRemove =
+    selected &&
+    selected.role === 'instructor' &&
+    selected.status !== 'you';
+
+  const canInviteNew =
+    selected &&
+    !selected.onRoster &&
+    selected.status !== 'you' &&
+    selected.status !== 'joined';
+
   return (
     <div className="page fade-in studio-page">
       <div className="page-header">
@@ -288,14 +365,6 @@ export function StudioTeamPage() {
         <p className="studio-section__hint studio-role-banner">
           {t('studio.roleHere', { role: roleLabel(active.role, t) })}
         </p>
-      )}
-
-      {isManager && clubId && (
-        <section className="studio-section">
-          <Link to="/studio/overview" className="btn btn-secondary studio-overview-link">
-            <CalendarDays size={18} /> {t('studio.viewOverview')}
-          </Link>
-        </section>
       )}
 
       {!active && (
@@ -326,101 +395,52 @@ export function StudioTeamPage() {
           </h2>
           <p className="studio-section__hint">{t('studio.teamHint')}</p>
           {flash && <p className="studio-flash">{flash}</p>}
-          {localError && <p className="studio-error">{translateError(t, localError)}</p>}
+          {localError && !selected && (
+            <p className="studio-error">{translateError(t, localError)}</p>
+          )}
 
           {teamRows.length === 0 ? (
             <p className="studio-empty">{t('studio.emptyTeam')}</p>
           ) : (
-            <div className="studio-team">
+            <div className="studio-team" role="list">
               {teamRows.map((row) => (
-                <div key={row.key} className="studio-member card">
-                  <div className="studio-member__top">
-                    <div>
-                      <p className="studio-member__name">{row.name}</p>
-                      <p className="studio-member__meta">
-                        {roleLabel(row.role, t)} · {statusLabel(row.status, t)}
-                      </p>
-                    </div>
-                    {row.role === 'instructor' && row.status !== 'you' && (
-                      <IconToolbar>
-                        <IconButton
-                          danger
-                          onClick={() => handleRemoveInstructor(row)}
-                          aria-label={t('studio.removeInstructor', { name: row.name })}
-                        >
-                          <Trash2 size={18} />
-                        </IconButton>
-                      </IconToolbar>
-                    )}
-                  </div>
-                  {row.status !== 'you' && (
-                    <>
-                      <input
-                        className="input"
-                        type="email"
-                        placeholder={t('studio.emailPlaceholder')}
-                        value={emails[row.staffId ?? row.key] ?? row.email}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          const key = row.staffId ?? row.key;
-                          setEmails((prev) => ({ ...prev, [key]: value }));
-                          if (row.staffId && clubId) saveStaffEmail(clubId, row.staffId, value);
-                        }}
-                      />
-                      <div className="studio-member__actions">
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() =>
-                            void sendInvite({
-                              email: emails[row.staffId ?? row.key] ?? row.email,
-                              name: row.name,
-                              staffId: row.staffId,
-                              role: row.role,
-                            })
-                          }
-                        >
-                          {t('studio.sendInvite')}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() =>
-                            void copyInvite({
-                              email: emails[row.staffId ?? row.key] ?? row.email,
-                              name: row.name,
-                              staffId: row.staffId,
-                              role: row.role,
-                            })
-                          }
-                        >
-                          {t('studio.copyLink')}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <button
+                  key={row.key}
+                  type="button"
+                  role="listitem"
+                  className="studio-member-row"
+                  onClick={() => openMember(row)}
+                >
+                  <span className="studio-member-row__name">{row.name}</span>
+                  <ChevronRight className="rtl-flip studio-member-row__chevron" size={18} aria-hidden />
+                </button>
               ))}
             </div>
           )}
 
           <form className="card studio-guest" onSubmit={onGuestInvite}>
             <h3 className="studio-guest__title">{t('studio.inviteSomeone')}</h3>
-            <input
-              className="input"
-              type="text"
-              placeholder={t('studio.namePlaceholder')}
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-            />
-            <input
-              className="input"
-              type="email"
-              required
-              placeholder={t('studio.emailPlaceholder')}
-              value={guestEmail}
-              onChange={(e) => setGuestEmail(e.target.value)}
-            />
+            <label className="studio-field">
+              <span className="studio-field__label">{t('studio.namePlaceholder')}</span>
+              <input
+                className="input"
+                type="text"
+                placeholder={t('studio.namePlaceholder')}
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+              />
+            </label>
+            <label className="studio-field">
+              <span className="studio-field__label">{t('studio.emailPlaceholder')}</span>
+              <input
+                className="input"
+                type="email"
+                required
+                placeholder={t('studio.emailPlaceholder')}
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+              />
+            </label>
             <button type="submit" className="btn btn-primary">
               {t('studio.sendInvite')}
             </button>
@@ -480,6 +500,108 @@ export function StudioTeamPage() {
           </div>
         )}
       </section>
+
+      {selected && (
+        <div
+          className="studio-sheet-backdrop"
+          onClick={closeSheet}
+          role="presentation"
+        >
+          <div
+            className="studio-sheet card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={selected.name}
+          >
+            <IconToolbar className="studio-sheet__toolbar">
+              <IconButton onClick={closeSheet} aria-label={t('common.close')}>
+                <X size={20} />
+              </IconButton>
+              {canRemove && (
+                <IconButton
+                  danger
+                  onClick={() => handleRemoveInstructor(selected)}
+                  aria-label={t('studio.removeInstructor', { name: selected.name })}
+                >
+                  <Trash2 size={18} />
+                </IconButton>
+              )}
+            </IconToolbar>
+
+            <p className="studio-sheet__meta">
+              {roleLabel(selected.role, t)} · {statusLabel(selected.status, t)}
+            </p>
+
+            {localError && selected && (
+              <p className="studio-error">{translateError(t, localError)}</p>
+            )}
+
+            <label className="studio-field">
+              <span className="studio-field__label">{t('studio.namePlaceholder')}</span>
+              <input
+                className="input"
+                type="text"
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                disabled={selected.status === 'you'}
+              />
+            </label>
+
+            <label className="studio-field">
+              <span className="studio-field__label">{t('studio.emailPlaceholder')}</span>
+              <input
+                className="input"
+                type="email"
+                value={draftEmail}
+                onChange={(e) => setDraftEmail(e.target.value)}
+                disabled={selected.status === 'you'}
+              />
+            </label>
+
+            {selected.status !== 'you' && (
+              <button type="button" className="btn btn-primary" onClick={saveMember}>
+                {t('common.save')}
+              </button>
+            )}
+
+            {canInviteNew && (
+              <div className="studio-sheet__invite">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() =>
+                    void sendInvite({
+                      email: draftEmail || selected.email,
+                      name: draftName || selected.name,
+                      staffId: selected.staffId,
+                      role: selected.role,
+                    })
+                  }
+                >
+                  {selected.status === 'invited'
+                    ? t('studio.resendInvite')
+                    : t('studio.sendInvite')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() =>
+                    void copyInvite({
+                      email: draftEmail || selected.email,
+                      name: draftName || selected.name,
+                      staffId: selected.staffId,
+                      role: selected.role,
+                    })
+                  }
+                >
+                  {t('studio.copyLink')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

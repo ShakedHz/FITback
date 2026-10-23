@@ -9,8 +9,12 @@ import { isValidPhone } from '@/utils/sms';
 
 function isClientOnEvent(event: ScheduleEvent, client: SurveyClient): boolean {
   const phoneDigits = client.phone.replace(/\D/g, '');
+  const emailKey = client.email?.trim().toLowerCase() ?? '';
   return (event.attendees ?? []).some(
-    (a) => a.id === client.id || (a.phone && a.phone.replace(/\D/g, '') === phoneDigits)
+    (a) =>
+      a.id === client.id ||
+      (phoneDigits && a.phone && a.phone.replace(/\D/g, '') === phoneDigits) ||
+      (emailKey && a.email && a.email.trim().toLowerCase() === emailKey)
   );
 }
 
@@ -19,7 +23,7 @@ interface ClassFeedbackAttendeesProps {
   readOnly?: boolean;
 }
 
-/** Participants on the class detail sheet — attendance only; WhatsApp lives in PostClassFeedbackModal. */
+/** Participants on the class detail sheet — attendance only; send lives in PostClassFeedbackModal. */
 export function ClassFeedbackAttendees({ event, readOnly = false }: ClassFeedbackAttendeesProps) {
   const { t } = useI18n();
   const { toggleEventAttendee } = useApp();

@@ -44,8 +44,9 @@ function Segmented<T extends string>({
 export function SettingsPage() {
   const { t, locale, setLocale } = useI18n();
   const { preference, setPreference, accent, setAccent } = useTheme();
-  const { autoClassFeedbackEnabled, setAutoClassFeedbackEnabled } = useApp();
-  const { user, isActiveStudioManager } = useAuth();
+  const { autoClassFeedbackEnabled, setAutoClassFeedbackEnabled, feedbackDeliveryChannel, setFeedbackDeliveryChannel } =
+    useApp();
+  const { user } = useAuth();
 
   const memberships = user?.memberships ?? [];
 
@@ -58,6 +59,11 @@ export function SettingsPage() {
     { value: 'light', label: t('settings.themeLight') },
     { value: 'dark', label: t('settings.themeDark') },
     { value: 'system', label: t('settings.themeSystem') },
+  ];
+
+  const channelOptions: { value: 'whatsapp' | 'email'; label: string }[] = [
+    { value: 'whatsapp', label: t('settings.feedbackChannelWhatsApp') },
+    { value: 'email', label: t('settings.feedbackChannelEmail') },
   ];
 
   const accentLabelKey: Record<AccentColor, string> = {
@@ -83,12 +89,6 @@ export function SettingsPage() {
 
         {memberships.length > 0 && (
           <div className="settings-studio__links">
-            {isActiveStudioManager && (
-              <Link to="/studio/overview" className="settings-studio__link">
-                {t('studio.viewOverview')}
-                <ChevronRight className="rtl-flip" size={16} aria-hidden />
-              </Link>
-            )}
             <Link to="/studio" className="settings-studio__link">
               {t('settings.manageStudio')}
               <ChevronRight className="rtl-flip" size={16} aria-hidden />
@@ -162,6 +162,18 @@ export function SettingsPage() {
             <span className="settings-switch__knob" />
           </span>
         </button>
+        <div className="settings-row">
+          <div className="settings-row__copy">
+            <p className="settings-row__label">{t('settings.feedbackChannel')}</p>
+            <span className="settings-row__hint">{t('settings.feedbackChannelHint')}</span>
+          </div>
+          <Segmented
+            value={feedbackDeliveryChannel}
+            options={channelOptions}
+            onChange={setFeedbackDeliveryChannel}
+            ariaLabel={t('settings.feedbackChannel')}
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, X } from 'lucide-react';
+import { Mail, Send, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { WhatsAppIcon } from '@/components/WhatsAppIcon';
 import {
   dismissClassFeedback,
   FEEDBACK_CHECK_EVENT,
   findPendingFeedbackEvents,
-  getAttendeesWithPhone,
+  getFeedbackRecipients,
   isFeedbackModalCooldownActive,
   isPublicSurveyOrigin,
   startFeedbackModalCooldown,
   wasClassFeedbackDismissed,
 } from '@/services/classFeedback';
-import { sendStudioFeedbackToAttendees } from '@/services/whatsappCloud';
+import { dispatchFeedbackToAttendees } from '@/services/feedbackDelivery';
 import type { ScheduleAttendee, ScheduleEvent } from '@/data/scheduleTypes';
 import { translateError, useI18n } from '@/i18n';
 import './PostClassFeedbackModal.css';
@@ -23,6 +23,7 @@ export function PostClassFeedbackModal() {
   const {
     scheduleEvents,
     autoClassFeedbackEnabled,
+    feedbackDeliveryChannel,
     arboxConnection,
     markEventFeedbackSent,
     isLoggedIn,
@@ -35,6 +36,7 @@ export function PostClassFeedbackModal() {
 
   const feedbackRole = arboxConnection.role;
   const feedbackConnected = arboxConnection.connected;
+  const viaEmail = feedbackDeliveryChannel === 'email';
 
   const refreshPending = useCallback(() => {
     if (!isLoggedIn || !autoClassFeedbackEnabled || isFeedbackModalCooldownActive()) {
@@ -46,9 +48,12 @@ export function PostClassFeedbackModal() {
         ? { ...arboxConnection, role: feedbackRole, connected: feedbackConnected }
         : arboxConnection,
     };
-    const pending = findPendingFeedbackEvents(scheduleEvents, new Date(), scope).filter(
-      (ev) => !wasClassFeedbackDismissed(ev.id)
-    );
+    const pending = findPendingFeedbackEvents(
+      scheduleEvents,
+      new Date(),
+      scope,
+      feedbackDeliveryChannel
+    ).filter((ev) => !wasClassFeedbackDismissed(ev.id));
     const next = pending[0] ?? null;
     setEvent((current) => {
       if (current && pending.some((ev) => ev.id === current.id)) return current;
@@ -57,6 +62,7 @@ export function PostClassFeedbackModal() {
   }, [
     isLoggedIn,
     autoClassFeedbackEnabled,
+    feedbackDeliveryChannel,
     scheduleEvents,
     feedbackConnected,
     feedbackRole,
@@ -88,10 +94,10 @@ export function PostClassFeedbackModal() {
       setError(null);
       return;
     }
-    setRecipients(getAttendeesWithPhone(event));
+    setRecipients(getFeedbackRecipients(event, feedbackDeliveryChannel));
     setProgress(null);
     setError(null);
-  }, [event?.id]);
+  }, [event?.id, feedbackDeliveryChannel]);
 
   const skip = useCallback(() => {
     if (!event) return;
@@ -126,9 +132,15 @@ export function PostClassFeedbackModal() {
     setBusy(true);
     setError(null);
     setProgress({ sent: 0, total: recipients.length });
-    const result = await sendStudioFeedbackToAttendees(recipients, event, t, (sent, total) => {
-      setProgress({ sent, total });
-    });
+    const result = await dispatchFeedbackToAttendees(
+      feedbackDeliveryChannel,
+      recipients,
+      event,
+      t,
+      (sent, total) => {
+        setProgress({ sent, total });
+      }
+    );
     setBusy(false);
     if (result.sent > 0 && result.failed === 0) {
       finish();
@@ -137,14 +149,16 @@ export function PostClassFeedbackModal() {
     if (result.sent > 0) markEventFeedbackSent(event.id);
     setError(
       translateError(t, result.lastError) ||
-        t('schedule.sentWhatsAppPartial', { sent: result.sent, failed: result.failed })
+        t('schedule.sentFeedbackPartial', { sent: result.sent, failed: result.failed })
     );
   };
 
   const cta =
     busy && progress
-      ? t('schedule.sendingWhatsApp', { current: progress.sent, total: progress.total })
-      : t('schedule.sendWhatsAppToCount', { count: recipients.length });
+      ? t('schedule.sendingFeedback', { current: progress.sent, total: progress.total })
+      : viaEmail
+        ? t('schedule.sendEmailToCount', { count: recipients.length })
+        : t('schedule.sendWhatsAppToCount', { count: recipients.length });
 
   return createPortal(
     <div
@@ -167,16 +181,20 @@ export function PostClassFeedbackModal() {
           <X size={18} />
         </button>
         <div className="post-feedback-modal__icon">
-          <WhatsAppIcon size={22} />
+          {viaEmail ? <Mail size={22} /> : <WhatsAppIcon size={22} />}
         </div>
         <h2 id="post-feedback-title" className="post-feedback-modal__title">
           {t('schedule.classEnded')}
         </h2>
         <p className="post-feedback-modal__class">{event.title}</p>
         <p className="post-feedback-modal__text">
-          {t('schedule.sendWhatsAppBody', { count: recipients.length, title: event.title })}
+          {viaEmail
+            ? t('schedule.sendEmailBody', { count: recipients.length, title: event.title })
+            : t('schedule.sendWhatsAppBody', { count: recipients.length, title: event.title })}
         </p>
-        <p className="post-feedback-modal__progress">{t('schedule.sendWhatsAppHint')}</p>
+        <p className="post-feedback-modal__progress">
+          {viaEmail ? t('schedule.sendEmailHint') : t('schedule.sendWhatsAppHint')}
+        </p>
         {!publicOrigin && (
           <p className="post-feedback-modal__warn">{t('schedule.whatsappPrivateOrigin')}</p>
         )}

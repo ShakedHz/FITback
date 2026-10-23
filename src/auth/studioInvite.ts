@@ -55,9 +55,16 @@ export function decodeInviteToken(token: string): StudioInvitePayload | null {
 }
 
 export function inviteJoinUrl(token: string): string {
-  const url = new URL('/join', window.location.origin);
-  url.searchParams.set('t', token);
-  return url.toString();
+  // Path form survives email clients better than ?t= query strings (which often get stripped).
+  return `${window.location.origin}/join/${token}`;
+}
+
+/** Resolve invite token from path (/join/:token) or legacy ?t= query. */
+export function inviteTokenFromLocation(input: {
+  pathToken?: string | null;
+  queryToken?: string | null;
+}): string {
+  return (input.pathToken || input.queryToken || '').trim();
 }
 
 export function stashPendingInvite(payload: StudioInvitePayload) {

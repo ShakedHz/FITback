@@ -45,7 +45,7 @@ function AppLayout() {
           <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
           <Route path="/feedback/:id?" element={<FeedbackPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/join" element={<JoinStudioPage />} />
+          <Route path="/join/:token?" element={<JoinStudioPage />} />
 
           <Route path="/dashboard" element={<Guard><DashboardPage /></Guard>} />
           <Route path="/schedule" element={<Guard><SchedulePage /></Guard>} />

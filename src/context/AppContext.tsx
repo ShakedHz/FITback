@@ -23,6 +23,7 @@ import {
   canAttachPlanToEvent,
   EMPTY_ARBOX_CONNECTION,
 } from '@/data/scheduleTypes';
+import { filterRemovedStudioTeam } from '@/data/studioOrg';
 import {
   connectArboxAccount,
   syncArboxSchedule,
@@ -39,6 +40,8 @@ import {
   getArboxClients,
   refreshArboxConnection,
   setLinkedInstructor as saveLinkedInstructor,
+  removeArboxTeamMember as persistRemoveArboxTeamMember,
+  updateArboxTeamMember as persistUpdateArboxTeamMember,
   syncStoredConnectionRole,
 } from '@/services/arboxApi';
 import { dispatchClassFeedback } from '@/services/autoFeedbackDispatch';
@@ -47,10 +50,14 @@ import {
   clearClassFeedbackDismiss,
   findPendingFeedbackEvents,
   loadAutoClassFeedbackEnabled,
+  loadFeedbackDeliveryChannel,
   saveAutoClassFeedbackEnabled,
+  saveFeedbackDeliveryChannel,
   requestFeedbackCheck,
   startTimeForJustEndedClass,
+  type FeedbackDeliveryChannel,
 } from '@/services/classFeedback';
+import { isValidEmail, normalizeEmail } from '@/utils/email';
 import { isValidPhone } from '@/utils/sms';
 import {
   getAllFeedback,
@@ -214,11 +221,17 @@ interface AppState {
   disconnectArbox: () => void;
   syncArbox: () => Promise<void>;
   setLinkedInstructor: (instructorId: string) => void;
+  /** Drop a staff member from the in-memory + persisted Arbox team roster. */
+  removeArboxTeamMember: (staffId: string) => void;
+  /** Update name/email on a roster staff member. */
+  updateArboxTeamMember: (staffId: string, patch: { name?: string; email?: string }) => void;
   attachLessonPlan: (eventId: string, lessonId: string) => boolean;
   detachLessonPlan: (eventId: string) => void;
   toggleAutoFeedback: (enabled: boolean) => void;
   autoClassFeedbackEnabled: boolean;
   setAutoClassFeedbackEnabled: (enabled: boolean) => void;
+  feedbackDeliveryChannel: FeedbackDeliveryChannel;
+  setFeedbackDeliveryChannel: (channel: FeedbackDeliveryChannel) => void;
   runFeedbackAutomation: () => Promise<number>;
   addLessonToSchedule: (
     lessonId: string,
@@ -239,10 +252,16 @@ interface AppState {
     }
   ) => void;
   removeScheduleEvent: (eventId: string) => void;
-  addEventAttendee: (eventId: string, input: { id?: string; name: string; phone: string }) => boolean;
+  addEventAttendee: (
+    eventId: string,
+    input: { id?: string; name: string; phone?: string; email?: string }
+  ) => boolean;
   removeEventAttendee: (eventId: string, attendeeId: string) => void;
   /** Add or remove a roster client on a class. */
-  toggleEventAttendee: (eventId: string, client: { id: string; name: string; phone: string }) => void;
+  toggleEventAttendee: (
+    eventId: string,
+    client: { id: string; name: string; phone?: string; email?: string }
+  ) => void;
   markEventFeedbackSent: (eventId: string) => void;
   /** Live client survey responses (Ratings reads this). */
   feedbackResponses: StoredFeedback[];
@@ -433,6 +452,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [autoClassFeedbackEnabled, setAutoClassFeedbackEnabledState] = useState(
     () => loadAutoClassFeedbackEnabled()
   );
+  const [feedbackDeliveryChannel, setFeedbackDeliveryChannelState] = useState<FeedbackDeliveryChannel>(
+    () => loadFeedbackDeliveryChannel()
+  );
   const [feedbackResponses, setFeedbackResponses] = useState<StoredFeedback[]>(() =>
     getAllFeedback()
   );
@@ -468,7 +490,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const session = restoreArboxSession();
     if (!session?.connection.connected) return false;
     const events = session.events;
-    const connection = refreshArboxConnection(session.connection, events, session.connection);
+    const clubId = session.connection.clubId;
+    const connection = refreshArboxConnection(
+      {
+        ...session.connection,
+        team: filterRemovedStudioTeam(clubId, session.connection.team),
+      },
+      events,
+      session.connection
+    );
     setArboxConnection(connection);
     setArboxEvents(events);
     setArboxClients(session.clients ?? getArboxClients());
@@ -580,6 +610,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setAutoClassFeedbackEnabled = useCallback((enabled: boolean) => {
     saveAutoClassFeedbackEnabled(enabled);
     setAutoClassFeedbackEnabledState(enabled);
+  }, []);
+
+  const setFeedbackDeliveryChannel = useCallback((channel: FeedbackDeliveryChannel) => {
+    saveFeedbackDeliveryChannel(channel);
+    setFeedbackDeliveryChannelState(channel);
+    requestFeedbackCheck();
   }, []);
 
   const studioFlowEvents = useMemo(
@@ -1140,6 +1176,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [arboxEvents]);
 
+  const removeArboxTeamMember = useCallback((staffId: string) => {
+    const updated = persistRemoveArboxTeamMember(staffId);
+    if (updated) setArboxConnection(updated);
+  }, []);
+
+  const updateArboxTeamMember = useCallback(
+    (staffId: string, patch: { name?: string; email?: string }) => {
+      const updated = persistUpdateArboxTeamMember(staffId, patch);
+      if (updated) setArboxConnection(updated);
+    },
+    []
+  );
+
   // Auto-sync when week changes while connected
   useEffect(() => {
     if (!arboxConnection.connected) return;
@@ -1218,23 +1267,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const addEventAttendee = useCallback(
-    (eventId: string, input: { id?: string; name: string; phone: string }) => {
+    (eventId: string, input: { id?: string; name: string; phone?: string; email?: string }) => {
       const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
       if (!event) return false;
-      if (!input.name.trim() || !isValidPhone(input.phone)) return false;
+      const name = input.name.trim();
+      const phone = input.phone?.trim() ?? '';
+      const email = input.email?.trim() ?? '';
+      const phoneOk = phone ? isValidPhone(phone) : false;
+      const emailOk = email ? isValidEmail(email) : false;
+      if (!name || (!phoneOk && !emailOk)) return false;
 
-      const phoneDigits = input.phone.replace(/\D/g, '');
+      const phoneDigits = phoneOk ? phone.replace(/\D/g, '') : '';
+      const emailKey = emailOk ? normalizeEmail(email) : '';
       const already = (event.attendees ?? []).some(
         (a) =>
           (input.id && a.id === input.id) ||
-          (a.phone && a.phone.replace(/\D/g, '') === phoneDigits)
+          (phoneDigits && a.phone && a.phone.replace(/\D/g, '') === phoneDigits) ||
+          (emailKey && a.email && normalizeEmail(a.email) === emailKey)
       );
       if (already) return true;
 
       const attendee: ScheduleAttendee = {
         id: input.id ?? createAttendeeId(),
-        name: input.name.trim(),
-        phone: input.phone.trim(),
+        name,
+        phone: phoneOk ? phone : undefined,
+        email: emailOk ? normalizeEmail(email) : undefined,
       };
       const attendees = [...(event.attendees ?? []), attendee];
       patchScheduleEvent(eventId, {
@@ -1260,13 +1317,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const toggleEventAttendee = useCallback(
-    (eventId: string, client: { id: string; name: string; phone: string }) => {
+    (eventId: string, client: { id: string; name: string; phone?: string; email?: string }) => {
       if (isActiveStudioManager) return;
       const event = [...arboxEvents, ...flowEvents].find((e) => e.id === eventId);
       if (!event) return;
-      const phoneDigits = client.phone.replace(/\D/g, '');
+      const phoneDigits = client.phone?.replace(/\D/g, '') ?? '';
+      const emailKey = client.email ? normalizeEmail(client.email) : '';
       const existing = (event.attendees ?? []).find(
-        (a) => a.id === client.id || (a.phone && a.phone.replace(/\D/g, '') === phoneDigits)
+        (a) =>
+          a.id === client.id ||
+          (phoneDigits && a.phone && a.phone.replace(/\D/g, '') === phoneDigits) ||
+          (emailKey && a.email && normalizeEmail(a.email) === emailKey)
       );
       if (existing) {
         removeEventAttendee(eventId, existing.id);
@@ -1287,7 +1348,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const runFeedbackAutomation = useCallback(async () => {
     const scope = { arboxConnection };
-    const pending = findPendingFeedbackEvents(scheduleEvents, new Date(), scope);
+    const pending = findPendingFeedbackEvents(
+      scheduleEvents,
+      new Date(),
+      scope,
+      feedbackDeliveryChannel
+    );
 
     let sent = 0;
     for (const event of pending) {
@@ -1299,7 +1365,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     return sent || pending.length;
-  }, [arboxConnection, scheduleEvents, markEventFeedbackSent]);
+  }, [arboxConnection, scheduleEvents, markEventFeedbackSent, feedbackDeliveryChannel]);
 
   const addLessonToSchedule = useCallback((
     lessonId: string,
@@ -1318,12 +1384,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user?.name ||
       (arboxConnection.connected ? arboxConnection.staffName : currentInstructor.name);
 
-    // Arbox clients can be on file without a phone — keep them on the roster,
-    // the SMS layer skips anyone without a valid number.
+    // Arbox clients can be on file without a phone/email — keep them on the roster;
+    // delivery skips anyone missing the contact method for the active channel.
     const attendees: ScheduleAttendee[] = (options?.rosterClients ?? []).map((c) => ({
       id: c.id,
       name: c.name,
-      phone: isValidPhone(c.phone) ? c.phone.trim() : undefined,
+      phone: c.phone && isValidPhone(c.phone) ? c.phone.trim() : undefined,
+      email: c.email && isValidEmail(c.email) ? normalizeEmail(c.email) : undefined,
     }));
 
     const start = options?.endedRecently
@@ -1404,7 +1471,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           next.attendees = updates.rosterClients.map((c) => ({
             id: c.id,
             name: c.name,
-            phone: isValidPhone(c.phone) ? c.phone.trim() : undefined,
+            phone: c.phone && isValidPhone(c.phone) ? c.phone.trim() : undefined,
+            email: c.email && isValidEmail(c.email) ? normalizeEmail(c.email) : undefined,
           }));
           next.enrolled = next.attendees.length;
         }
@@ -1506,11 +1574,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         disconnectArbox,
         syncArbox,
         setLinkedInstructor,
+        removeArboxTeamMember,
+        updateArboxTeamMember,
         attachLessonPlan,
         detachLessonPlan,
         toggleAutoFeedback,
         autoClassFeedbackEnabled,
         setAutoClassFeedbackEnabled,
+        feedbackDeliveryChannel,
+        setFeedbackDeliveryChannel,
         runFeedbackAutomation,
         addLessonToSchedule,
         moveScheduleEvent,

@@ -16,6 +16,7 @@ import {
   isDemoApiKey,
   moveArboxScope,
   setArboxStorageOwner,
+  removeArboxTeamMember,
   setLinkedInstructor,
   syncArboxSchedule,
   syncStoredConnectionRole,
@@ -94,7 +95,7 @@ interface AuthContextValue {
     staffId?: string;
     inviteId?: string;
   }) => void;
-  acceptStudioInvite: (payload: StudioInvitePayload, options?: { allowEmailMismatch?: boolean }) => AuthUser;
+  acceptStudioInvite: (payload: StudioInvitePayload) => AuthUser;
   updateAvatar: (avatar: string | undefined) => void;
   updateProfileDetails: (input: ProfileDetailsInput) => void;
   logout: () => void;
@@ -280,6 +281,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (name.length < 2) throw new Error('Please enter your full name');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid email address');
       if (password.length < 8) throw new Error('Password must be at least 8 characters');
+      if (pendingInvite?.email && email !== pendingInvite.email.trim().toLowerCase()) {
+        throw new Error('This invite is for a different email');
+      }
       if (
         role !== 'studio_manager' &&
         specialties.length === 0 &&
@@ -673,23 +677,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (input.staffId) {
       markStaffRemovedFromStudio(input.clubId, input.staffId);
       saveStaffEmail(input.clubId, input.staffId, '');
+      // Persist roster change so the team list / overview update immediately
+      // and survive reload (demo reconnect also respects the removed list).
+      removeArboxTeamMember(input.staffId);
     }
   }, [user]);
 
-  const acceptStudioInvite = useCallback((
-    payload: StudioInvitePayload,
-    options?: { allowEmailMismatch?: boolean }
-  ) => {
+  const acceptStudioInvite = useCallback((payload: StudioInvitePayload) => {
     if (!user) throw new Error('Sign in to join this studio');
     const account = findAccountById(user.id);
     if (!account) throw new Error('Sign in to join this studio');
     const accountEmail = account.email.trim().toLowerCase();
     const inviteEmail = payload.email.trim().toLowerCase();
+    // One profile ↔ one email: invite must match the signed-in account.
     if (
       accountEmail &&
       accountEmail !== inviteEmail &&
-      !isPlaceholderEmail(accountEmail) &&
-      !options?.allowEmailMismatch
+      !isPlaceholderEmail(accountEmail)
     ) {
       throw new Error('This invite is for a different email');
     }

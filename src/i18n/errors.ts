@@ -35,6 +35,11 @@ const ERROR_KEYS: Record<string, string> = {
   'Connect studio WhatsApp in Settings': 'errors.whatsappConnect',
   'WhatsApp is not configured': 'errors.whatsappConnect',
   'WhatsApp send failed': 'errors.whatsappSend',
+  'Email proxy is not running. Start the app with npm run dev.': 'errors.emailProxy',
+  'Email is not configured': 'errors.emailConnect',
+  'Email send failed': 'errors.emailSend',
+  'Only studio managers can remove instructors': 'errors.removeInstructorForbidden',
+  'Cannot remove yourself': 'errors.removeYourself',
 };
 
 export function translateError(t: TranslateFn, message: string | null | undefined): string {

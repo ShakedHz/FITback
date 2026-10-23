@@ -24,6 +24,17 @@
   color: var(--color-text-muted);
 }
 
+.manager-overview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.manager-overview__actions .studio-switch-view-link {
+  margin: 0;
+}
+
 .manager-overview__stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -191,8 +202,4 @@
   gap: 8px;
   font-size: 14px;
   color: var(--color-text);
-}
-
-.manager-overview__sheet-close {
-  width: 100%;
 }

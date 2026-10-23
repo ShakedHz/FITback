@@ -386,7 +386,9 @@ export function AuthPage({
           inputMode="email"
           required
           value={email}
+          readOnly={Boolean(pendingInvite?.email)}
           onChange={(e) => {
+            if (pendingInvite?.email) return;
             clearError();
             setLocalError(null);
             setEmail(e.target.value);

@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/auth/AuthContext';
 import { IconButton, IconToolbar } from '@/components/IconToolbar';
 import { useApp } from '@/context/AppContext';
+import { filterRemovedStudioTeam } from '@/data/studioOrg';
 import {
   addDays,
   formatFullDayLabel,
@@ -32,6 +33,7 @@ import {
 } from '@/data/scheduleTypes';
 import { useI18n } from '@/i18n';
 import '@/components/Schedule.css';
+import './StudioTeam.css';
 import './ManagerOverview.css';
 
 const UNASSIGNED_KEY = '__unassigned__';
@@ -128,10 +130,11 @@ export function ManagerOverviewPage() {
     [scheduleEvents, weekStart, weekEnd]
   );
 
-  const instructorGroups = useMemo(
-    () => groupEventsByInstructor(weekEvents, arboxConnection.team),
-    [weekEvents, arboxConnection.team]
-  );
+  const instructorGroups = useMemo(() => {
+    const clubId = active?.clubId || arboxConnection.clubId;
+    const team = filterRemovedStudioTeam(clubId, arboxConnection.team);
+    return groupEventsByInstructor(weekEvents, team);
+  }, [weekEvents, arboxConnection.team, arboxConnection.clubId, active?.clubId]);
 
   const weekStats = useMemo(() => {
     const withPlan = weekEvents.filter((event) => Boolean(event.lessonPlanTitle)).length;
@@ -174,13 +177,20 @@ export function ManagerOverviewPage() {
         <p className="manager-overview__hint">{t('managerOverview.subtitle')}</p>
       </header>
 
-      {memberships.length > 1 && (
-        <Link to="/settings" className="studio-switch-view-link">
-          <Settings size={16} aria-hidden />
-          {t('profile.switchViewInSettings')}
+      <div className="manager-overview__actions">
+        <Link to="/studio" className="studio-switch-view-link">
+          <Users size={16} aria-hidden />
+          {t('settings.manageStudio')}
           <ChevronRight className="rtl-flip" size={16} aria-hidden />
         </Link>
-      )}
+        {memberships.length > 1 && (
+          <Link to="/settings" className="studio-switch-view-link">
+            <Settings size={16} aria-hidden />
+            {t('profile.switchViewInSettings')}
+            <ChevronRight className="rtl-flip" size={16} aria-hidden />
+          </Link>
+        )}
+      </div>
 
       <div className="manager-overview__stats card">
         <div className="manager-overview__stat">
@@ -389,13 +399,6 @@ export function ManagerOverviewPage() {
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className="btn btn-secondary manager-overview__sheet-close"
-              onClick={() => setSelectedEvent(null)}
-            >
-              {t('common.close')}
-            </button>
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import {
   Star,
   Package,
@@ -9,6 +9,7 @@ import {
   BarChart3,
   Library,
 } from 'lucide-react';
+import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
 import { resolveOverallAnalytics } from '@/data/lessonAnalytics';
@@ -49,6 +50,7 @@ function formatTodayDate(dateLocale: string): string {
 }
 
 export function DashboardPage() {
+  const { isActiveStudioManager } = useAuth();
   const { instructor, scheduleEvents, arboxConnection, feedbackResponses } = useApp();
   const navigate = useNavigate();
   const { t, dateLocale } = useI18n();
@@ -75,6 +77,10 @@ export function DashboardPage() {
     }
     return t('dashboard.getStarted');
   }, [todayEvents.length, instructor.lessonsCount, t]);
+
+  if (isActiveStudioManager) {
+    return <Navigate to="/studio/overview" replace />;
+  }
 
   return (
     <div className="page fade-in dashboard">

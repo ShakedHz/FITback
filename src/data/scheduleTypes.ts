@@ -48,6 +48,8 @@ export interface ArboxStaffMember {
   id: string;
   name: string;
   role: StudioRole;
+  /** Present when Arbox (or demo data) includes a contact email. */
+  email?: string;
 }
 
 export interface ArboxConnection {

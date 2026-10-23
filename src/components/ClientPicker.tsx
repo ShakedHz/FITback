@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Check, Plus, Search, Trash2 } from 'lucide-react';
 import { addSurveyClient, removeSurveyClient, type SurveyClient } from '@/services/surveyClients';
+import { isValidEmail, normalizeEmail } from '@/utils/email';
 import { isValidPhone } from '@/utils/sms';
 import { useI18n } from '@/i18n';
 
@@ -31,6 +32,7 @@ export function ClientPicker({
   const [managing, setManaging] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
@@ -38,7 +40,10 @@ export function ClientPicker({
     const term = query.trim().toLowerCase();
     if (!term) return clients;
     return clients.filter(
-      (c) => c.name.toLowerCase().includes(term) || c.phone.replace(/\D/g, '').includes(term)
+      (c) =>
+        c.name.toLowerCase().includes(term) ||
+        c.phone.replace(/\D/g, '').includes(term) ||
+        (c.email && c.email.toLowerCase().includes(term))
     );
   }, [clients, query]);
 
@@ -46,29 +51,62 @@ export function ClientPicker({
     setAdding(false);
     setName('');
     setPhone('');
+    setEmail('');
     setError(null);
+  };
+
+  const contactLabel = (client: SurveyClient) => {
+    if (client.phone) return client.phone;
+    if (client.email) return client.email;
+    return t('clients.noContact');
   };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
+    const trimmedEmail = email.trim();
+    const phoneOk = trimmedPhone ? isValidPhone(trimmedPhone) : false;
+    const emailOk = trimmedEmail ? isValidEmail(trimmedEmail) : false;
 
     if (!trimmedName) {
       setError(t('errors.clientName'));
       return;
     }
-    if (!isValidPhone(trimmedPhone)) {
+    if (!phoneOk && !emailOk) {
+      setError(t('errors.clientContact'));
+      return;
+    }
+    if (trimmedPhone && !phoneOk) {
       setError(t('errors.clientPhone'));
       return;
     }
-    const digits = trimmedPhone.replace(/\D/g, '');
-    if (clients.some((c) => c.phone.replace(/\D/g, '') === digits)) {
-      setError(t('errors.phoneExists'));
+    if (trimmedEmail && !emailOk) {
+      setError(t('errors.email'));
       return;
     }
+    if (phoneOk) {
+      const digits = trimmedPhone.replace(/\D/g, '');
+      if (clients.some((c) => c.phone.replace(/\D/g, '') === digits)) {
+        setError(t('errors.phoneExists'));
+        return;
+      }
+    }
+    if (emailOk) {
+      const key = normalizeEmail(trimmedEmail);
+      if (clients.some((c) => c.email && normalizeEmail(c.email) === key)) {
+        setError(t('errors.emailExists'));
+        return;
+      }
+    }
 
-    onAdded?.(addSurveyClient({ name: trimmedName, phone: trimmedPhone }));
+    onAdded?.(
+      addSurveyClient({
+        name: trimmedName,
+        phone: phoneOk ? trimmedPhone : undefined,
+        email: emailOk ? trimmedEmail : undefined,
+      })
+    );
     closeForm();
   };
 
@@ -114,9 +152,7 @@ export function ClientPicker({
                   </span>
                   <span className="client-row__text">
                     <span className="client-row__name">{client.name}</span>
-                    <span className="client-row__phone">
-                      {client.phone || t('clients.noContact')}
-                    </span>
+                    <span className="client-row__phone">{contactLabel(client)}</span>
                   </span>
                 </button>
                 {canManage && managing && (
@@ -156,6 +192,15 @@ export function ClientPicker({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             autoComplete="tel"
+          />
+          <input
+            className="input"
+            type="email"
+            inputMode="email"
+            placeholder={t('clients.emailPlaceholder')}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
           />
           {error && (
             <p className="client-picker__error" role="alert">
