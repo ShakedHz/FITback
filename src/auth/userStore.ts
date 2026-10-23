@@ -49,11 +49,20 @@ export function lookupAccount(query: {
 
 export function saveAccount(account: StoredAccount): StoredAccount {
   const users = readUsers();
-  const index = users.findIndex((u) => u.id === account.id);
-  if (index >= 0) users[index] = account;
-  else users.push(account);
+  const email = account.email.trim().toLowerCase();
+  // One profile ↔ one email (ignore empty / arbox placeholders colliding).
+  if (email && !email.endsWith('@arbox.fitback.app')) {
+    const clash = users.find((u) => u.id !== account.id && u.email.trim().toLowerCase() === email);
+    if (clash) {
+      throw new Error('An account with this email already exists');
+    }
+  }
+  const normalized = { ...account, email: email || account.email };
+  const index = users.findIndex((u) => u.id === normalized.id);
+  if (index >= 0) users[index] = normalized;
+  else users.push(normalized);
   writeUsers(users);
-  return account;
+  return normalized;
 }
 
 /** Drop instructor membership for a studio (managers are never removed here). */

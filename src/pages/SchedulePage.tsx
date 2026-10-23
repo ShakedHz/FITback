@@ -82,8 +82,12 @@ function ScheduleOverlay({ children, onClose }: { children: React.ReactNode; onC
 
 function isClientOnEvent(event: ScheduleEvent, client: SurveyClient): boolean {
   const phoneDigits = client.phone.replace(/\D/g, '');
+  const emailKey = client.email?.trim().toLowerCase() ?? '';
   return (event.attendees ?? []).some(
-    (a) => a.id === client.id || (a.phone && a.phone.replace(/\D/g, '') === phoneDigits)
+    (a) =>
+      a.id === client.id ||
+      (phoneDigits && a.phone && a.phone.replace(/\D/g, '') === phoneDigits) ||
+      (emailKey && a.email && a.email.trim().toLowerCase() === emailKey)
   );
 }
 
@@ -258,6 +262,7 @@ export function SchedulePage() {
       id: client.id,
       name: client.name,
       phone: client.phone ?? '',
+      email: client.email,
       createdAt: '',
     }));
   }, [isLiveArbox, arboxClients, rosterClients]);

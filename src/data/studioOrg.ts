@@ -227,6 +227,18 @@ export function isStaffRemovedFromStudio(clubId: string, staffId: string): boole
   return (readRemovedStaff()[clubId] ?? []).includes(staffId);
 }
 
+/** Team roster minus instructors the manager removed locally. */
+export function filterRemovedStudioTeam<T extends { id: string; role: StudioRole }>(
+  clubId: string | undefined,
+  team: T[] | undefined
+): T[] {
+  if (!team?.length) return [];
+  if (!clubId) return team;
+  return team.filter(
+    (member) => member.role !== 'instructor' || !isStaffRemovedFromStudio(clubId, member.id)
+  );
+}
+
 export type TeamMemberStatus = 'you' | 'joined' | 'invited' | 'uninvited';
 
 export interface StudioTeamRow {
@@ -236,6 +248,8 @@ export interface StudioTeamRow {
   staffId?: string;
   email: string;
   status: TeamMemberStatus;
+  /** Already on the studio roster (Arbox/local) — not a pending new invite. */
+  onRoster: boolean;
 }
 
 export function resolveMemberStatus(input: {

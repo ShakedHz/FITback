@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { canAccessApp, useAuth } from '@/auth/AuthContext';
 import {
   decodeInviteToken,
+  inviteTokenFromLocation,
   peekPendingInvite,
   stashPendingInvite,
 } from '@/auth/studioInvite';
@@ -26,15 +27,26 @@ function roleLabel(role: StudioRole, t: (key: string) => string): string {
 }
 
 export function JoinStudioPage() {
-  const { user, isAuthenticated, isReady, acceptStudioInvite } = useAuth();
+  const { user, isAuthenticated, isReady, acceptStudioInvite, logout } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { token: pathToken } = useParams<{ token?: string }>();
   const [params] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+
   const payload = useMemo(() => {
-    const fromQuery = decodeInviteToken(params.get('t') ?? '');
-    return fromQuery ?? peekPendingInvite();
-  }, [params]);
+    const token = inviteTokenFromLocation({
+      pathToken,
+      queryToken: params.get('t'),
+    });
+    const fromUrl = decodeInviteToken(token);
+    return fromUrl ?? peekPendingInvite();
+  }, [pathToken, params]);
+
+  // Keep invite across register/login navigation in this tab.
+  useEffect(() => {
+    if (payload) stashPendingInvite(payload);
+  }, [payload]);
 
   const alreadyMember = Boolean(
     payload && user?.memberships?.some((m) => m.clubId === payload.clubId)
@@ -84,6 +96,7 @@ export function JoinStudioPage() {
       <div className="page auth-page fade-in">
         <BrandLogo size={64} className="auth-page__logo" />
         <p className="auth-error">{t('errors.inviteInvalid')}</p>
+        <p className="page-subtitle">{t('studio.joinOpenFromEmail')}</p>
         <button type="button" className="btn btn-primary" onClick={() => navigate('/login')}>
           {t('auth.login')}
         </button>
@@ -115,27 +128,25 @@ export function JoinStudioPage() {
       {error && <p className="auth-error">{error}</p>}
 
       {mismatch && user && (
-        <p className="auth-invite-banner">
-          {t('studio.joinMismatch', { email: payload.email, current: user.email })}
-        </p>
+        <>
+          <p className="auth-invite-banner">
+            {t('studio.joinMismatch', { email: payload.email, current: user.email })}
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              stashPendingInvite(payload);
+              logout();
+              navigate('/login', { replace: true, state: { from: '/join' } });
+            }}
+          >
+            {t('studio.joinSwitchAccount')}
+          </button>
+        </>
       )}
 
-      {isAuthenticated ? (
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => {
-            try {
-              const next = acceptStudioInvite(payload, { allowEmailMismatch: true });
-              navigate(canAccessApp(next) ? '/studio' : '/onboarding', { replace: true });
-            } catch (err) {
-              setError(err instanceof Error ? err.message : t('errors.inviteInvalid'));
-            }
-          }}
-        >
-          {t('studio.joinAnyway')}
-        </button>
-      ) : (
+      {!isAuthenticated && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button
             type="button"

@@ -1,3 +1,4 @@
+import { filterRemovedStudioTeam } from '@/data/studioOrg';
 import {
   addDays,
   combineDateAndTime,
@@ -148,17 +149,18 @@ interface ScheduleTemplate {
 }
 
 const STUDIO_TEAM: ArboxStaffMember[] = [
-  { id: 'staff-maya', name: 'Maya Cohen', role: 'instructor' },
-  { id: 'staff-dana', name: 'Dana Levy', role: 'instructor' },
-  { id: 'staff-shira', name: 'Shira Abraham', role: 'instructor' },
-  { id: 'staff-noa', name: 'Noa Barak', role: 'instructor' },
-  { id: 'staff-yael', name: 'Yael Friedman', role: 'instructor' },
+  { id: 'staff-maya', name: 'Maya Cohen', role: 'instructor', email: 'maya@demo.fitback.app' },
+  { id: 'staff-dana', name: 'Dana Levy', role: 'instructor', email: 'dana@demo.fitback.app' },
+  { id: 'staff-shira', name: 'Shira Abraham', role: 'instructor', email: 'shira@demo.fitback.app' },
+  { id: 'staff-noa', name: 'Noa Barak', role: 'instructor', email: 'noa@demo.fitback.app' },
+  { id: 'staff-yael', name: 'Yael Friedman', role: 'instructor', email: 'yael@demo.fitback.app' },
 ];
 
 const MANAGER: ArboxStaffMember = {
   id: 'staff-manager',
   name: 'Studio Manager',
   role: 'studio_manager',
+  email: 'manager@demo.fitback.app',
 };
 
 const ATTENDEE_POOL: ScheduleAttendee[] = [
@@ -367,9 +369,13 @@ export function refreshArboxConnection(
   previous?: ArboxConnection | null
 ): ArboxConnection {
   const scheduleTeam = teamFromScheduleEvents(events);
-  const team = mergeArboxTeams(connection.team, scheduleTeam);
+  const merged = mergeArboxTeams(connection.team, scheduleTeam);
+  const team = filterRemovedStudioTeam(
+    connection.clubId,
+    merged.length ? merged : connection.team
+  );
   return withLinkedInstructor(
-    { ...connection, team: team.length ? team : connection.team },
+    { ...connection, team },
     previous ?? connection
   );
 }
@@ -387,9 +393,9 @@ function connectDemoArboxAccount(
   prev?: StoredArboxState | null,
   previousConnection?: ArboxConnection
 ): ConnectResult {
-  const demoTeam = [MANAGER, ...STUDIO_TEAM];
   const clubId = options?.clubId ?? 'club-maya-001';
   const clubName = options?.clubName ?? "Maya's Studio";
+  const demoTeam = filterRemovedStudioTeam(clubId, [MANAGER, ...STUDIO_TEAM]);
   const connection: ArboxConnection = withLinkedInstructor(
     {
       connected: true,
@@ -731,6 +737,58 @@ export function setAutoFeedbackEnabled(enabled: boolean): ArboxConnection | null
   const prev = loadState();
   if (!prev) return null;
   const connection = { ...prev.connection, autoFeedbackEnabled: enabled };
+  saveState({ ...prev, connection });
+  return connection;
+}
+
+/** Drop a staff row from the persisted studio team (local / demo roster). */
+export function removeArboxTeamMember(staffId: string): ArboxConnection | null {
+  const prev = loadState();
+  if (!prev?.connection.connected) return null;
+  const nextTeam = prev.connection.team.filter((member) => member.id !== staffId);
+  if (nextTeam.length === prev.connection.team.length) {
+    return prev.connection;
+  }
+  const connection: ArboxConnection = {
+    ...prev.connection,
+    team: nextTeam,
+  };
+  saveState({ ...prev, connection });
+  return connection;
+}
+
+/** Update name/email on a persisted studio team member. */
+export function updateArboxTeamMember(
+  staffId: string,
+  patch: { name?: string; email?: string }
+): ArboxConnection | null {
+  const prev = loadState();
+  if (!prev?.connection.connected) return null;
+  let changed = false;
+  const nextTeam = prev.connection.team.map((member) => {
+    if (member.id !== staffId) return member;
+    const next = { ...member };
+    if (patch.name !== undefined) {
+      const name = patch.name.trim();
+      if (name && name !== member.name) {
+        next.name = name;
+        changed = true;
+      }
+    }
+    if (patch.email !== undefined) {
+      const email = patch.email.trim().toLowerCase();
+      if (email !== (member.email ?? '')) {
+        next.email = email || undefined;
+        changed = true;
+      }
+    }
+    return next;
+  });
+  if (!changed) return prev.connection;
+  const connection: ArboxConnection = {
+    ...prev.connection,
+    team: nextTeam,
+  };
   saveState({ ...prev, connection });
   return connection;
 }

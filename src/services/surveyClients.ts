@@ -8,6 +8,7 @@ export interface SurveyClient {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   createdAt: string;
 }
 
@@ -71,11 +72,16 @@ export function subscribeClients(onChange: () => void): () => void {
   };
 }
 
-export function addSurveyClient(input: { name: string; phone: string }): SurveyClient {
+export function addSurveyClient(input: {
+  name: string;
+  phone?: string;
+  email?: string;
+}): SurveyClient {
   const client: SurveyClient = {
     id: createId(),
     name: input.name.trim(),
-    phone: input.phone.trim(),
+    phone: input.phone?.trim() ?? '',
+    email: input.email?.trim() ? input.email.trim().toLowerCase() : undefined,
     createdAt: new Date().toISOString(),
   };
   const next = [client, ...loadSurveyClients()];

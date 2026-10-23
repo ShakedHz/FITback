@@ -1,7 +1,10 @@
 import type { ArboxConnection, ScheduleAttendee, ScheduleEvent } from '@/data/scheduleTypes';
 import { getEventEndTime, isOwnEvent } from '@/data/scheduleTypes';
 import type { TranslateFn } from '@/i18n/LocaleContext';
+import { isValidEmail } from '@/utils/email';
 import { isValidPhone } from '@/utils/sms';
+
+export type FeedbackDeliveryChannel = 'whatsapp' | 'email';
 
 export interface FeedbackScope {
   arboxConnection?: ArboxConnection | null;
@@ -23,6 +26,7 @@ export function isEventInFeedbackScope(
 }
 
 const AUTO_KEY = 'movana_auto_class_feedback_v1';
+const CHANNEL_KEY = 'movana_feedback_channel_v1';
 const DISMISS_KEY = 'movana_class_feedback_dismiss_v1';
 export const FEEDBACK_CHECK_EVENT = 'movana-feedback-check';
 
@@ -40,8 +44,33 @@ export function saveAutoClassFeedbackEnabled(enabled: boolean): void {
   localStorage.setItem(AUTO_KEY, enabled ? '1' : '0');
 }
 
+export function loadFeedbackDeliveryChannel(): FeedbackDeliveryChannel {
+  try {
+    const raw = localStorage.getItem(CHANNEL_KEY);
+    if (raw === 'email') return 'email';
+    return 'whatsapp';
+  } catch {
+    return 'whatsapp';
+  }
+}
+
+export function saveFeedbackDeliveryChannel(channel: FeedbackDeliveryChannel): void {
+  localStorage.setItem(CHANNEL_KEY, channel);
+}
+
 export function getAttendeesWithPhone(event: ScheduleEvent): ScheduleAttendee[] {
   return (event.attendees ?? []).filter((a) => a.phone && isValidPhone(a.phone));
+}
+
+export function getAttendeesWithEmail(event: ScheduleEvent): ScheduleAttendee[] {
+  return (event.attendees ?? []).filter((a) => a.email && isValidEmail(a.email));
+}
+
+export function getFeedbackRecipients(
+  event: ScheduleEvent,
+  channel: FeedbackDeliveryChannel
+): ScheduleAttendee[] {
+  return channel === 'email' ? getAttendeesWithEmail(event) : getAttendeesWithPhone(event);
 }
 
 export function isClassStarted(event: ScheduleEvent, now = new Date()): boolean {
@@ -114,21 +143,26 @@ export function isPublicSurveyOrigin(origin?: string): boolean {
   }
 }
 
-/** Class ended recently, has phones, survey not sent yet. */
-export function needsClassFeedback(event: ScheduleEvent, now = new Date()): boolean {
+/** Class ended recently, has recipients for the chosen channel, survey not sent yet. */
+export function needsClassFeedback(
+  event: ScheduleEvent,
+  now = new Date(),
+  channel: FeedbackDeliveryChannel = 'whatsapp'
+): boolean {
   if (event.feedbackSentAt) return false;
   if (!classEndedRecently(event, now)) return false;
-  return getAttendeesWithPhone(event).length > 0;
+  return getFeedbackRecipients(event, channel).length > 0;
 }
 
 export function findPendingFeedbackEvents(
   events: ScheduleEvent[],
   now = new Date(),
-  scope?: FeedbackScope
+  scope?: FeedbackScope,
+  channel: FeedbackDeliveryChannel = 'whatsapp'
 ): ScheduleEvent[] {
   return events
     .filter((ev) => isEventInFeedbackScope(ev, scope))
-    .filter((ev) => needsClassFeedback(ev, now))
+    .filter((ev) => needsClassFeedback(ev, now, channel))
     .sort((a, b) => a.start.localeCompare(b.start));
 }
 
@@ -154,6 +188,25 @@ export function buildClassFeedbackMessage(event: ScheduleEvent, t: TranslateFn):
     });
   }
   return t('schedule.whatsappMessage', { title: event.title, url: surveyUrl });
+}
+
+export function buildClassFeedbackEmailSubject(event: ScheduleEvent, t: TranslateFn): string {
+  return t('schedule.emailSubject', { title: event.title });
+}
+
+export function buildClassFeedbackEmailHtml(event: ScheduleEvent, t: TranslateFn): string {
+  const surveyUrl = buildClassSurveyUrl(event);
+  const instructor = event.instructor?.trim();
+  const greeting = instructor
+    ? t('schedule.emailBodyWithInstructor', {
+        title: event.title,
+        instructor,
+      })
+    : t('schedule.emailBody', { title: event.title });
+  const linkLabel = t('schedule.emailLinkLabel');
+  const escape = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return `<p>${escape(greeting)}</p><p><a href="${surveyUrl}">${escape(linkLabel)}</a></p><p style="color:#6b7280;font-size:12px;word-break:break-all;">${escape(surveyUrl)}</p>`;
 }
 
 export function hasLiveArboxMessaging(): boolean {

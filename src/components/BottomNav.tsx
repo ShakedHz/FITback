@@ -6,6 +6,7 @@ import {
   Library,
   User,
 } from 'lucide-react';
+import { useAuth } from '@/auth/AuthContext';
 import { useI18n } from '@/i18n';
 import './BottomNav.css';
 
@@ -16,15 +17,12 @@ type Tab = {
   matchPrefix?: boolean;
 };
 
-const tabs: Tab[] = [
-  { path: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.home' },
-  { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule' },
-  { path: '/library', icon: Library, labelKey: 'nav.library' },
-  { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', matchPrefix: true },
-  { path: '/profile', icon: User, labelKey: 'nav.profile' },
-];
-
-function NavTab({ path, icon: Icon, labelKey, matchPrefix }: Tab) {
+function NavTab({
+  path,
+  icon: Icon,
+  labelKey,
+  matchPrefix,
+}: Tab) {
   const location = useLocation();
   const { t } = useI18n();
   const current = location.pathname;
@@ -32,13 +30,16 @@ function NavTab({ path, icon: Icon, labelKey, matchPrefix }: Tab) {
   return (
     <NavLink
       to={path}
-      className={({ isActive }) => {
+      className={() => {
         let active = matchPrefix
           ? current === path || current.startsWith(`${path}/`)
-          : isActive;
-        if (path === '/profile' && (current === '/settings' || current.startsWith('/studio'))) {
+          : current === path;
+
+        // Profile owns settings + team management, but not the manager Home overview.
+        if (path === '/profile' && (current === '/settings' || current === '/studio')) {
           active = true;
         }
+
         return `nav-item ${active ? 'active' : ''}`;
       }}
     >
@@ -50,6 +51,7 @@ function NavTab({ path, icon: Icon, labelKey, matchPrefix }: Tab) {
 
 export function BottomNav() {
   const location = useLocation();
+  const { isActiveStudioManager } = useAuth();
   const path = location.pathname;
   const hidden =
     path === '/' ||
@@ -61,6 +63,18 @@ export function BottomNav() {
     path.startsWith('/join');
 
   if (hidden) return null;
+
+  const tabs: Tab[] = [
+    {
+      path: isActiveStudioManager ? '/studio/overview' : '/dashboard',
+      icon: LayoutDashboard,
+      labelKey: 'nav.home',
+    },
+    { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule' },
+    { path: '/library', icon: Library, labelKey: 'nav.library' },
+    { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', matchPrefix: true },
+    { path: '/profile', icon: User, labelKey: 'nav.profile' },
+  ];
 
   return (
     <nav className="bottom-nav">
