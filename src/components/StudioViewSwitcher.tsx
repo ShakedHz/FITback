@@ -175,9 +175,11 @@ function StudioSetupActions({
 export function StudioViewSwitcher({
   memberships,
   stayOnPage = false,
+  showSetup = true,
 }: {
   memberships: StudioMembership[];
   stayOnPage?: boolean;
+  showSetup?: boolean;
 }) {
   const location = useLocation();
   const { user, switchStudioView } = useAuth();
@@ -189,6 +191,7 @@ export function StudioViewSwitcher({
     stayOnPage || location.pathname === '/settings' || location.pathname === '/profile';
 
   if (memberships.length === 0) {
+    if (!showSetup) return null;
     return (
       <div className="studio-view-switcher">
         <p className="studio-view-switcher__lead">{t('settings.noStudioYet')}</p>
@@ -242,10 +245,7 @@ export function StudioViewSwitcher({
         </>
       ) : null}
 
-      <details className="studio-view-switcher__add">
-        <summary>{t('studio.addStudio')}</summary>
-        <StudioSetupActions compact stayOnPage={keepCurrentPage} />
-      </details>
+      {showSetup && <StudioSetupActions compact stayOnPage={keepCurrentPage} />}
     </div>
   );
 }

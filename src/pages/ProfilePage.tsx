@@ -5,7 +5,6 @@ import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
 import { IconButton, IconToolbar } from '@/components/IconToolbar';
-import { StudioViewSwitcher } from '@/components/StudioViewSwitcher';
 import type { StudioRole } from '@/data/scheduleTypes';
 import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
 import { instructorBio, trainingLabel, useI18n } from '@/i18n';
@@ -116,6 +115,15 @@ export function ProfilePage() {
             {roleLabel(activeStudio.role, t)}
           </p>
         )}
+        {(user?.memberships.length ?? 0) > 1 && (
+          <button
+            type="button"
+            className="profile-switch-view"
+            onClick={() => navigate('/settings')}
+          >
+            {t('profile.switchViewInSettings')}
+          </button>
+        )}
 
         {bio && (
           <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 12, lineHeight: 1.5 }}>
@@ -147,15 +155,6 @@ export function ProfilePage() {
           </div>
         )}
       </div>
-
-      <section className="profile-view-section" aria-labelledby="profile-switch-view-title">
-        <h2 id="profile-switch-view-title" className="profile-view-section__label">
-          {t('settings.switchView')}
-        </h2>
-        <div className="card profile-view-section__card">
-          <StudioViewSwitcher memberships={user?.memberships ?? []} />
-        </div>
-      </section>
 
       <div className="stat-grid" style={{ marginBottom: 20 }}>
         {stats.map(({ icon: Icon, value, label }) => (
