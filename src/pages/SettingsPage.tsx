@@ -83,9 +83,9 @@ export function SettingsPage() {
         <p className="page-subtitle">{user?.email}</p>
       </header>
 
-      <p className="settings-section__label">{t('settings.switchView')}</p>
+      <p className="settings-section__label">{t('settings.studio')}</p>
       <div className="card settings-group settings-view">
-        <StudioViewSwitcher memberships={memberships} stayOnPage />
+        <StudioViewSwitcher memberships={memberships} stayOnPage showSetup />
 
         {memberships.length > 0 && (
           <div className="settings-studio__links">
