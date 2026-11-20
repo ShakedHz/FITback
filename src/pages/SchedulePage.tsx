@@ -14,7 +14,6 @@ import {
   Trash2,
   Clock,
   CalendarPlus,
-  MessageSquare,
   BookOpen,
   Unlink,
 } from 'lucide-react';
@@ -454,7 +453,6 @@ export function SchedulePage() {
             {instructorNameFor(ev) && <span>· {instructorNameFor(ev)}</span>}
             {own && <span className="schedule-card__tag schedule-card__tag--own">{t('common.you')}</span>}
             {otherInstructor && <span className="schedule-card__tag schedule-card__tag--other">{t('schedule.viewOnly')}</span>}
-            {ev.feedbackSentAt && <span className="schedule-card__tag schedule-card__tag--sent">{t('schedule.surveySent')}</span>}
           </div>
           {showPlanStatus && (
             <div
@@ -894,18 +892,6 @@ export function SchedulePage() {
                   <div className="schedule-sheet__row">
                     <Users size={16} />
                     <span>{t('schedule.enrolledOf', { enrolled: selectedEvent.enrolled, capacity: selectedEvent.capacity })}</span>
-                  </div>
-                )}
-                {selectedEvent.feedbackSentAt && (
-                  <div className="schedule-sheet__row">
-                    <MessageSquare size={16} />
-                    <span>
-                      {t('schedule.surveySentAt', {
-                        when: new Date(selectedEvent.feedbackSentAt).toLocaleString(dateLocale, {
-                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                        }),
-                      })}
-                    </span>
                   </div>
                 )}
                 {!canEdit && (

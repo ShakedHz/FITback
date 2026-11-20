@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Users, RefreshCw, LogOut, Camera, Settings } from 'lucide-react';
+import { LogOut, Camera } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
-import { IconButton, IconToolbar } from '@/components/IconToolbar';
+import { ProfileSettings } from '@/components/ProfileSettings';
 import type { StudioRole } from '@/data/scheduleTypes';
 import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
 import { instructorBio, trainingLabel, useI18n } from '@/i18n';
@@ -38,11 +38,6 @@ export function ProfilePage() {
     ? instructorBio(instructor.specialties, t)
     : instructor.bio;
 
-  const stats = [
-    { icon: BookOpen, value: instructor.lessonsCount, label: t('profile.lessons') },
-    { icon: Users, value: instructor.studentsCount, label: t('profile.students') },
-    { icon: RefreshCw, value: `${instructor.retention}%`, label: t('profile.retention') },
-  ];
 
   const openPicker = () => {
     setAvatarError(null);
@@ -68,18 +63,6 @@ export function ProfilePage() {
 
   return (
     <div className="page fade-in">
-      <div className="page-toolbar profile-toolbar">
-        <span aria-hidden />
-        <IconToolbar>
-          <IconButton
-            aria-label={t('profile.settings')}
-            onClick={() => navigate('/settings')}
-          >
-            <Settings size={18} />
-          </IconButton>
-        </IconToolbar>
-      </div>
-
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div className="profile-avatar">
           <button
@@ -115,15 +98,6 @@ export function ProfilePage() {
             {roleLabel(activeStudio.role, t)}
           </p>
         )}
-        {(user?.memberships.length ?? 0) > 1 && (
-          <button
-            type="button"
-            className="profile-switch-view"
-            onClick={() => navigate('/settings')}
-          >
-            {t('profile.switchViewInSettings')}
-          </button>
-        )}
 
         {bio && (
           <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 12, lineHeight: 1.5 }}>
@@ -156,23 +130,9 @@ export function ProfilePage() {
         )}
       </div>
 
-      <div className="stat-grid" style={{ marginBottom: 20 }}>
-        {stats.map(({ icon: Icon, value, label }) => (
-          <div key={label} className="stat-box">
-            <Icon size={18} color="var(--color-primary-bright)" style={{ marginBottom: 4 }} />
-            <div className="stat-value" style={{ fontSize: 18 }}>{value}</div>
-            <div className="stat-label">{label}</div>
-          </div>
-        ))}
-      </div>
+      <ProfileSettings />
 
       <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button
-          className="btn btn-secondary"
-          onClick={() => navigate('/settings')}
-        >
-          <Settings size={18} /> {t('profile.settings')}
-        </button>
         <button
           className="btn btn-ghost"
           onClick={() => { logout(); navigate('/'); }}

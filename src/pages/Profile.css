@@ -2,6 +2,21 @@
   margin-bottom: 4px;
 }
 
+.profile-view-section {
+  margin-bottom: 20px;
+}
+
+.profile-view-section__label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.profile-view-section__card {
+  padding: 14px 12px;
+}
+
 .profile-avatar {
   position: relative;
   width: 88px;

@@ -1,18 +1,14 @@
 import { useMemo } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
-  Star,
   Package,
   Users,
   Calendar,
   Link2,
-  BarChart3,
   Library,
 } from 'lucide-react';
-import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
-import { resolveOverallAnalytics } from '@/data/lessonAnalytics';
 import {
   toDateKey,
   getEventDateKey,
@@ -26,7 +22,6 @@ import './Dashboard.css';
 
 const QUICK_ACTIONS = [
   { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule', color: 'var(--color-primary-bright)' },
-  { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', color: '#34d399' },
   { path: '/library', icon: Library, labelKey: 'nav.library', color: '#60a5fa' },
 ] as const;
 
@@ -50,8 +45,7 @@ function formatTodayDate(dateLocale: string): string {
 }
 
 export function DashboardPage() {
-  const { isActiveStudioManager } = useAuth();
-  const { instructor, scheduleEvents, arboxConnection, feedbackResponses } = useApp();
+  const { instructor, scheduleEvents, arboxConnection } = useApp();
   const navigate = useNavigate();
   const { t, dateLocale } = useI18n();
 
@@ -60,11 +54,6 @@ export function DashboardPage() {
     () => scheduleEvents.filter((e) => getEventDateKey(e) === todayKey),
     [scheduleEvents, todayKey]
   );
-
-  const ratingsSummary = useMemo(() => {
-    if (feedbackResponses.length === 0) return null;
-    return resolveOverallAnalytics(instructor.specialties[0] ?? 'pilates', feedbackResponses);
-  }, [instructor.specialties, feedbackResponses]);
 
   const tagline = useMemo(() => {
     if (todayEvents.length > 0) {
@@ -77,10 +66,6 @@ export function DashboardPage() {
     }
     return t('dashboard.getStarted');
   }, [todayEvents.length, instructor.lessonsCount, t]);
-
-  if (isActiveStudioManager) {
-    return <Navigate to="/studio/overview" replace />;
-  }
 
   return (
     <div className="page fade-in dashboard">
@@ -100,15 +85,6 @@ export function DashboardPage() {
 
       <section className="dashboard-block">
         <div className="dashboard-stats">
-          <div className="dashboard-stats__item">
-            <Star size={14} color="#fbbf24" fill="#fbbf24" />
-            <span className="dashboard-stats__value">
-              {ratingsSummary && ratingsSummary.responseCount > 0
-                ? ratingsSummary.avgRating
-                : '—'}
-            </span>
-            <span className="dashboard-stats__label">{t('dashboard.rating')}</span>
-          </div>
           <div className="dashboard-stats__item">
             <Package size={14} color="var(--color-primary-bright)" />
             <span className="dashboard-stats__value">{instructor.lessonsCount}</span>

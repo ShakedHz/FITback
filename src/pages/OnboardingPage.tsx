@@ -9,17 +9,13 @@ import './Auth.css';
 
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const { user, isReady, isAuthenticated, updateProfileDetails, isActiveStudioManager } = useAuth();
+  const { user, isReady, isAuthenticated, updateProfileDetails } = useAuth();
   const { t } = useI18n();
   const [specialties, setSpecialties] = useState<TrainingType[]>(user?.specialties ?? []);
   const [error, setError] = useState<string | null>(null);
 
   if (isReady && !isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (isReady && isActiveStudioManager) {
-    return <Navigate to="/studio" replace />;
   }
 
   if (isReady && canAccessApp(user)) {

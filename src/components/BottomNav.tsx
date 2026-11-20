@@ -1,18 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  BarChart3,
-  Calendar,
-  Library,
-  User,
-} from 'lucide-react';
-import { useAuth } from '@/auth/AuthContext';
+import { Calendar, LayoutDashboard, Library, User } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import './BottomNav.css';
 
 type Tab = {
   path: string;
-  icon: typeof LayoutDashboard;
+  icon: typeof Calendar;
   labelKey: string;
   matchPrefix?: boolean;
 };
@@ -35,11 +28,6 @@ function NavTab({
           ? current === path || current.startsWith(`${path}/`)
           : current === path;
 
-        // Profile owns settings + team management, but not the manager Home overview.
-        if (path === '/profile' && (current === '/settings' || current === '/studio')) {
-          active = true;
-        }
-
         return `nav-item ${active ? 'active' : ''}`;
       }}
     >
@@ -51,28 +39,20 @@ function NavTab({
 
 export function BottomNav() {
   const location = useLocation();
-  const { isActiveStudioManager } = useAuth();
   const path = location.pathname;
   const hidden =
     path === '/' ||
     path === '/login' ||
     path === '/register' ||
     path === '/onboarding' ||
-    path.startsWith('/feedback') ||
-    path.startsWith('/auth/') ||
-    path.startsWith('/join');
+    path.startsWith('/auth/');
 
   if (hidden) return null;
 
   const tabs: Tab[] = [
-    {
-      path: isActiveStudioManager ? '/studio/overview' : '/dashboard',
-      icon: LayoutDashboard,
-      labelKey: 'nav.home',
-    },
+    { path: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.home' },
     { path: '/schedule', icon: Calendar, labelKey: 'nav.schedule' },
-    { path: '/library', icon: Library, labelKey: 'nav.library' },
-    { path: '/analytics', icon: BarChart3, labelKey: 'nav.ratings', matchPrefix: true },
+    { path: '/library', icon: Library, labelKey: 'nav.library', matchPrefix: true },
     { path: '/profile', icon: User, labelKey: 'nav.profile' },
   ];
 

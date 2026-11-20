@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PenLine, LayoutTemplate, Sparkles, ChevronRight } from 'lucide-react';
+import { PenLine, LayoutTemplate, ChevronRight } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { TemplatePicker } from '@/components/TemplatePicker';
 import type { Lesson } from '@/data/mockData';
@@ -62,16 +62,6 @@ export function CreateLessonPage() {
           <ChevronRight className="rtl-flip create-option__chevron" size={18} />
         </button>
 
-        <button type="button" className="create-option create-option--highlight" onClick={() => navigate('/create/ai')}>
-          <span className="create-option__icon" style={{ background: '#34d39922', color: '#34d399' }}>
-            <Sparkles size={22} />
-          </span>
-          <span className="create-option__body">
-            <span className="create-option__title">{t('create.aiTitle')}</span>
-            <span className="create-option__desc">{t('create.aiDesc')}</span>
-          </span>
-          <ChevronRight className="rtl-flip create-option__chevron" size={18} />
-        </button>
       </div>
       {showTemplatePicker && (
         <TemplatePicker

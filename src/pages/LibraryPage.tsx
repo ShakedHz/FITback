@@ -24,7 +24,6 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
-  Sparkles,
   Star,
   Trash2,
   X,
@@ -53,14 +52,6 @@ const START_OPTIONS = [
     descKey: 'create.templateDesc',
     path: '',
     color: '#fbbf24',
-  },
-  {
-    id: 'ai',
-    icon: Sparkles,
-    titleKey: 'create.aiTitle',
-    descKey: 'create.aiDesc',
-    path: '/create/ai?from=library',
-    color: '#34d399',
   },
 ] as const;
 

@@ -43,13 +43,6 @@ function destinationFor(user: AuthUser | null | undefined, from?: string): strin
   if (!canAccessApp(user)) return '/onboarding';
   const path = safeReturnPath(from);
   if (path) return path;
-  if (
-    user?.role === 'studio_manager' &&
-    !user.arboxLinked &&
-    (user.memberships?.length ?? 0) === 0
-  ) {
-    return '/studio';
-  }
   return '/dashboard';
 }
 
@@ -439,23 +432,6 @@ export function AuthPage({
         </button>
       </form>
 
-      {mode === 'login' && (
-        <button
-          type="button"
-          className="auth-client-link"
-          onClick={() => navigate('/register/manager')}
-        >
-          {t('auth.signupAsManager')}
-        </button>
-      )}
-
-      <button
-        type="button"
-        className="auth-client-link"
-        onClick={() => navigate('/feedback/demo')}
-      >
-        {t('auth.clientFeedback')}
-      </button>
     </div>
   );
 }

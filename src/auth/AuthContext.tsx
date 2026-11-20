@@ -244,8 +244,8 @@ function upsertOAuthAccount(input: {
   return persistAuth(account);
 }
 
-export function homePathForMembership(membership: StudioMembership): string {
-  return membership.role === 'studio_manager' ? '/studio/overview' : '/dashboard';
+export function homePathForMembership(_membership: StudioMembership): string {
+  return '/dashboard';
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
