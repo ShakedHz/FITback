@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Camera } from 'lucide-react';
+import { LogOut, Camera, Settings } from 'lucide-react';
+import { IconButton, IconToolbar } from '@/components/IconToolbar';
 import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
-import { ProfileSettings } from '@/components/ProfileSettings';
 import type { StudioRole } from '@/data/scheduleTypes';
 import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
 import { instructorBio, trainingLabel, useI18n } from '@/i18n';
@@ -63,6 +63,15 @@ export function ProfilePage() {
 
   return (
     <div className="page fade-in">
+      <div className="page-toolbar profile-toolbar">
+        <span aria-hidden />
+        <IconToolbar>
+          <IconButton aria-label={t('profile.settings')} onClick={() => navigate('/settings')}>
+            <Settings size={18} />
+          </IconButton>
+        </IconToolbar>
+      </div>
+
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <div className="profile-avatar">
           <button
@@ -130,11 +139,12 @@ export function ProfilePage() {
         )}
       </div>
 
-      <ProfileSettings />
-
       <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button className="btn btn-ghost" onClick={() => navigate('/settings')}>
+          <Settings size={18} /> {t('profile.settings')}
+        </button>
         <button
-          className="btn btn-ghost"
+          className="btn btn-destructive"
           onClick={() => { logout(); navigate('/'); }}
         >
           <LogOut size={18} /> {t('profile.logout')}

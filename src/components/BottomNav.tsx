@@ -28,6 +28,8 @@ function NavTab({
           ? current === path || current.startsWith(`${path}/`)
           : current === path;
 
+        if (path === '/profile' && current === '/settings') active = true;
+
         return `nav-item ${active ? 'active' : ''}`;
       }}
     >

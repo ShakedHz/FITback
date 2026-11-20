@@ -1,87 +1,76 @@
-/* Pastel accent palettes — baby pink is the default in index.css :root. */
+/*
+ * Accent palettes — saturated enough for white text on fills (≥ 4.5:1).
+ *   --color-primary         fill for buttons, selected states
+ *   --color-primary-deep    pressed fill
+ *   --color-primary-bright  accent used as text / icons on the page background
+ *   --color-primary-rgb     same hue, used for soft tints
+ * Rose (pink) is the default in index.css :root.
+ */
 
 [data-accent='pink'] {
-  --color-primary: #f9a8d4;
-  --color-primary-deep: #f472b6;
-  --color-primary-bright: #ec4899;
-  --color-primary-rgb: 249, 168, 212;
-  --color-ring: #fbcfe8;
+  --color-primary: #d6246e;
+  --color-primary-deep: #b51a5b;
+  --color-primary-bright: #c21c62;
+  --color-primary-rgb: 214, 36, 110;
+  --color-ring: rgba(214, 36, 110, 0.45);
 }
-
 [data-theme='dark'][data-accent='pink'] {
-  --color-primary: #fbcfe8;
-  --color-primary-deep: #f9a8d4;
-  --color-primary-bright: #fce7f3;
-  --color-primary-rgb: 251, 207, 232;
-  --color-on-primary: #1a1228;
-  --color-ring: #fce7f3;
+  --color-primary-bright: #ff7aae;
+  --color-primary-rgb: 255, 122, 174;
+  --color-ring: rgba(255, 122, 174, 0.55);
 }
 
 [data-accent='purple'] {
-  --color-primary: #c4b5fd;
-  --color-primary-deep: #a78bfa;
-  --color-primary-bright: #8b5cf6;
-  --color-primary-rgb: 196, 181, 253;
-  --color-ring: #ddd6fe;
+  --color-primary: #6d28d9;
+  --color-primary-deep: #5b21b6;
+  --color-primary-bright: #6d28d9;
+  --color-primary-rgb: 109, 40, 217;
+  --color-ring: rgba(109, 40, 217, 0.45);
 }
-
 [data-theme='dark'][data-accent='purple'] {
-  --color-primary: #ddd6fe;
-  --color-primary-deep: #c4b5fd;
-  --color-primary-bright: #ede9fe;
-  --color-primary-rgb: 221, 214, 254;
-  --color-on-primary: #1a1228;
-  --color-ring: #ede9fe;
+  --color-primary: #7c3aed;
+  --color-primary-bright: #b49cff;
+  --color-primary-rgb: 180, 156, 255;
+  --color-ring: rgba(180, 156, 255, 0.55);
 }
 
 [data-accent='sky'] {
-  --color-primary: #93c5fd;
-  --color-primary-deep: #60a5fa;
-  --color-primary-bright: #3b82f6;
-  --color-primary-rgb: 147, 197, 253;
-  --color-ring: #bae6fd;
+  --color-primary: #0066cc;
+  --color-primary-deep: #0052a3;
+  --color-primary-bright: #0066cc;
+  --color-primary-rgb: 0, 102, 204;
+  --color-ring: rgba(0, 102, 204, 0.45);
 }
-
 [data-theme='dark'][data-accent='sky'] {
-  --color-primary: #bae6fd;
-  --color-primary-deep: #93c5fd;
-  --color-primary-bright: #e0f2fe;
-  --color-primary-rgb: 186, 230, 253;
-  --color-on-primary: #1a1228;
-  --color-ring: #e0f2fe;
+  --color-primary: #0a72e0;
+  --color-primary-bright: #5eb0ff;
+  --color-primary-rgb: 94, 176, 255;
+  --color-ring: rgba(94, 176, 255, 0.55);
 }
 
 [data-accent='teal'] {
-  --color-primary: #5eead4;
-  --color-primary-deep: #2dd4bf;
-  --color-primary-bright: #14b8a6;
-  --color-primary-rgb: 94, 234, 212;
-  --color-ring: #99f6e4;
+  --color-primary: #0b7a70;
+  --color-primary-deep: #08635b;
+  --color-primary-bright: #0b7a70;
+  --color-primary-rgb: 11, 122, 112;
+  --color-ring: rgba(11, 122, 112, 0.45);
 }
-
 [data-theme='dark'][data-accent='teal'] {
-  --color-primary: #99f6e4;
-  --color-primary-deep: #5eead4;
-  --color-primary-bright: #ccfbf1;
-  --color-primary-rgb: 153, 246, 228;
-  --color-on-primary: #1a1228;
-  --color-ring: #ccfbf1;
+  --color-primary-bright: #4fd1c1;
+  --color-primary-rgb: 79, 209, 193;
+  --color-ring: rgba(79, 209, 193, 0.55);
 }
 
 [data-accent='amber'] {
-  --color-primary: #fde68a;
-  --color-primary-deep: #fcd34d;
-  --color-primary-bright: #ca8a04;
-  --color-primary-rgb: 253, 230, 138;
-  --color-on-primary: #1a1228;
-  --color-ring: #fef9c3;
+  --color-primary: #b25000;
+  --color-primary-deep: #8f4000;
+  --color-primary-bright: #b25000;
+  --color-primary-rgb: 178, 80, 0;
+  --color-on-primary: #ffffff;
+  --color-ring: rgba(178, 80, 0, 0.45);
 }
-
 [data-theme='dark'][data-accent='amber'] {
-  --color-primary: #fef08a;
-  --color-primary-deep: #fde047;
-  --color-primary-bright: #fef9c3;
-  --color-primary-rgb: 254, 240, 138;
-  --color-on-primary: #1a1228;
-  --color-ring: #fefce8;
+  --color-primary-bright: #ffb15c;
+  --color-primary-rgb: 255, 177, 92;
+  --color-ring: rgba(255, 177, 92, 0.55);
 }

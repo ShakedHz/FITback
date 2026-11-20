@@ -6,6 +6,7 @@ import { applyDocumentAccent, applyDocumentTheme, readStoredAccent, readStoredTh
 import './index.css';
 import './theme/accent.css';
 import './iphone.css';
+import './theme/ios.css';
 
 applyDocumentLocale(readStoredLocale());
 applyDocumentTheme(readStoredTheme());

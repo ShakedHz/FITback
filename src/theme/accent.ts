@@ -7,11 +7,11 @@ export const ACCENT_OPTIONS: AccentColor[] = ['pink', 'purple', 'sky', 'teal', '
 
 /** Preview swatch for the settings picker (not theme-dependent). */
 export const ACCENT_SWATCH: Record<AccentColor, string> = {
-  pink: '#fbcfe8',
-  purple: '#ddd6fe',
-  sky: '#bae6fd',
-  teal: '#99f6e4',
-  amber: '#fef08a',
+  pink: '#d6246e',
+  purple: '#6d28d9',
+  sky: '#0066cc',
+  teal: '#0b7a70',
+  amber: '#b25000',
 };
 
 export function isAccentColor(value: string | null): value is AccentColor {

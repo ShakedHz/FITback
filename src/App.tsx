@@ -14,6 +14,7 @@ import { ExerciseLibraryPage } from '@/pages/ExerciseLibraryPage';
 import { AddExercisePage } from '@/pages/AddExercisePage';
 import { SchedulePage } from '@/pages/SchedulePage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -43,6 +44,8 @@ function AppLayout() {
           <Route path="/exercises" element={<Guard><ExerciseLibraryPage /></Guard>} />
           <Route path="/exercises/new" element={<Guard><AddExercisePage /></Guard>} />
           <Route path="/exercises/:exerciseId/edit" element={<Guard><AddExercisePage /></Guard>} />
+          <Route path="/settings" element={<Guard><SettingsPage /></Guard>} />
+          <Route path="/studio" element={<Navigate to="/settings" replace />} />
           <Route path="/profile" element={<Guard><ProfilePage /></Guard>} />
 
           <Route path="/home" element={<Navigate to="/dashboard" replace />} />
