@@ -4,18 +4,22 @@ import { addSurveyClient, removeSurveyClient, type SurveyClient } from '@/servic
 import { isValidEmail, normalizeEmail } from '@/utils/email';
 import { isValidPhone } from '@/utils/sms';
 import { useI18n } from '@/i18n';
+import './Schedule.css';
 
 const SEARCH_FROM = 8;
 
 interface ClientPickerProps {
   clients: SurveyClient[];
-  isSelected: (client: SurveyClient) => boolean;
-  onToggle: (client: SurveyClient) => void;
+  isSelected?: (client: SurveyClient) => boolean;
+  onToggle?: (client: SurveyClient) => void;
   onAdded?: (client: SurveyClient) => void;
   onRemoved?: (client: SurveyClient) => void;
   /** Off when the roster is owned by Arbox and can't be edited here. */
   canManage?: boolean;
   emptyLabel?: string;
+  /** When false, the list is view/manage only — no class checkboxes. */
+  selectable?: boolean;
+  className?: string;
 }
 
 export function ClientPicker({
@@ -26,6 +30,8 @@ export function ClientPicker({
   onRemoved,
   canManage = true,
   emptyLabel,
+  selectable = true,
+  className = '',
 }: ClientPickerProps) {
   const { t } = useI18n();
   const [adding, setAdding] = useState(false);
@@ -100,23 +106,23 @@ export function ClientPicker({
       }
     }
 
-    onAdded?.(
-      addSurveyClient({
-        name: trimmedName,
-        phone: phoneOk ? trimmedPhone : undefined,
-        email: emailOk ? trimmedEmail : undefined,
-      })
-    );
+    const client = addSurveyClient({
+      name: trimmedName,
+      phone: phoneOk ? trimmedPhone : undefined,
+      email: emailOk ? trimmedEmail : undefined,
+    });
+    onAdded?.(client);
     closeForm();
   };
 
   const remove = (client: SurveyClient) => {
+    if (!window.confirm(t('clients.deleteConfirm', { name: client.name }))) return;
     removeSurveyClient(client.id);
     onRemoved?.(client);
   };
 
   return (
-    <div className="client-picker">
+    <div className={`client-picker${className ? ` ${className}` : ''}`}>
       {clients.length > SEARCH_FROM && (
         <div className="client-picker__search">
           <Search size={15} className="client-picker__search-icon" aria-hidden />
@@ -137,24 +143,33 @@ export function ClientPicker({
       ) : (
         <ul className="client-picker__list">
           {visible.map((client) => {
-            const on = isSelected(client);
+            const on = selectable && !!isSelected?.(client);
             return (
               <li key={client.id} className={`client-row${on ? ' client-row--on' : ''}`}>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={on}
-                  className="client-row__main"
-                  onClick={() => onToggle(client)}
-                >
-                  <span className="client-row__box" aria-hidden>
-                    <Check size={13} strokeWidth={3} />
+                {selectable ? (
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={on}
+                    className="client-row__main"
+                    onClick={() => onToggle?.(client)}
+                  >
+                    <span className="client-row__box" aria-hidden>
+                      <Check size={13} strokeWidth={3} />
+                    </span>
+                    <span className="client-row__text">
+                      <span className="client-row__name">{client.name}</span>
+                      <span className="client-row__phone">{contactLabel(client)}</span>
+                    </span>
+                  </button>
+                ) : (
+                  <span className="client-row__main client-row__main--static">
+                    <span className="client-row__text">
+                      <span className="client-row__name">{client.name}</span>
+                      <span className="client-row__phone">{contactLabel(client)}</span>
+                    </span>
                   </span>
-                  <span className="client-row__text">
-                    <span className="client-row__name">{client.name}</span>
-                    <span className="client-row__phone">{contactLabel(client)}</span>
-                  </span>
-                </button>
+                )}
                 {canManage && managing && (
                   <button
                     type="button"

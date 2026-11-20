@@ -32,9 +32,10 @@ const QUICK_ACTIONS = [
 
 function getGreetingKey(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return 'dashboard.goodMorning';
-  if (hour < 17) return 'dashboard.goodAfternoon';
-  return 'dashboard.goodEvening';
+  if (hour >= 5 && hour < 12) return 'dashboard.goodMorning';
+  if (hour >= 12 && hour < 17) return 'dashboard.goodAfternoon';
+  if (hour >= 17 && hour < 22) return 'dashboard.goodEvening';
+  return 'dashboard.goodNight';
 }
 
 function getEventTime(iso: string): string {
@@ -53,7 +54,7 @@ export function DashboardPage() {
   const { isActiveStudioManager } = useAuth();
   const { instructor, scheduleEvents, arboxConnection, feedbackResponses } = useApp();
   const navigate = useNavigate();
-  const { t, dateLocale } = useI18n();
+  const { t, dateLocale, locale } = useI18n();
 
   const todayKey = toDateKey(new Date());
   const todayEvents = useMemo(
@@ -63,8 +64,12 @@ export function DashboardPage() {
 
   const ratingsSummary = useMemo(() => {
     if (feedbackResponses.length === 0) return null;
-    return resolveOverallAnalytics(instructor.specialties[0] ?? 'pilates', feedbackResponses);
-  }, [instructor.specialties, feedbackResponses]);
+    return resolveOverallAnalytics(
+      instructor.specialties[0] ?? 'pilates',
+      feedbackResponses,
+      locale
+    );
+  }, [instructor.specialties, feedbackResponses, locale]);
 
   const tagline = useMemo(() => {
     if (todayEvents.length > 0) {

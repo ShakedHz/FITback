@@ -1,0 +1,33 @@
+PODS:
+  - Capacitor (5.7.8):
+    - CapacitorCordova
+  - CapacitorApp (5.0.8):
+    - Capacitor
+  - CapacitorCordova (5.7.8)
+  - ConnectIQ (1.8.0)
+
+DEPENDENCIES:
+  - "Capacitor (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
+  - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - ConnectIQ (from `../../vendor/connectiq-ios`)
+
+EXTERNAL SOURCES:
+  Capacitor:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorApp:
+    :path: "../../node_modules/@capacitor/app"
+  CapacitorCordova:
+    :path: "../../node_modules/@capacitor/ios"
+  ConnectIQ:
+    :path: "../../vendor/connectiq-ios"
+
+SPEC CHECKSUMS:
+  Capacitor: 747aadb4fa786f460d8cd9d0557cb81440a13747
+  CapacitorApp: 102e553c3b1fdc255969c39aa19b529675690ef4
+  CapacitorCordova: 31ab98dca2ddcee051027a1afe7e8c85c82f7297
+  ConnectIQ: 74a5f15c5bd8d02729a06fee2278c1aa10d8b2f7
+
+PODFILE CHECKSUM: d72367fd745fe9ca4777998df47c87513122863f
+
+COCOAPODS: 1.12.1

@@ -286,11 +286,16 @@
 }
 
 .schedule-card {
+  --event-rgb: var(--color-primary-rgb);
+  --event-color: var(--color-primary);
+  --event-ink: color-mix(in srgb, var(--event-color) 70%, #2a1d18);
   display: flex;
   align-items: stretch;
   width: 100%;
-  background: var(--color-card);
-  border: 1px solid rgba(var(--color-primary-rgb), 0.18);
+  background:
+    linear-gradient(rgba(var(--event-rgb), 0.18), rgba(var(--event-rgb), 0.18)),
+    var(--color-card);
+  border: 1px solid rgba(var(--event-rgb), 0.35);
   border-radius: 14px;
   padding: 0;
   cursor: pointer;
@@ -300,12 +305,19 @@
   transition: border-color 0.15s;
 }
 
+[data-theme='dark'] .schedule-card {
+  --event-ink: color-mix(in srgb, var(--event-color) 55%, #ffffff);
+  background:
+    linear-gradient(rgba(var(--event-rgb), 0.2), rgba(var(--event-rgb), 0.2)),
+    var(--color-card);
+}
+
 .schedule-card:active {
-  border-color: rgba(var(--color-primary-rgb), 0.4);
+  border-color: rgba(var(--event-rgb), 0.6);
 }
 
 .schedule-card__bar {
-  width: 4px;
+  width: 5px;
   flex-shrink: 0;
 }
 
@@ -368,6 +380,17 @@
   margin-bottom: 20px;
 }
 
+.schedule-grid-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: start;
+}
+
+.schedule-grid-hint p {
+  margin: 0 0 4px;
+}
+
 .schedule-empty {
   display: flex;
   flex-direction: column;
@@ -403,7 +426,7 @@
   height: 52px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-deep));
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   border: none;
   box-shadow: 0 6px 20px rgba(var(--color-primary-rgb), 0.5);
   display: flex;
@@ -411,6 +434,10 @@
   justify-content: center;
   cursor: pointer;
   z-index: 40;
+}
+
+[data-theme='dark'] .schedule-fab {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(var(--color-primary-rgb), 0.35);
 }
 
 /* ── Sheets (portaled into .app-shell) ── */
@@ -737,8 +764,8 @@
 }
 
 .schedule-card__type {
-  font-weight: 600;
-  color: var(--color-primary-bright);
+  font-weight: 700;
+  color: var(--event-ink, var(--color-primary-bright));
 }
 
 .schedule-sheet__accent {
@@ -1012,8 +1039,8 @@
 }
 
 .schedule-card--has-plan {
-  border-color: rgba(var(--color-primary-rgb), 0.45);
-  box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.12);
+  border-color: rgba(var(--event-rgb), 0.55);
+  box-shadow: 0 0 0 1px rgba(var(--event-rgb), 0.12);
 }
 
 .schedule-card--no-plan {
@@ -1024,12 +1051,12 @@
 .schedule-card__plan {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-top: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1.3;
   text-align: start;
 }
@@ -1042,13 +1069,16 @@
 }
 
 .schedule-card__plan--yes {
-  background: rgba(var(--color-primary-rgb), 0.16);
-  color: #ddd6fe;
+  background: rgba(var(--event-rgb, var(--color-primary-rgb)), 0.3);
+  border: 1px solid rgba(var(--event-rgb, var(--color-primary-rgb)), 0.6);
+  color: var(--color-text);
 }
 
 .schedule-card__plan--yes svg {
   flex-shrink: 0;
-  color: var(--color-primary-bright);
+  color: var(--event-ink, var(--color-primary-bright));
+  width: 15px;
+  height: 15px;
 }
 
 .schedule-card__plan--no {

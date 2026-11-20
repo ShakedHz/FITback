@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { applyDocumentLocale, readStoredLocale } from '@/i18n';
 import { applyDocumentAccent, applyDocumentTheme, readStoredAccent, readStoredTheme } from '@/theme/theme';
+import { registerServiceWorker } from '@/utils/watchReminders';
 import './index.css';
 import './theme/accent.css';
 import './iphone.css';
@@ -10,6 +11,7 @@ import './iphone.css';
 applyDocumentLocale(readStoredLocale());
 applyDocumentTheme(readStoredTheme());
 applyDocumentAccent(readStoredAccent());
+void registerServiceWorker();
 
 function setAppHeight() {
   const layoutH = window.innerHeight;

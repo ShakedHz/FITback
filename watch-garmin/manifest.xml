@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!--
+  FITback for Garmin. The application id here (32 hex chars) is the same UUID the
+  iPhone companion uses in GarminBridge.swift, just without the dashes:
+  7b4c9e2a-3f51-4d68-9c07-2e5a8f1b6d34
+-->
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+  <iq:application
+      entry="FitbackApp"
+      id="7b4c9e2a3f514d689c072e5a8f1b6d34"
+      launcherIcon="@Drawables.LauncherIcon"
+      name="@Strings.AppName"
+      minApiLevel="3.1.0"
+      type="watch-app">
+    <iq:products>
+      <iq:product id="vivoactive3"/>
+      <iq:product id="vivoactive3d"/>
+      <iq:product id="vivoactive3m"/>
+      <iq:product id="vivoactive4"/>
+      <iq:product id="vivoactive4s"/>
+      <iq:product id="vivoactive5"/>
+      <iq:product id="vivoactive6"/>
+    </iq:products>
+    <iq:permissions>
+      <iq:uses-permission id="Communications"/>
+    </iq:permissions>
+    <iq:languages>
+      <iq:language>eng</iq:language>
+      <iq:language>heb</iq:language>
+    </iq:languages>
+  </iq:application>
+</iq:manifest>

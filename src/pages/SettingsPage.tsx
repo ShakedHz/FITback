@@ -1,5 +1,5 @@
-import { ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ChevronRight, Users, Watch } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import { BackButton } from '@/components/IconToolbar';
 import { StudioViewSwitcher } from '@/components/StudioViewSwitcher';
@@ -42,6 +42,7 @@ function Segmented<T extends string>({
 }
 
 export function SettingsPage() {
+  const navigate = useNavigate();
   const { t, locale, setLocale } = useI18n();
   const { preference, setPreference, accent, setAccent } = useTheme();
   const { autoClassFeedbackEnabled, setAutoClassFeedbackEnabled, feedbackDeliveryChannel, setFeedbackDeliveryChannel } =
@@ -175,6 +176,30 @@ export function SettingsPage() {
           />
         </div>
       </div>
+      <button
+        type="button"
+        className="card settings-group settings-link"
+        onClick={() => navigate('/live')}
+      >
+        <span className="settings-link__icon" aria-hidden>
+          <Watch size={18} />
+        </span>
+        <span className="settings-link__label">{t('live.settingsLink')}</span>
+        <ChevronRight className="rtl-flip settings-link__chevron" size={18} aria-hidden />
+      </button>
+
+      <p className="settings-section__label">{t('settings.studio')}</p>
+      <button
+        type="button"
+        className="card settings-group settings-link"
+        onClick={() => navigate('/clients')}
+      >
+        <span className="settings-link__icon" aria-hidden>
+          <Users size={18} />
+        </span>
+        <span className="settings-link__label">{t('profile.clients')}</span>
+        <ChevronRight className="rtl-flip settings-link__chevron" size={18} aria-hidden />
+      </button>
     </div>
   );
 }

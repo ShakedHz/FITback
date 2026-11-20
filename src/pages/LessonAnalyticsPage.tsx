@@ -46,14 +46,14 @@ export function LessonAnalyticsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getLessonById, feedbackResponses, instructor } = useApp();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [period, setPeriod] = useState<AnalyticsPeriod>('7d');
   const lesson = id ? getLessonById(id) : undefined;
 
   const analytics = useMemo(() => {
     if (!lesson) return null;
-    return resolveLessonAnalyticsForPeriod(lesson, period, feedbackResponses);
-  }, [lesson, period, feedbackResponses]);
+    return resolveLessonAnalyticsForPeriod(lesson, period, feedbackResponses, locale);
+  }, [lesson, period, feedbackResponses, locale]);
 
   if (!lesson || !analytics) {
     return (
@@ -170,31 +170,6 @@ export function LessonAnalyticsPage() {
       <div className="card" style={{ marginBottom: 16 }}>
         <RatingBars distribution={analytics.ratingDistribution} />
       </div>
-
-      <p className="section-title">{t('analytics.whatToDo')}</p>
-      {analytics.recommendations.map((rec) => (
-        <div
-          key={rec.id}
-          className={`card ratings-rec ratings-rec--${rec.priority}`}
-        >
-          <p className="ratings-rec__title">{rec.title}</p>
-          <p className="ratings-rec__detail">{rec.detail}</p>
-        </div>
-      ))}
-
-      {analytics.aiThemes.length > 0 && (
-        <>
-          <p className="section-title">{t('analytics.themes')}</p>
-          <div className="ratings-themes" style={{ marginBottom: 16 }}>
-            {analytics.aiThemes.map((t) => (
-              <span key={t.theme} className={`ratings-theme ratings-theme--${t.sentiment}`}>
-                {t.theme}
-                <em>{t.mentions}</em>
-              </span>
-            ))}
-          </div>
-        </>
-      )}
 
       {analytics.comments.length > 0 && (
         <>

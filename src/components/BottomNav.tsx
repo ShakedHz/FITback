@@ -35,8 +35,8 @@ function NavTab({
           ? current === path || current.startsWith(`${path}/`)
           : current === path;
 
-        // Profile owns settings + team management, but not the manager Home overview.
-        if (path === '/profile' && (current === '/settings' || current === '/studio')) {
+        // Profile owns settings + clients + team, but not the manager Home overview.
+        if (path === '/profile' && (current === '/settings' || current === '/clients' || current.startsWith('/studio'))) {
           active = true;
         }
 

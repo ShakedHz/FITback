@@ -1,5 +1,5 @@
 import type { Lesson } from '@/data/mockData';
-import { TRAINING_TYPE_COLORS, type TrainingType } from '@/data/trainingTypes';
+import { trainingTypeColors, type TrainingType } from '@/data/trainingTypes';
 
 export interface LessonMediaData {
   coverVideo?: string;
@@ -20,7 +20,7 @@ export function lessonHasMedia(lesson: Pick<Lesson, 'coverVideo' | 'coverImage'>
 }
 
 export function trainingTypeColor(type: TrainingType): string {
-  return TRAINING_TYPE_COLORS[type].bg;
+  return trainingTypeColors(type).bg;
 }
 
 /** @deprecated use getLessonMediaData */

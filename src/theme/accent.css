@@ -9,12 +9,12 @@
 }
 
 [data-theme='dark'][data-accent='pink'] {
-  --color-primary: #fbcfe8;
-  --color-primary-deep: #f9a8d4;
-  --color-primary-bright: #fce7f3;
-  --color-primary-rgb: 251, 207, 232;
-  --color-on-primary: #1a1228;
-  --color-ring: #fce7f3;
+  --color-primary: #db2777;
+  --color-primary-deep: #be185d;
+  --color-primary-bright: #f9a8d4;
+  --color-primary-rgb: 219, 39, 119;
+  --color-on-primary: #fff;
+  --color-ring: #f9a8d4;
 }
 
 [data-accent='purple'] {
@@ -26,12 +26,12 @@
 }
 
 [data-theme='dark'][data-accent='purple'] {
-  --color-primary: #ddd6fe;
-  --color-primary-deep: #c4b5fd;
-  --color-primary-bright: #ede9fe;
-  --color-primary-rgb: 221, 214, 254;
-  --color-on-primary: #1a1228;
-  --color-ring: #ede9fe;
+  --color-primary: #8b5cf6;
+  --color-primary-deep: #7c3aed;
+  --color-primary-bright: #c4b5fd;
+  --color-primary-rgb: 139, 92, 246;
+  --color-on-primary: #fff;
+  --color-ring: #c4b5fd;
 }
 
 [data-accent='sky'] {
@@ -43,12 +43,12 @@
 }
 
 [data-theme='dark'][data-accent='sky'] {
-  --color-primary: #bae6fd;
-  --color-primary-deep: #93c5fd;
-  --color-primary-bright: #e0f2fe;
-  --color-primary-rgb: 186, 230, 253;
-  --color-on-primary: #1a1228;
-  --color-ring: #e0f2fe;
+  --color-primary: #3b82f6;
+  --color-primary-deep: #2563eb;
+  --color-primary-bright: #93c5fd;
+  --color-primary-rgb: 59, 130, 246;
+  --color-on-primary: #fff;
+  --color-ring: #93c5fd;
 }
 
 [data-accent='teal'] {
@@ -60,12 +60,12 @@
 }
 
 [data-theme='dark'][data-accent='teal'] {
-  --color-primary: #99f6e4;
-  --color-primary-deep: #5eead4;
-  --color-primary-bright: #ccfbf1;
-  --color-primary-rgb: 153, 246, 228;
-  --color-on-primary: #1a1228;
-  --color-ring: #ccfbf1;
+  --color-primary: #14b8a6;
+  --color-primary-deep: #0d9488;
+  --color-primary-bright: #5eead4;
+  --color-primary-rgb: 20, 184, 166;
+  --color-on-primary: #fff;
+  --color-ring: #5eead4;
 }
 
 [data-accent='amber'] {
@@ -78,10 +78,10 @@
 }
 
 [data-theme='dark'][data-accent='amber'] {
-  --color-primary: #fef08a;
-  --color-primary-deep: #fde047;
-  --color-primary-bright: #fef9c3;
-  --color-primary-rgb: 254, 240, 138;
-  --color-on-primary: #1a1228;
-  --color-ring: #fefce8;
+  --color-primary: #ca8a04;
+  --color-primary-deep: #a16207;
+  --color-primary-bright: #fde68a;
+  --color-primary-rgb: 202, 138, 4;
+  --color-on-primary: #fff;
+  --color-ring: #fde68a;
 }

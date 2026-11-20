@@ -1,0 +1,7 @@
+.clients-card {
+  padding: 14px 12px;
+}
+
+.client-picker--page .client-picker__list {
+  max-height: none;
+}

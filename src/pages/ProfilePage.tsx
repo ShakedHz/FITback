@@ -1,13 +1,14 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Users, RefreshCw, LogOut, Camera, Settings } from 'lucide-react';
+import { BookOpen, Users, Star, LogOut, Camera, Settings } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { InstructorAvatar } from '@/components/InstructorAvatar';
 import { IconButton, IconToolbar } from '@/components/IconToolbar';
 import { StudioViewSwitcher } from '@/components/StudioViewSwitcher';
 import type { StudioRole } from '@/data/scheduleTypes';
-import { TRAINING_TYPE_COLORS } from '@/data/trainingTypes';
+import { resolveOverallAnalytics } from '@/data/lessonAnalytics';
+import { trainingTypeColors } from '@/data/trainingTypes';
 import { instructorBio, trainingLabel, useI18n } from '@/i18n';
 import { fileToAvatarDataUrl } from '@/utils/avatarImage';
 import './Profile.css';
@@ -28,8 +29,8 @@ function roleLabel(role: StudioRole, t: (key: string) => string): string {
 export function ProfilePage() {
   const navigate = useNavigate();
   const { user, updateAvatar, activeMembership } = useAuth();
-  const { instructor, logout } = useApp();
-  const { t } = useI18n();
+  const { instructor, logout, feedbackResponses } = useApp();
+  const { t, locale } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
@@ -39,10 +40,20 @@ export function ProfilePage() {
     ? instructorBio(instructor.specialties, t)
     : instructor.bio;
 
+  const avgRating = useMemo(() => {
+    if (feedbackResponses.length === 0) return null;
+    const summary = resolveOverallAnalytics(
+      instructor.specialties[0] ?? 'pilates',
+      feedbackResponses,
+      locale
+    );
+    return summary.responseCount > 0 ? summary.avgRating : null;
+  }, [feedbackResponses, instructor.specialties, locale]);
+
   const stats = [
     { icon: BookOpen, value: instructor.lessonsCount, label: t('profile.lessons') },
     { icon: Users, value: instructor.studentsCount, label: t('profile.students') },
-    { icon: RefreshCw, value: `${instructor.retention}%`, label: t('profile.retention') },
+    { icon: Star, value: avgRating ?? '—', label: t('profile.rating') },
   ];
 
   const openPicker = () => {
@@ -126,7 +137,7 @@ export function ProfilePage() {
         {instructor.specialties.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 14 }}>
             {instructor.specialties.map((type) => {
-              const colors = TRAINING_TYPE_COLORS[type];
+              const colors = trainingTypeColors(type);
               return (
                 <span
                   key={type}

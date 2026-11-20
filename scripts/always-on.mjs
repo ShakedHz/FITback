@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PHONE_HTTPS_PORT, startPhoneHttps } from './phone-https.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const appPort = 5199;
@@ -173,6 +174,7 @@ if (caffeinate) {
 
 freePort(appPort);
 freePort(arboxPort);
+freePort(PHONE_HTTPS_PORT);
 
 start('arbox-api', nodeBin, ['scripts/arbox-api.mjs'], {
   env: { ARBOX_API_PORT: String(arboxPort) },
@@ -186,7 +188,13 @@ start('vite', nodeBin, [viteBin, '--host', '0.0.0.0', '--port', String(appPort)]
 await waitForHttp(`http://127.0.0.1:${appPort}/`);
 log(`App is up on port ${appPort}`);
 
-const lanUrls = getLanIps().map((ip) => `http://${ip}:${appPort}/`);
+let lanUrls = getLanIps().map((ip) => `http://${ip}:${appPort}/`);
+try {
+  const phone = startPhoneHttps({ targetPort: appPort, ips: getLanIps() });
+  if (phone.urls.length) lanUrls = phone.urls;
+} catch (err) {
+  log(`Phone HTTPS proxy did not start: ${err instanceof Error ? err.message : err}`);
+}
 writePhoneUrl(lanUrls);
 if (lanUrls.length) {
   log('Open on your phone (same WiFi):');

@@ -79,9 +79,6 @@ export function LessonBuilderPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const lessonId = searchParams.get('lessonId');
-  const templateId = searchParams.get('templateId');
-  const fromTemplateId = searchParams.get('fromTemplateId');
-  const asTemplate = searchParams.get('kind') === 'template' || Boolean(templateId);
   const fromAi = searchParams.get('ai') === '1';
   const fromBlank = searchParams.get('blank') === '1';
   const from = searchParams.get('from');
@@ -94,14 +91,9 @@ export function LessonBuilderPage() {
     instructor,
     getLessonById,
     loadLessonDraft,
-    loadTemplateDraft,
-    startLessonFromTemplate,
     resetLessonDraft,
     addCreatedLesson,
     updateCreatedLesson,
-    addSavedTemplate,
-    updateSavedTemplate,
-    getTemplateById,
   } = useApp();
   const { t, locale } = useI18n();
 
@@ -128,55 +120,21 @@ export function LessonBuilderPage() {
       return;
     }
 
-    if (templateId) {
-      if (loadedIdRef.current === `tpl:${templateId}`) return;
-      if (lessonDraft.sourceTemplateId === templateId) {
-        loadedIdRef.current = `tpl:${templateId}`;
-        return;
-      }
-      const template = getTemplateById(templateId);
-      if (!template) return;
-      loadTemplateDraft(template);
-      loadedIdRef.current = `tpl:${templateId}`;
-      return;
-    }
-
-    if (fromTemplateId) {
-      const hasWork =
-        Boolean(lessonDraft.title.trim()) ||
-        (lessonDraft.exerciseIds?.length ?? 0) > 0 ||
-        Boolean(lessonDraft.sections?.some((section) => section.exerciseIds.length > 0));
-      if (hasWork) return;
-      const template = getTemplateById(fromTemplateId);
-      if (template) startLessonFromTemplate(template);
-      return;
-    }
-
     loadedIdRef.current = null;
-    if (fromAi || fromBlank || asTemplate) return;
-    if (lessonDraft.sourceLessonId || lessonDraft.sourceTemplateId || !allowedTypes.includes(lessonDraft.trainingType)) {
+    if (fromAi || fromBlank) return;
+    if (lessonDraft.sourceLessonId || !allowedTypes.includes(lessonDraft.trainingType)) {
       resetLessonDraft();
     }
   }, [
     lessonId,
-    templateId,
-    fromTemplateId,
     fromAi,
     fromBlank,
-    asTemplate,
     getLessonById,
-    getTemplateById,
     loadLessonDraft,
-    loadTemplateDraft,
-    startLessonFromTemplate,
     resetLessonDraft,
     allowedTypes,
     lessonDraft.sourceLessonId,
-    lessonDraft.sourceTemplateId,
     lessonDraft.trainingType,
-    lessonDraft.title,
-    lessonDraft.exerciseIds,
-    lessonDraft.sections,
   ]);
 
   const isYoga = lessonDraft.trainingType === 'yoga';
@@ -580,13 +538,10 @@ export function LessonBuilderPage() {
     });
   };
 
-  const existingTemplate = templateId ? getTemplateById(templateId) : undefined;
-  const existingLesson = lessonId ? getLessonById(lessonId) : undefined;
-  const existing = asTemplate ? existingTemplate : existingLesson;
+  const existing = lessonId ? getLessonById(lessonId) : undefined;
 
-  const backTo = asTemplate
-    ? '/library?tab=templates'
-    : from === 'library'
+  const backTo =
+    from === 'library'
       ? '/library'
       : lessonId
         ? `/lesson/${lessonId}`
@@ -622,7 +577,7 @@ export function LessonBuilderPage() {
       t('preview.defaultDesc', { type: trainingLabel(lessonDraft.trainingType, t).toLowerCase() });
 
     const lesson: Lesson = {
-      id: existing?.id ?? (asTemplate ? `t-${Date.now()}` : `l-${Date.now()}`),
+      id: existing?.id ?? `l-${Date.now()}`,
       title,
       instructorId: instructor.id,
       instructorName: instructor.name,
@@ -647,19 +602,10 @@ export function LessonBuilderPage() {
       isCreated: true,
       isOwned: true,
       isStarter: false,
-      isTemplate: asTemplate,
       coverVideo: lessonDraft.coverVideo ?? existing?.coverVideo,
       coverImage: existing?.coverImage,
       albumImages: existing?.albumImages ?? [],
     };
-
-    if (asTemplate) {
-      if (existingTemplate) updateSavedTemplate(lesson);
-      else addSavedTemplate(lesson);
-      resetLessonDraft();
-      navigate('/library?tab=templates');
-      return;
-    }
 
     if (existing) updateCreatedLesson(lesson);
     else addCreatedLesson(lesson);
@@ -673,9 +619,6 @@ export function LessonBuilderPage() {
     if (fromBlank) params.set('blank', '1');
     if (fromAi) params.set('ai', '1');
     if (lessonId) params.set('lessonId', lessonId);
-    if (templateId) params.set('templateId', templateId);
-    if (fromTemplateId) params.set('fromTemplateId', fromTemplateId);
-    if (asTemplate) params.set('kind', 'template');
     if (from) params.set('from', from);
     navigate(exercisesPath(sectionId, params));
   };
@@ -697,25 +640,19 @@ export function LessonBuilderPage() {
           disabled={!canSave}
           onClick={saveToLibrary}
         >
-          {asTemplate
-            ? existingTemplate
-              ? t('builder.saveChanges')
-              : t('builder.saveTemplate')
-            : lessonId
-              ? t('builder.saveChanges')
-              : t('builder.addToLibrary')}
+          {lessonId ? t('builder.saveChanges') : t('builder.addToLibrary')}
         </button>
       </div>
 
       <div className="builder-sheet">
         <div className="builder-field">
           <label className="builder-field__label" htmlFor="builder-title">
-            {asTemplate ? t('builder.templateName') : t('builder.lessonName')}
+            {t('builder.lessonName')}
           </label>
           <input
             id="builder-title"
             className="input"
-            placeholder={asTemplate ? t('builder.untitledTemplatePlaceholder') : t('builder.untitledPlaceholder')}
+            placeholder={t('builder.untitledPlaceholder')}
             value={lessonDraft.title}
             onChange={(e) => setLessonDraft({ title: e.target.value })}
           />

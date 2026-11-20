@@ -32,7 +32,7 @@ import type {
   RegisterInput,
   StoredAccount,
 } from './types';
-import { bioFromSpecialties, TRAINING_TYPES, type TrainingType } from '@/data/trainingTypes';
+import { bioFromSpecialties, isTrainingType, type TrainingType } from '@/data/trainingTypes';
 import {
   accountToUser,
   clearSession,
@@ -114,8 +114,7 @@ export function canAccessApp(user: AuthUser | null | undefined): boolean {
 }
 
 function normalizeSpecialties(specialties: TrainingType[]): TrainingType[] {
-  const next = [...new Set(specialties.filter((type) => TRAINING_TYPES.includes(type)))];
-  return next;
+  return [...new Set(specialties.filter(isTrainingType))];
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);

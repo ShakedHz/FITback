@@ -1,8 +1,11 @@
+import type { TrainingType } from './trainingTypes';
+
 export interface StoredFeedback {
   id: string;
   /** feedback page id — class event id or weekly-{weekKey} */
   sourceId: string;
   lessonId?: string;
+  trainingType?: TrainingType;
   rating: number;
   improve?: string;
   title?: string;

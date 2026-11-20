@@ -3,10 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bot, Sparkles, Star, MessageSquareText, BookOpen, ArrowRight, RefreshCw } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { suggestLessonFromClientData, type AiLessonSuggestion } from '@/data/aiLessonSuggest';
-import { hasSurveyResults } from '@/data/lessonAnalytics';
 import { defaultPlanEquipment } from '@/data/equipmentTypes';
 import { DEFAULT_YOGA_STYLE } from '@/data/yogaStyles';
-import { TRAINING_TYPE_COLORS, canChooseTrainingType } from '@/data/trainingTypes';
+import { trainingTypeColors, canChooseTrainingType } from '@/data/trainingTypes';
 import { BackButton } from '@/components/IconToolbar';
 import { LessonCover } from '@/components/LessonCover';
 import { trainingLabel, exerciseName, sectionTitle, useI18n } from '@/i18n';
@@ -17,7 +16,7 @@ export function AiLessonPage() {
   const [searchParams] = useSearchParams();
   const fromLibrary = searchParams.get('from') === 'library';
   const backTo = fromLibrary ? '/library' : '/create';
-  const { createdLessons, instructor, setLessonDraft, allExercises } = useApp();
+  const { createdLessons, instructor, setLessonDraft, allExercises, feedbackResponses } = useApp();
   const { t, locale } = useI18n();
   const [phase, setPhase] = useState<'loading' | 'ready'>('loading');
   const [suggestion, setSuggestion] = useState<AiLessonSuggestion | null>(null);
@@ -27,7 +26,11 @@ export function AiLessonPage() {
     setSuggestion(null);
     // Short delay so the "analyzing" state is visible
     window.setTimeout(() => {
-      const result = suggestLessonFromClientData(createdLessons, instructor.specialties);
+      const result = suggestLessonFromClientData(
+        createdLessons,
+        instructor.specialties,
+        feedbackResponses
+      );
       setSuggestion(result);
       setPhase('ready');
     }, 1100);
@@ -36,7 +39,7 @@ export function AiLessonPage() {
   useEffect(() => {
     runSuggest();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount / when library identity changes
-  }, [createdLessons.length, instructor.specialties.join(',')]);
+  }, [createdLessons.length, instructor.specialties.join(','), feedbackResponses.length]);
 
   const previewSections = useMemo(() => {
     if (!suggestion) return [];
@@ -70,7 +73,7 @@ export function AiLessonPage() {
     navigate(fromLibrary ? '/builder?ai=1&from=library' : '/builder?ai=1');
   };
 
-  if (createdLessons.length === 0 || !hasSurveyResults()) {
+  if (createdLessons.length === 0 || feedbackResponses.length === 0) {
     return (
       <div className="page fade-in">
         <BackButton to={backTo} label={t('common.back')} />
@@ -120,7 +123,7 @@ export function AiLessonPage() {
   }
 
   const { draft, rationale, signals, focusThemes, basedOn } = suggestion;
-  const typeColors = TRAINING_TYPE_COLORS[draft.trainingType];
+  const typeColors = trainingTypeColors(draft.trainingType);
   const coverLesson = {
     coverVideo: draft.coverVideo ?? undefined,
     trainingType: draft.trainingType,

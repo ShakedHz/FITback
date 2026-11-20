@@ -66,8 +66,6 @@ export interface Lesson {
   isCreated?: boolean;
   /** Seeded starter plan, not yet customized by the instructor. */
   isStarter?: boolean;
-  /** Reusable outline the instructor saved to create lessons from. */
-  isTemplate?: boolean;
   /** Cover image (legacy seed data) */
   coverImage?: string;
   /** Preview video uploaded by the instructor */

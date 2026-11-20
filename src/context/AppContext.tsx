@@ -65,6 +65,7 @@ import {
   subscribeFeedback,
   type StoredFeedback,
 } from '@/data/feedbackStore';
+import { buildDemoFeedback, hasBuiltInRatings } from '@/data/demoFeedback';
 import {
   loadSurveyClients,
   subscribeClients,
@@ -135,8 +136,6 @@ export interface LessonDraft {
   sections?: LessonDraftSection[];
   /** When set, builder is editing an existing library lesson */
   sourceLessonId?: string;
-  /** When set, builder is editing a saved template */
-  sourceTemplateId?: string;
 }
 
 /** Empty plan — type-specific sections, instructor adds exercises. */
@@ -165,7 +164,6 @@ interface AppState {
   instructor: typeof currentInstructor;
   ownedLessonIds: string[];
   createdLessons: Lesson[];
-  savedTemplates: Lesson[];
   coins: number;
   transactions: CoinTransaction[];
   customExercises: Exercise[];
@@ -177,8 +175,6 @@ interface AppState {
   setLessonCoverVideo: (url: string | null) => void;
   resetLessonDraft: () => void;
   loadLessonDraft: (lesson: Lesson) => void;
-  loadTemplateDraft: (template: Lesson) => void;
-  startLessonFromTemplate: (template: Lesson) => void;
   purchaseLesson: (lessonId: string, price: number) => boolean;
   purchaseCoinPackage: (packageId: string, coins: number, price: number) => boolean;
   addCoins: (amount: number) => void;
@@ -189,12 +185,6 @@ interface AppState {
   isFavoriteLesson: (lessonId: string) => boolean;
   toggleFavoriteLesson: (lessonId: string) => void;
   duplicateCreatedLesson: (lesson: Lesson, title: string) => Lesson;
-  addSavedTemplate: (template: Lesson) => void;
-  updateSavedTemplate: (template: Lesson) => void;
-  deleteSavedTemplate: (templateId: string) => void;
-  duplicateSavedTemplate: (template: Lesson, title: string) => Lesson;
-  saveLessonAsTemplate: (lesson: Lesson) => Lesson;
-  getTemplateById: (id: string) => Lesson | undefined;
   addCustomExercise: (
     exercise: Omit<Exercise, 'id' | 'isCustom' | 'createdBy' | 'duration'> & { duration?: number }
   ) => Exercise;
@@ -281,7 +271,6 @@ interface AppState {
 
 const FLOW_EVENTS_KEY = 'movana_flow_events_v1';
 const USER_LESSONS_KEY = 'movana_user_lessons_v1';
-const USER_TEMPLATES_KEY = 'movana_user_templates_v1';
 const DELETED_LESSONS_KEY = 'movana_deleted_lessons_v1';
 const FAVORITE_LESSONS_KEY = 'movana_favorite_lessons_v1';
 const CUSTOM_EXERCISES_KEY = 'movana_custom_exercises_v1';
@@ -321,7 +310,7 @@ function loadUserLessons(): Lesson[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Lesson[];
     return Array.isArray(parsed)
-      ? parsed.map(migrateLessonExercises).filter((l) => l?.id && !l.isStarter && !l.isTemplate)
+      ? parsed.map(migrateLessonExercises).filter((l) => l?.id && !l.isStarter)
       : [];
   } catch {
     return [];
@@ -332,33 +321,12 @@ function saveUserLessons(lessons: Lesson[]): void {
   localStorage.setItem(USER_LESSONS_KEY, JSON.stringify(lessons));
 }
 
-function loadUserTemplates(): Lesson[] {
-  try {
-    const raw = localStorage.getItem(USER_TEMPLATES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Lesson[];
-    return Array.isArray(parsed)
-      ? parsed.map(migrateLessonExercises).filter((l) => l?.id)
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveUserTemplates(templates: Lesson[]): void {
-  localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(templates));
-}
-
-function clonePlan(
-  lesson: Lesson,
-  opts: { id: string; title: string; isTemplate?: boolean }
-): Lesson {
+function clonePlan(lesson: Lesson, opts: { id: string; title: string }): Lesson {
   return {
     ...lesson,
     id: opts.id,
     title: opts.title,
     isStarter: false,
-    isTemplate: Boolean(opts.isTemplate),
     isCreated: true,
     isOwned: true,
     rating: 0,
@@ -427,7 +395,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ownedLessonIds, setOwnedLessonIds] = useState<string[]>([]);
   /** Lessons the instructor created in-app (not seed plans). */
   const [userLessons, setUserLessons] = useState<Lesson[]>(() => loadUserLessons());
-  const [userTemplates, setUserTemplates] = useState<Lesson[]>(() => loadUserTemplates());
   const [deletedLessonIds, setDeletedLessonIds] = useState<string[]>(() => loadDeletedLessonIds());
   const [favoriteLessonIds, setFavoriteLessonIds] = useState<string[]>(() => loadFavoriteLessonIds());
   const [customExercises, setCustomExercises] = useState<Exercise[]>(() => loadCustomExercises());
@@ -584,10 +551,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [userLessons]);
 
   useEffect(() => {
-    saveUserTemplates(userTemplates);
-  }, [userTemplates]);
-
-  useEffect(() => {
     saveDeletedLessonIds(deletedLessonIds);
   }, [deletedLessonIds]);
 
@@ -652,26 +615,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isCreated: true,
         isOwned: true,
         isStarter: false,
-        isTemplate: false,
       }));
 
     const deleted = new Set(deletedLessonIds);
     return extras.filter((l) => !deleted.has(l.id));
   }, [specialties, instructorMeta, userLessons, deletedLessonIds, activeClubId]);
 
-  const savedTemplates = useMemo(() => {
-    return userTemplates
-      .filter((l) => specialties.length === 0 || specialties.includes(l.trainingType))
-      .map((l) => ({
-        ...l,
-        instructorId: instructorMeta.id,
-        instructorName: instructorMeta.name,
-        isCreated: true,
-        isOwned: true,
-        isTemplate: true,
-        isStarter: false,
-      }));
-  }, [specialties, instructorMeta, userTemplates]);
+  const allFeedback = useMemo(() => {
+    if (!hasBuiltInRatings(user?.name)) return feedbackResponses;
+    const demo = buildDemoFeedback(createdLessons, user?.name ?? '');
+    return [...feedbackResponses, ...demo].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [feedbackResponses, createdLessons, user?.name]);
 
   const schedulableLessons = useMemo(() => createdLessons, [createdLessons]);
 
@@ -711,7 +665,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [specialties]);
 
   const planToDraft = useCallback(
-    (lesson: Lesson, source: { sourceLessonId?: string; sourceTemplateId?: string }): LessonDraft => {
+    (lesson: Lesson, source: { sourceLessonId?: string }): LessonDraft => {
       const migrated = migrateLessonExercises(lesson);
       const baseSections = migrated.sections.map((s) => {
         const notes: Record<string, ExercisePlanNotes> = {};
@@ -746,7 +700,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         exerciseIds: timed.exerciseIds,
         sections: timed.sections,
         sourceLessonId: source.sourceLessonId,
-        sourceTemplateId: source.sourceTemplateId,
       };
     },
     [allExercises]
@@ -755,20 +708,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadLessonDraft = useCallback(
     (lesson: Lesson) => {
       setLessonDraftState(planToDraft(lesson, { sourceLessonId: lesson.id }));
-    },
-    [planToDraft]
-  );
-
-  const loadTemplateDraft = useCallback(
-    (template: Lesson) => {
-      setLessonDraftState(planToDraft(template, { sourceTemplateId: template.id }));
-    },
-    [planToDraft]
-  );
-
-  const startLessonFromTemplate = useCallback(
-    (template: Lesson) => {
-      setLessonDraftState(planToDraft(template, {}));
     },
     [planToDraft]
   );
@@ -847,57 +786,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const duplicateCreatedLesson = useCallback((lesson: Lesson, title: string) => {
     const copy: Lesson = {
-      ...clonePlan(lesson, { id: `l-${Date.now()}`, title, isTemplate: false }),
+      ...clonePlan(lesson, { id: `l-${Date.now()}`, title }),
       clubId: lesson.clubId ?? activeClubId,
     };
     setUserLessons((prev) => [...prev, copy]);
     setOwnedLessonIds((ids) => (ids.includes(copy.id) ? ids : [...ids, copy.id]));
     return copy;
   }, [activeClubId]);
-
-  const addSavedTemplate = useCallback((template: Lesson) => {
-    setUserTemplates((prev) => [...prev, { ...template, isTemplate: true, isStarter: false }]);
-  }, []);
-
-  const updateSavedTemplate = useCallback((template: Lesson) => {
-    const stored: Lesson = { ...template, isTemplate: true, isStarter: false };
-    setUserTemplates((prev) => {
-      const idx = prev.findIndex((l) => l.id === stored.id);
-      if (idx >= 0) return prev.map((l) => (l.id === stored.id ? stored : l));
-      return [...prev, stored];
-    });
-  }, []);
-
-  const deleteSavedTemplate = useCallback((templateId: string) => {
-    setUserTemplates((prev) => {
-      const removed = prev.find((l) => l.id === templateId);
-      if (removed?.coverVideo?.startsWith('blob:')) {
-        URL.revokeObjectURL(removed.coverVideo);
-      }
-      return prev.filter((l) => l.id !== templateId);
-    });
-  }, []);
-
-  const duplicateSavedTemplate = useCallback((template: Lesson, title: string) => {
-    const copy = clonePlan(template, { id: `t-${Date.now()}`, title, isTemplate: true });
-    setUserTemplates((prev) => [...prev, copy]);
-    return copy;
-  }, []);
-
-  const saveLessonAsTemplate = useCallback((lesson: Lesson) => {
-    const copy = clonePlan(lesson, {
-      id: `t-${Date.now()}`,
-      title: lesson.title,
-      isTemplate: true,
-    });
-    setUserTemplates((prev) => [...prev, copy]);
-    return copy;
-  }, []);
-
-  const getTemplateById = useCallback(
-    (id: string) => savedTemplates.find((l) => l.id === id),
-    [savedTemplates]
-  );
 
   const deleteCreatedLesson = useCallback((lessonId: string) => {
     setUserLessons((prev) => {
@@ -1523,7 +1418,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         instructor,
         ownedLessonIds,
         createdLessons,
-        savedTemplates,
         coins,
         transactions,
         customExercises,
@@ -1535,8 +1429,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setLessonCoverVideo,
         resetLessonDraft,
         loadLessonDraft,
-        loadTemplateDraft,
-        startLessonFromTemplate,
         purchaseLesson,
         purchaseCoinPackage,
         addCoins,
@@ -1547,12 +1439,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isFavoriteLesson,
         toggleFavoriteLesson,
         duplicateCreatedLesson,
-        addSavedTemplate,
-        updateSavedTemplate,
-        deleteSavedTemplate,
-        duplicateSavedTemplate,
-        saveLessonAsTemplate,
-        getTemplateById,
         addCustomExercise,
         updateExercise,
         deleteExercise,
@@ -1592,7 +1478,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         removeEventAttendee,
         toggleEventAttendee,
         markEventFeedbackSent,
-        feedbackResponses,
+        feedbackResponses: allFeedback,
         submitFeedback,
         rosterClients,
         isLoggedIn: isAuthenticated,

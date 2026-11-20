@@ -6,6 +6,19 @@
   box-shadow: var(--shadow-card);
 }
 
+.teach-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.teach-share-note {
+  margin: -8px 0 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-primary-bright);
+}
+
 .teach-menu-wrap {
   position: relative;
   flex-shrink: 0;

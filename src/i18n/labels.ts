@@ -1,6 +1,9 @@
 import type { EquipmentType } from '@/data/equipmentTypes';
 import type { EventCategory } from '@/data/scheduleTypes';
+import { isBuiltinEventCategory } from '@/data/scheduleTypes';
 import type { TrainingType } from '@/data/trainingTypes';
+import { isBuiltinTrainingType } from '@/data/trainingTypes';
+import { findCustomTrainingType } from '@/data/customTrainingTypes';
 import type { Exercise } from '@/data/mockData';
 import type { BodyPart } from '@/data/bodyParts';
 import { exerciseAreaLabel as areaLabelFromData } from '@/data/bodyParts';
@@ -132,7 +135,11 @@ export function normalizeSectionTitle(title: string): string {
   return SECTION_ALIASES[title] ?? title;
 }
 
+/** Custom class types keep the free text the instructor typed — no i18n key exists for them. */
 export function trainingLabel(type: TrainingType, t: TranslateFn): string {
+  const custom = findCustomTrainingType(type);
+  if (custom) return custom.name;
+  if (!isBuiltinTrainingType(type)) return type;
   return t(`training.${type}`);
 }
 
@@ -141,6 +148,9 @@ export function equipmentLabel(type: EquipmentType, t: TranslateFn): string {
 }
 
 export function eventCategoryLabel(type: EventCategory, t: TranslateFn): string {
+  const custom = findCustomTrainingType(type);
+  if (custom) return custom.name;
+  if (!isBuiltinEventCategory(type)) return type;
   return t(`eventCategory.${type}`);
 }
 

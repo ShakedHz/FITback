@@ -1,6 +1,7 @@
+import { ChevronRight, Star } from 'lucide-react';
 import type { WeeklyPoint } from '@/data/lessonAnalytics';
-import type { TrainingType } from '@/data/trainingTypes';
-import { trainingLabel, useI18n } from '@/i18n';
+import { trainingTypeTint, type TrainingType } from '@/data/trainingTypes';
+import { useI18n } from '@/i18n';
 import '@/components/Analytics.css';
 
 interface BarChartProps {
@@ -10,6 +11,7 @@ interface BarChartProps {
 }
 
 export function WeeklyBarChart({ data, variant = 'views', title }: BarChartProps) {
+  const { t } = useI18n();
   const max = Math.max(...data.map((d) => d.value), 1);
 
   return (
@@ -24,10 +26,10 @@ export function WeeklyBarChart({ data, variant = 'views', title }: BarChartProps
                 style={{ height: `${(point.value / max) * 100}%` }}
               />
               <span className="analytics-chart__tooltip" role="tooltip">
-                {point.value} {point.value === 1 ? 'vote' : 'votes'}
+                {point.value}
               </span>
             </div>
-            <span className="analytics-chart__day">{point.day}</span>
+            <span className="analytics-chart__day">{t(`analytics.weekDay.${point.day}`)}</span>
           </div>
         ))}
       </div>
@@ -70,11 +72,18 @@ export function MiniSparkline({ data }: { data: WeeklyPoint[] }) {
   );
 }
 
-/** Solid bar colors per training type (for charts). */
-export const TRAINING_TYPE_BAR_COLORS: Record<TrainingType, string> = {
-  pilates: '#3b82f6',
-  yoga: '#10b981',
+export type LessonResponsePoint = {
+  id: string;
+  label: string;
+  fullLabel: string;
+  responded: number;
+  asked: number;
 };
+
+/** Solid bar/dot tone per class type — custom types take theirs from the pastel palette. */
+export function trainingTypeBarColor(type: TrainingType): string {
+  return trainingTypeTint(type).hex;
+}
 
 export type LessonAveragePoint = {
   id: string;
@@ -86,74 +95,59 @@ export type LessonAveragePoint = {
   color: string;
 };
 
-/** Vertical bar chart: average rating (0–5) per lesson, colored by training type. */
-export function LessonAverageChart({ data }: { data: LessonAveragePoint[] }) {
+/** Ranked list of average rating (1–5) per lesson plan — scales past a few bars. */
+export function LessonAverageChart({
+  data,
+  onSelect,
+}: {
+  data: LessonAveragePoint[];
+  onSelect?: (id: string) => void;
+}) {
   const { t } = useI18n();
   if (data.length === 0) return null;
 
-  const yTicks = [5, 4, 3, 2, 1, 0];
-  const typesInChart = [
-    ...new Map(
-      data
-        .filter((d) => d.trainingType)
-        .map((d) => [d.trainingType!, d.color] as const)
-    ).entries(),
-  ];
+  const ranked = [...data].sort((a, b) => b.avg - a.avg || b.count - a.count);
 
   return (
-    <div className="lesson-avg-chart">
-      <div className="lesson-avg-chart__plot">
-        <div className="lesson-avg-chart__y-axis" aria-hidden>
-          {yTicks.map((tick) => (
-            <span key={tick} className="lesson-avg-chart__y-tick">
-              {tick}
-            </span>
-          ))}
-        </div>
-        <div className="lesson-avg-chart__grid">
-          {yTicks.map((tick) => (
-            <div key={tick} className="lesson-avg-chart__grid-line" />
-          ))}
-        </div>
-        <div className="lesson-avg-chart__bars">
-          {data.map((row) => {
-            const heightPct = (row.avg / 5) * 100;
-            return (
-              <div key={row.id} className="lesson-avg-chart__bar-wrap">
-                <div className="lesson-avg-chart__bar-hit">
-                  <div
-                    className="lesson-avg-chart__bar"
-                    style={{
-                      height: `${Math.max(heightPct, 3)}%`,
-                      background: `linear-gradient(180deg, ${row.color}ee, ${row.color})`,
-                    }}
-                  />
-                  <span className="lesson-avg-chart__tooltip" role="tooltip">
-                    {row.fullLabel}
-                    <br />
-                    {t('analytics.chartMeta', { avg: row.avg, count: row.count })}
-                    {row.trainingType ? ` · ${trainingLabel(row.trainingType, t)}` : ''}
-                  </span>
-                </div>
-                <span className="lesson-avg-chart__x-label" title={row.fullLabel}>
-                  {row.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {typesInChart.length > 0 && (
-        <div className="lesson-avg-chart__legend">
-          {typesInChart.map(([type, color]) => (
-            <span key={type} className="lesson-avg-chart__legend-item">
-              <span className="lesson-avg-chart__legend-dot" style={{ background: color }} />
-              {trainingLabel(type, t)}
-            </span>
-          ))}
-        </div>
-      )}
+    <div className="lesson-avg-list">
+      {ranked.map((row) => {
+        const label = `${row.fullLabel} · ${t('analytics.chartAvgOutOf', { avg: row.avg })} · ${t('analytics.chartRatings', { count: row.count })}`;
+        if (onSelect) {
+          return (
+            <button
+              key={row.id}
+              type="button"
+              className="lesson-avg-row lesson-avg-row--link"
+              onClick={() => onSelect(row.id)}
+              aria-label={label}
+            >
+              <LessonAverageRow row={row} />
+              <ChevronRight className="rtl-flip lesson-avg-row__chevron" size={18} aria-hidden />
+            </button>
+          );
+        }
+        return (
+          <div key={row.id} className="lesson-avg-row" aria-label={label}>
+            <LessonAverageRow row={row} />
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+function LessonAverageRow({ row }: { row: LessonAveragePoint }) {
+  const { t } = useI18n();
+  return (
+    <>
+      <span className="lesson-avg-row__text">
+        <span className="lesson-avg-row__title">{row.fullLabel}</span>
+        <span className="lesson-avg-row__count">{t('analytics.chartRatings', { count: row.count })}</span>
+      </span>
+      <span className="lesson-avg-row__score">
+        <Star size={12} strokeWidth={1.6} fill="currentColor" aria-hidden />
+        {row.avg}
+      </span>
+    </>
   );
 }

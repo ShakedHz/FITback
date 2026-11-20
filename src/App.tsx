@@ -21,9 +21,13 @@ import { SchedulePage } from '@/pages/SchedulePage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ClientsPage } from '@/pages/ClientsPage';
 import { StudioTeamPage } from '@/pages/StudioTeamPage';
 import { ManagerOverviewPage } from '@/pages/ManagerOverviewPage';
 import { JoinStudioPage } from '@/pages/JoinStudioPage';
+import { LivePage } from '@/pages/LivePage';
+import { LiveReminders } from '@/components/LiveReminders';
+import { GarminSync } from '@/components/GarminSync';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { PostClassFeedbackModal } from '@/components/PostClassFeedbackModal';
 import { ThemeProvider } from '@/theme';
@@ -49,6 +53,7 @@ function AppLayout() {
 
           <Route path="/dashboard" element={<Guard><DashboardPage /></Guard>} />
           <Route path="/schedule" element={<Guard><SchedulePage /></Guard>} />
+          <Route path="/live" element={<Guard><LivePage /></Guard>} />
           <Route path="/analytics" element={<Guard><AnalyticsHubPage /></Guard>} />
           <Route path="/analytics/:id" element={<Guard><LessonAnalyticsPage /></Guard>} />
           <Route path="/lesson/:id" element={<Guard><LessonDetailPage /></Guard>} />
@@ -61,6 +66,7 @@ function AppLayout() {
           <Route path="/exercises/:exerciseId/edit" element={<Guard><AddExercisePage /></Guard>} />
           <Route path="/profile" element={<Guard><ProfilePage /></Guard>} />
           <Route path="/settings" element={<Guard><SettingsPage /></Guard>} />
+          <Route path="/clients" element={<Guard><ClientsPage /></Guard>} />
           <Route path="/studio" element={<Guard><StudioTeamPage /></Guard>} />
           <Route path="/studio/overview" element={<Guard><ManagerOverviewPage /></Guard>} />
 
@@ -69,6 +75,8 @@ function AppLayout() {
       </div>
       <BottomNav />
       <PostClassFeedbackModal />
+      <LiveReminders />
+      <GarminSync />
     </div>
   );
 }

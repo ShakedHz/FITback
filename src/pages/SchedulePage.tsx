@@ -13,7 +13,6 @@ import {
   Pencil,
   Trash2,
   Clock,
-  CalendarPlus,
   MessageSquare,
   BookOpen,
   Unlink,
@@ -23,6 +22,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { type SurveyClient } from '@/services/surveyClients';
 import { ClientPicker } from '@/components/ClientPicker';
+import { ScheduleGrid } from '@/components/ScheduleGrid';
 import { ClassFeedbackAttendees } from '@/components/ClassFeedbackAttendees';
 import { IconButton, IconToolbar } from '@/components/IconToolbar';
 import {
@@ -41,7 +41,12 @@ import {
   isOwnEvent,
   type ScheduleEvent,
 } from '@/data/scheduleTypes';
-import { TRAINING_TYPES, canChooseTrainingType, type TrainingType } from '@/data/trainingTypes';
+import {
+  TRAINING_TYPES,
+  canChooseTrainingType,
+  isBuiltinTrainingType,
+  type TrainingType,
+} from '@/data/trainingTypes';
 import { equipmentLabel, eventCategoryLabel, trainingLabel, useI18n } from '@/i18n';
 import '@/components/Schedule.css';
 
@@ -100,6 +105,7 @@ export function SchedulePage() {
     arboxConnection,
     addLessonToSchedule,
     updateScheduleEvent,
+    moveScheduleEvent,
     removeScheduleEvent,
     attachLessonPlan,
     detachLessonPlan,
@@ -239,8 +245,11 @@ export function SchedulePage() {
   };
 
   const availableTypes = useMemo(() => {
-    const types = new Set(schedulableLessons.map((l) => l.trainingType));
-    return TRAINING_TYPES.filter((t) => types.has(t));
+    const types = [...new Set(schedulableLessons.map((l) => l.trainingType))];
+    return [
+      ...TRAINING_TYPES.filter((type) => types.includes(type)),
+      ...types.filter((type) => !isBuiltinTrainingType(type)),
+    ];
   }, [schedulableLessons]);
 
   const lessonsForType = useMemo(() => {
@@ -299,6 +308,20 @@ export function SchedulePage() {
     setCapacityWarning(false);
     setShowAddSheet(true);
     if (viewMode === 'week') setViewMode('day');
+  };
+
+  const openAddSheetAt = (day: Date, time: string) => {
+    setSelectedDay(startOfDay(day));
+    openAddSheet();
+    setAddTime(time);
+  };
+
+  // Arbox slots are managed in Arbox; only classes created here can be rescheduled.
+  const canMoveEvent = (ev: ScheduleEvent) =>
+    ev.source === 'flowpilates' && canAttachPlanToEvent(ev, arboxConnection);
+
+  const moveEventTo = (ev: ScheduleEvent, day: Date, time: string) => {
+    moveScheduleEvent(ev.id, toDateKey(day), time);
   };
 
   const openAttachSheet = (event: ScheduleEvent) => {
@@ -414,73 +437,11 @@ export function SchedulePage() {
     closeAddSheet();
   };
 
-  const renderEventCard = (ev: ScheduleEvent, onClick: () => void) => {
-    const colors = getEventColors(ev);
-    const isFull = ev.enrolled != null && ev.capacity != null && ev.enrolled >= ev.capacity;
-    const canEditSlot = canEditEvent(ev);
-    const slotIsOwn = isOwnEvent(ev, arboxConnection);
-    const isArbox = ev.source === 'arbox';
-    const own = arboxConnection.connected && isArbox && slotIsOwn;
-    const otherInstructor = arboxConnection.connected && isArbox && !slotIsOwn && Boolean(ev.instructor);
-    const showPlanStatus = canEditSlot;
-    const hasPlan = Boolean(ev.lessonPlanTitle);
-
-    return (
-      <button
-        key={ev.id}
-        type="button"
-        className={`schedule-card ${own ? 'schedule-card--own' : ''} ${otherInstructor ? 'schedule-card--other' : ''} ${showPlanStatus ? (hasPlan ? 'schedule-card--has-plan' : 'schedule-card--no-plan') : ''}`}
-        onClick={onClick}
-        draggable={canEditEvent(ev)}
-        onDragStart={(e) => {
-          if (!canEditEvent(ev)) {
-            e.preventDefault();
-            return;
-          }
-          e.dataTransfer.setData('text/event-id', ev.id);
-        }}
-      >
-        <div className="schedule-card__bar" style={{ backgroundColor: colors.bg }} />
-        <div className="schedule-card__body">
-          <div className="schedule-card__row">
-            <span className="schedule-card__time">{getEventTime(ev)}</span>
-            <span className="schedule-card__title">{ev.title}</span>
-          </div>
-          <div className="schedule-card__meta">
-            {showTypeChoice && shouldShowEventType(ev) && (
-              <span className="schedule-card__type">{eventCategoryLabel(getEventCategory(ev), t)}</span>
-            )}
-            {ev.location && <span>· {ev.location}</span>}
-            {instructorNameFor(ev) && <span>· {instructorNameFor(ev)}</span>}
-            {own && <span className="schedule-card__tag schedule-card__tag--own">{t('common.you')}</span>}
-            {otherInstructor && <span className="schedule-card__tag schedule-card__tag--other">{t('schedule.viewOnly')}</span>}
-            {ev.feedbackSentAt && <span className="schedule-card__tag schedule-card__tag--sent">{t('schedule.surveySent')}</span>}
-          </div>
-          {showPlanStatus && (
-            <div
-              className={`schedule-card__plan ${hasPlan ? 'schedule-card__plan--yes' : 'schedule-card__plan--no'}`}
-            >
-              <BookOpen size={13} strokeWidth={2} aria-hidden />
-              <span className="schedule-card__plan-label">
-                {hasPlan ? ev.lessonPlanTitle : t('schedule.noPlan')}
-              </span>
-            </div>
-          )}
-          {!showPlanStatus && hasPlan && (
-            <div className="schedule-card__plan schedule-card__plan--yes schedule-card__plan--readonly">
-              <BookOpen size={13} strokeWidth={2} aria-hidden />
-              <span className="schedule-card__plan-label">{ev.lessonPlanTitle}</span>
-            </div>
-          )}
-        </div>
-        {ev.enrolled != null && ev.capacity != null && (
-          <span className={`schedule-card__count ${isFull ? 'schedule-card__count--full' : ''}`}>
-            {ev.enrolled}/{ev.capacity}
-          </span>
-        )}
-      </button>
-    );
-  };
+  const isViewOnlyEvent = (ev: ScheduleEvent) =>
+    arboxConnection.connected &&
+    ev.source === 'arbox' &&
+    !isOwnEvent(ev, arboxConnection) &&
+    Boolean(ev.instructor);
 
   return (
     <div className="page fade-in schedule-page">
@@ -527,6 +488,7 @@ export function SchedulePage() {
           </button>
         </div>
 
+        {viewMode === 'day' && (
         <div className="schedule-days">
           {days.map((day) => {
             const key = toDateKey(day);
@@ -549,19 +511,15 @@ export function SchedulePage() {
             );
           })}
         </div>
+        )}
       </header>
 
       <main className="schedule-main">
         {viewMode === 'day' && (
           <section className="schedule-agenda">
             <h2 className="schedule-agenda__title">{formatFullDayLabel(selectedDay, dateLocale)}</h2>
-            {dayEvents.length > 0 ? (
-              <div className="schedule-agenda__list">
-                {dayEvents.map((ev) => renderEventCard(ev, () => openEventSheet(ev)))}
-              </div>
-            ) : arboxConnection.connected ? (
-              <div className="schedule-empty">
-                <CalendarPlus size={36} strokeWidth={1.5} />
+            {dayEvents.length === 0 && arboxConnection.connected && (
+              <div className="schedule-grid-hint">
                 <p>{t('schedule.noArbox')}</p>
                 {arboxConnection.scheduleDebug && (
                   <p className="schedule-empty__hint">
@@ -575,50 +533,41 @@ export function SchedulePage() {
                       : t('schedule.arboxOtherDay')}
                   </p>
                 )}
-                <p className="schedule-empty__hint">
-                  {t('schedule.navigateHint')}
-                </p>
-              </div>
-            ) : (
-              <div className="schedule-empty">
-                <CalendarPlus size={36} strokeWidth={1.5} />
-                <p>{t('schedule.noClassesDay')}</p>
-                {canEdit && (
-                  <button type="button" className="btn btn-secondary schedule-empty__btn" onClick={openAddSheet}>
-                    {t('schedule.addClass')}
-                  </button>
-                )}
               </div>
             )}
+            {dayEvents.length === 0 && !arboxConnection.connected && (
+              <p className="schedule-grid-hint">{t('schedule.tapToAdd')}</p>
+            )}
+            <ScheduleGrid
+              mode="day"
+              days={[selectedDay]}
+              eventsByDay={eventsByDay}
+              todayKey={todayKey}
+              onSelectEvent={openEventSheet}
+              canEditPlan={(ev) => canAttachPlanToEvent(ev, arboxConnection)}
+              isViewOnly={isViewOnlyEvent}
+              canMove={canMoveEvent}
+              onMoveEvent={moveEventTo}
+              onCreateAt={openAddSheetAt}
+            />
           </section>
         )}
 
         {viewMode === 'week' && (
           <section className="schedule-week">
-            {days.map((day) => {
-              const key = toDateKey(day);
-              const events = eventsByDay[key] ?? [];
-              if (events.length === 0) return null;
-              const isToday = key === todayKey;
-
-              return (
-                <div key={key} className="schedule-week__group">
-                  <h3 className="schedule-week__label">
-                    {formatFullDayLabel(day, dateLocale)}
-                    {isToday && <span className="schedule-week__today">{t('common.today')}</span>}
-                  </h3>
-                  <div className="schedule-agenda__list">
-                    {events.map((ev) => renderEventCard(ev, () => openEventSheet(ev)))}
-                  </div>
-                </div>
-              );
-            })}
-            {scheduleEvents.length === 0 && (
-              <div className="schedule-empty">
-                <CalendarPlus size={36} strokeWidth={1.5} />
-                <p>{t('schedule.noClassesWeek')}</p>
-              </div>
-            )}
+            <ScheduleGrid
+              mode="week"
+              days={days}
+              eventsByDay={eventsByDay}
+              todayKey={todayKey}
+              onSelectEvent={openEventSheet}
+              onSelectDay={(day) => { setSelectedDay(day); setViewMode('day'); }}
+              canEditPlan={(ev) => canAttachPlanToEvent(ev, arboxConnection)}
+              isViewOnly={isViewOnlyEvent}
+              canMove={canMoveEvent}
+              onMoveEvent={moveEventTo}
+              onCreateAt={openAddSheetAt}
+            />
           </section>
         )}
       </main>

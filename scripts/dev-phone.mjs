@@ -2,6 +2,7 @@ import { spawn, execSync } from 'node:child_process';
 import { networkInterfaces } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { PHONE_HTTPS_PORT, startPhoneHttps } from './phone-https.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const appPort = 5199;
@@ -61,6 +62,7 @@ freePort(appPort);
 freePort(arboxPort);
 freePort(whatsappPort);
 freePort(emailPort);
+freePort(PHONE_HTTPS_PORT);
 
 const children = [];
 
@@ -86,6 +88,17 @@ start('email-api', 'node', ['scripts/email-api.mjs'], {
   EMAIL_API_PORT: String(emailPort),
 });
 start('vite', 'npx', ['vite', '--host', '0.0.0.0', '--port', String(appPort)]);
+
+try {
+  const phone = startPhoneHttps({ targetPort: appPort, ips });
+  if (phone.urls.length) {
+    console.log('On iPhone, open the secure link so Share uses the system sheet:\n');
+    for (const url of phone.urls) console.log(`   → ${url}`);
+    console.log('\nSafari will warn about the certificate the first time — continue to the site.\n');
+  }
+} catch (err) {
+  console.error(`Phone HTTPS proxy did not start: ${err instanceof Error ? err.message : err}`);
+}
 
 function shutdown() {
   for (const c of children) {

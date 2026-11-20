@@ -1,4 +1,5 @@
-import type { TrainingType } from './trainingTypes';
+import type { BuiltinTrainingType, TrainingType } from './trainingTypes';
+import { isBuiltinTrainingType } from './trainingTypes';
 import type { YogaStyle } from './yogaStyles';
 import { DEFAULT_YOGA_STYLE } from './yogaStyles';
 
@@ -15,7 +16,7 @@ export interface SectionTemplate extends SectionShell {
 /**
  * General class outline: warm-up, one side, other side, finish.
  */
-export const LESSON_SECTION_SHELLS: Record<TrainingType, SectionShell[]> = {
+export const LESSON_SECTION_SHELLS: Record<BuiltinTrainingType, SectionShell[]> = {
   pilates: [
     { id: 's1', title: 'Warm-up', duration: 10 },
     { id: 's2', title: 'Main section - Right side', duration: 15 },
@@ -43,8 +44,16 @@ export const YOGA_SECTION_SHELLS: Record<YogaStyle, SectionShell[]> = {
   restorative: YOGA_GENERAL,
 };
 
+/** Neutral outline for instructor-defined class types. */
+const GENERIC_SHELLS: SectionShell[] = [
+  { id: 's1', title: 'Warm-up', duration: 10 },
+  { id: 's2', title: 'Main section', duration: 25 },
+  { id: 's3', title: 'Cool-down', duration: 10 },
+];
+
 function shellsFor(type: TrainingType, yogaStyle: YogaStyle): SectionShell[] {
   if (type === 'yoga') return YOGA_SECTION_SHELLS[yogaStyle];
+  if (!isBuiltinTrainingType(type)) return GENERIC_SHELLS;
   return LESSON_SECTION_SHELLS[type];
 }
 
@@ -56,7 +65,7 @@ function buildLessonTemplate(type: TrainingType, yogaStyle: YogaStyle = DEFAULT_
 }
 
 /** Section outlines for new lessons and AI — titles and durations only. */
-export const LESSON_TEMPLATES: Record<TrainingType, SectionTemplate[]> = {
+export const LESSON_TEMPLATES: Record<BuiltinTrainingType, SectionTemplate[]> = {
   pilates: buildLessonTemplate('pilates'),
   yoga: buildLessonTemplate('yoga'),
 };

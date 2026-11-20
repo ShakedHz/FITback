@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Pencil, Star, CopyPlus, LayoutTemplate, MoreVertical } from 'lucide-react';
+import { Trash2, Pencil, Star, CopyPlus, MoreVertical, Share } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { BackButton } from '@/components/IconToolbar';
+import { BackButton, IconButton } from '@/components/IconToolbar';
+import { shareLessonPlan, shareResultNote } from '@/utils/shareLesson';
 import { PilatesPropsGlance, SpringDots } from '@/components/PilatesSetup';
 import { isSpringSetupEmpty } from '@/data/pilatesSetup';
 import { canChooseTrainingType } from '@/data/trainingTypes';
@@ -21,9 +22,16 @@ function parseReps(value?: string) {
 export function LessonDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getLessonById, deleteCreatedLesson, duplicateCreatedLesson, saveLessonAsTemplate, isFavoriteLesson, toggleFavoriteLesson, instructor } = useApp();
+  const { getLessonById, deleteCreatedLesson, duplicateCreatedLesson, isFavoriteLesson, toggleFavoriteLesson, instructor } = useApp();
   const { t, locale } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!shareNote) return;
+    const id = window.setTimeout(() => setShareNote(null), 2800);
+    return () => window.clearTimeout(id);
+  }, [shareNote]);
 
   const lesson = id ? getLessonById(id) : undefined;
   const favorite = lesson ? isFavoriteLesson(lesson.id) : false;
@@ -66,27 +74,41 @@ export function LessonDetailPage() {
     navigate(`/lesson/${copy.id}`);
   };
 
-  const handleSaveAsTemplate = () => {
-    saveLessonAsTemplate(lesson);
-    navigate('/library?tab=templates');
+  const handleShare = async () => {
+    const result = await shareLessonPlan(lesson, t, locale);
+    setShareNote(shareResultNote(result, t));
   };
 
   return (
     <div className="page fade-in teach">
       <div className="page-toolbar">
         <BackButton to="/library" label={t('common.back')} />
-        <div className="teach-menu-wrap">
-          <button
-            type="button"
-            className="teach-menu-btn"
-            aria-label={t('library.itemMenu')}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            <MoreVertical size={16} />
-          </button>
-          {menuOpen && (
-            <div className="teach-menu">
+        <div className="teach-toolbar-actions">
+          <IconButton aria-label={t('detail.share')} onClick={() => void handleShare()}>
+            <Share size={16} />
+          </IconButton>
+          <div className="teach-menu-wrap">
+            <button
+              type="button"
+              className="teach-menu-btn"
+              aria-label={t('library.itemMenu')}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <MoreVertical size={16} />
+            </button>
+            {menuOpen && (
+              <div className="teach-menu">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  void handleShare();
+                }}
+              >
+                <Share size={14} />
+                {t('detail.share')}
+              </button>
               <button
                 type="button"
                 className={favorite ? 'is-fav' : undefined}
@@ -120,16 +142,6 @@ export function LessonDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  handleSaveAsTemplate();
-                }}
-              >
-                <LayoutTemplate size={14} />
-                {t('detail.saveAsTemplate')}
-              </button>
-              <button
-                type="button"
                 className="is-danger"
                 onClick={() => {
                   setMenuOpen(false);
@@ -139,10 +151,16 @@ export function LessonDetailPage() {
                 <Trash2 size={14} />
                 {t('detail.delete')}
               </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      {shareNote ? (
+        <p className="teach-share-note" role="status">
+          {shareNote}
+        </p>
+      ) : null}
 
       <article className="teach-sheet">
         <header className="teach-sheet__head">

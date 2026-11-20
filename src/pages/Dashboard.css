@@ -33,6 +33,14 @@
   );
 }
 
+[data-theme='dark'] .dashboard-hero__glow {
+  background: radial-gradient(
+    circle at center,
+    rgba(var(--color-primary-rgb), 0.14),
+    transparent 70%
+  );
+}
+
 .dashboard-hero__greeting {
   position: relative;
   margin: 0 0 12px;
@@ -91,6 +99,15 @@
   color: var(--color-primary-bright);
   font-size: 12px;
   font-weight: 600;
+}
+
+[data-theme='dark'] .dashboard-hero__tagline--live {
+  background: rgba(var(--color-primary-rgb), 0.18);
+  color: var(--color-primary-bright);
+}
+
+[data-theme='dark'] .dashboard-hero__identity .instructor-avatar {
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
 }
 
 /* ── Wallet ── */

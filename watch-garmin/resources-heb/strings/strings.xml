@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<strings>
+  <string id="EmptyTitle">אין שיעורים</string>
+  <string id="EmptyHint">פתחי את FITback בטלפון</string>
+  <string id="Refresh">רענון</string>
+  <string id="NoPlan">אין מערך</string>
+  <string id="ExercisesSuffix">תרגילים</string>
+</strings>

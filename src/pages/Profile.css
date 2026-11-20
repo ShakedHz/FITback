@@ -57,6 +57,10 @@
   box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.45);
 }
 
+[data-theme='dark'] .profile-avatar__edit {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
 .profile-avatar__error {
   margin: 8px 0 0;
   color: var(--color-danger);

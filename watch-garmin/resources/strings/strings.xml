@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<strings>
+  <string id="AppName">FITback</string>
+  <string id="EmptyTitle">No classes</string>
+  <string id="EmptyHint">Open FITback on your phone</string>
+  <string id="Refresh">Refresh</string>
+  <string id="NoPlan">No lesson plan</string>
+  <string id="ExercisesSuffix">exercises</string>
+</strings>

@@ -1,0 +1,299 @@
+/* ── Time grid (day + week) — blocks sized by duration, overlaps side by side ── */
+
+.sgrid {
+  --hours-w: 44px;
+  position: relative;
+}
+
+.sgrid--week {
+  --hours-w: 30px;
+}
+
+.sgrid__head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  padding-bottom: 6px;
+  background: var(--color-bg);
+}
+
+.sgrid__corner {
+  flex: 0 0 var(--hours-w);
+}
+
+.sgrid__dayhead {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sgrid__dow {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sgrid__num {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.sgrid__dayhead--today .sgrid__num {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.sgrid__body {
+  position: relative;
+  display: flex;
+}
+
+.sgrid__hours {
+  position: relative;
+  flex: 0 0 var(--hours-w);
+}
+
+.sgrid__hour {
+  position: absolute;
+  inset-inline-end: 6px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.sgrid__hour:first-child {
+  transform: none;
+}
+
+.sgrid__cols {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.sgrid__col {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--hour-h) - 1px),
+    var(--color-line) calc(var(--hour-h) - 1px),
+    var(--color-line) var(--hour-h)
+  );
+}
+
+.sgrid__col + .sgrid__col {
+  border-inline-start: 1px solid var(--color-line);
+}
+
+.sgrid__col--today {
+  background-color: rgba(var(--color-primary-rgb), 0.06);
+}
+
+/* ── Blocks ── */
+
+.sgrid-block {
+  --event-rgb: var(--color-primary-rgb);
+  --event-color: var(--color-primary);
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 7px;
+  overflow: hidden;
+  border: none;
+  border-inline-start: 3px solid var(--event-color);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(var(--event-rgb), 0.38), rgba(var(--event-rgb), 0.38)),
+    var(--color-card);
+  color: #3a2a24;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.15s;
+}
+
+[data-theme='dark'] .sgrid-block {
+  background:
+    linear-gradient(rgba(var(--event-rgb), 0.34), rgba(var(--event-rgb), 0.34)),
+    var(--color-card);
+  color: var(--color-text);
+}
+
+.sgrid-block:active {
+  filter: brightness(0.95);
+}
+
+.sgrid-block:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+.sgrid-block--no-plan {
+  background:
+    linear-gradient(rgba(var(--event-rgb), 0.16), rgba(var(--event-rgb), 0.16)),
+    var(--color-card);
+  outline: 1px dashed rgba(var(--event-rgb), 0.7);
+  outline-offset: -1px;
+}
+
+.sgrid-block--view-only {
+  opacity: 0.7;
+}
+
+/* ── Drag to reschedule + tap to add ── */
+
+.sgrid-block--movable {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (hover: hover) {
+  .sgrid-block--movable {
+    cursor: grab;
+  }
+}
+
+.sgrid--dragging,
+.sgrid--dragging .sgrid-block {
+  cursor: grabbing;
+}
+
+.sgrid-block--lifted {
+  opacity: 0.3;
+}
+
+.sgrid-block--ghost {
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(var(--event-rgb), 0.55), rgba(var(--event-rgb), 0.55)),
+    var(--color-card);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  transform: scale(1.02);
+}
+
+[data-theme='dark'] .sgrid-block--ghost {
+  background:
+    linear-gradient(rgba(var(--event-rgb), 0.5), rgba(var(--event-rgb), 0.5)),
+    var(--color-card);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+}
+
+.sgrid__col--tappable {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .sgrid__col--tappable:hover {
+    background-color: rgba(var(--color-primary-rgb), 0.04);
+  }
+}
+
+.sgrid-block__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sgrid-block__time {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+}
+
+.sgrid-block__count {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+}
+
+[data-theme='dark'] .sgrid-block__count {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.sgrid-block__title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.sgrid-block__plan {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sgrid-block__plan span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sgrid-block__plan--none {
+  opacity: 0.7;
+}
+
+/* Week view — narrow columns, like a wall calendar. */
+.sgrid--week .sgrid-block {
+  gap: 1px;
+  padding: 3px 4px;
+  border-inline-start-width: 2px;
+  border-radius: 5px;
+}
+
+.sgrid--week .sgrid-block__title {
+  font-size: 9.5px;
+  line-height: 1.2;
+  -webkit-line-clamp: 3;
+}
+
+.sgrid--week .sgrid-block__time {
+  font-size: 8.5px;
+}

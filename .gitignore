@@ -12,6 +12,7 @@ dist/
 *.log
 .vite/
 .cache/
+.certs/
 .DS_Store
 
 # Editor
@@ -20,6 +21,15 @@ dist/
 
 # Cursor skill packs (vendored, local only)
 .cursor/skills/
+
+# Garmin watch app build output and signing key
+watch-garmin/bin/
+watch-garmin/developer_key
+
+# Native iOS
+ios/App/Pods/
+ios/App/App/public/
+ios/DerivedData/
 
 # Stray shell-redirect artifacts
 /node

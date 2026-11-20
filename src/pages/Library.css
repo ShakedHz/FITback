@@ -23,54 +23,18 @@
   margin: 0;
 }
 
+.library-share-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-primary-bright);
+}
+
 .library-top__sub {
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 1.35;
-  color: var(--color-primary-bright);
-}
-
-.library-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.library-tabs button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 9px 8px;
-  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
-  border-radius: 12px;
-  background: var(--color-card-hover);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
   color: var(--color-text-muted);
-  cursor: pointer;
-}
-
-.library-tabs button.active {
-  background: rgba(var(--color-primary-rgb), 0.22);
-  border-color: rgba(var(--color-primary-rgb), 0.45);
-  color: var(--color-primary-bright);
-  font-weight: 600;
-}
-
-.library-tabs__n {
-  font-size: 11px;
-  font-weight: 700;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  display: inline-grid;
-  place-items: center;
-  background: rgba(var(--color-primary-rgb), 0.16);
-  color: inherit;
 }
 
 .library-top__pill {
@@ -131,11 +95,13 @@
 .library-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 .library-recipe {
+  --type-rgb: var(--color-primary-rgb);
+  --type-color: var(--color-primary);
   position: relative;
   display: flex;
   flex-direction: row;
@@ -143,16 +109,14 @@
   width: 100%;
   background: var(--color-card);
   border: 1px solid var(--color-line);
-  border-radius: 16px;
-  box-shadow: var(--shadow-card);
+  border-inline-start: 5px solid var(--type-color);
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform var(--duration) var(--ease);
 }
 
 .library-recipe.is-menu-open {
   z-index: 4;
-}
-
-.library-recipe.is-starter {
-  border-color: var(--color-line);
 }
 
 .library-recipe__main {
@@ -161,8 +125,8 @@
   gap: 12px;
   flex: 1;
   min-width: 0;
-  min-height: 64px;
-  padding-block: 10px;
+  min-height: 68px;
+  padding-block: 14px;
   padding-inline: 16px 4px;
   overflow: hidden;
   text-align: start;
@@ -191,14 +155,14 @@
   border: none;
   border-radius: 10px;
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .library-recipe__menu-btn:hover,
 .library-recipe__menu-btn:focus-visible {
-  background: rgba(var(--color-primary-rgb), 0.14);
-  color: var(--color-primary-bright);
+  background: rgba(var(--type-rgb), 0.25);
+  color: var(--color-text);
 }
 
 .library-recipe__menu {
@@ -243,34 +207,25 @@
   color: #fbbf24;
 }
 
-.library-recipe__accent {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: 3px;
-  border-start-start-radius: 16px;
-  border-end-start-radius: 16px;
-  background: var(--color-primary);
-}
-
 .library-recipe.has-media .library-recipe__main {
-  padding-inline-start: 10px;
+  padding-inline-start: 12px;
 }
 
 .library-recipe__thumb {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   flex-shrink: 0;
   overflow: hidden;
   border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(var(--type-rgb), 0.35);
 }
 
 .library-recipe__thumb .lesson-cover,
 .library-recipe__thumb .lesson-cover--sm {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 12px;
 }
 
@@ -328,14 +283,14 @@
   align-items: center;
   overflow: hidden;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .library-recipe__facts span + span::before {
   content: '·';
   margin-inline: 6px;
-  color: var(--color-text-muted);
+  opacity: 0.6;
 }
 
 .library-recipe__props {
@@ -369,6 +324,11 @@
   cursor: pointer;
   z-index: 40;
   -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme='dark'] .library-fab {
+  color: var(--color-on-primary, #fff);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(var(--color-primary-rgb), 0.35);
 }
 
 @media (max-width: 480px) {
@@ -411,8 +371,8 @@
   justify-content: center;
   gap: 6px;
   flex-shrink: 0;
-  min-height: 44px;
-  padding: 0 14px;
+  min-height: 36px;
+  padding: 0 13px;
   border-radius: 999px;
   border: 1px solid var(--color-line);
   background: var(--color-card);
@@ -429,15 +389,37 @@
 }
 
 .library-chip.is-on {
-  background: rgba(var(--color-primary-rgb), 0.12);
-  border-color: rgba(var(--color-primary-rgb), 0.35);
-  color: var(--color-primary-deep);
+  background: rgba(var(--color-primary-rgb), 0.16);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+  color: var(--color-text);
+}
+
+.library-chip--type.is-on {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-card);
+}
+
+.library-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
 
 .library-chip--fav.is-on {
-  background: rgba(251, 191, 36, 0.18);
+  background: rgba(251, 191, 36, 0.16);
   border-color: rgba(251, 191, 36, 0.45);
-  color: #fbbf24;
+  color: var(--color-text);
+}
+
+.library-chip--fav.is-on svg {
+  color: #f59e0b;
+}
+
+/* Sheet chips stay thumb-sized. */
+.library-chips--wrap .library-chip {
+  min-height: 44px;
+  padding: 0 16px;
 }
 
 .library-chip__n {
@@ -584,7 +566,7 @@
   max-width: 280px;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--color-primary-bright);
+  color: var(--color-text-muted);
 }
 
 .library-welcome__primary {
@@ -774,8 +756,8 @@
 
   .library-recipe__main {
     padding-block: 12px;
-  padding-inline: 12px;
-    min-height: 68px;
+    padding-inline: 14px 4px;
+    min-height: 64px;
   }
 
   .library-welcome {

@@ -1,8 +1,14 @@
+import { PASTEL_PALETTE, type EventColors, type PastelKey } from './pastelPalette';
+import { customTrainingTypeColor } from './customTrainingTypes';
+
+export { PASTEL_PALETTE };
+export type { EventColors, PastelKey };
+
 export type ScheduleEventSource = 'arbox' | 'flowpilates';
 
 export type StudioRole = 'studio_manager' | 'instructor';
 
-export type EventCategory =
+export type BuiltinEventCategory =
   | 'pilates'
   | 'reformer'
   | 'prenatal'
@@ -13,6 +19,9 @@ export type EventCategory =
   | 'barre'
   | 'cycle'
   | 'movana';
+
+/** Open-ended so instructor-defined class types can be scheduled too. */
+export type EventCategory = BuiltinEventCategory | (string & {});
 
 export interface ScheduleAttendee {
   id: string;
@@ -89,26 +98,20 @@ export interface ArboxMessageLog {
   status: 'sent' | 'pending' | 'failed';
 }
 
-const ACCENT_EVENT = {
-  bg: 'var(--color-primary-bright)',
-  border: 'var(--color-primary-deep)',
-  text: 'var(--color-on-primary)',
+export const EVENT_CATEGORY_COLORS: Record<BuiltinEventCategory, EventColors> = {
+  pilates: PASTEL_PALETTE.rose,
+  reformer: PASTEL_PALETTE.peach,
+  prenatal: PASTEL_PALETTE.rose,
+  stretch: PASTEL_PALETTE.sand,
+  power: PASTEL_PALETTE.cocoa,
+  yoga: PASTEL_PALETTE.sand,
+  hiit: PASTEL_PALETTE.cocoa,
+  barre: PASTEL_PALETTE.caramel,
+  cycle: PASTEL_PALETTE.caramel,
+  movana: PASTEL_PALETTE.peach,
 };
 
-export const EVENT_CATEGORY_COLORS: Record<EventCategory, { bg: string; border: string; text: string }> = {
-  pilates: ACCENT_EVENT,
-  reformer: ACCENT_EVENT,
-  prenatal: ACCENT_EVENT,
-  stretch: ACCENT_EVENT,
-  power: ACCENT_EVENT,
-  yoga: ACCENT_EVENT,
-  hiit: ACCENT_EVENT,
-  barre: ACCENT_EVENT,
-  cycle: ACCENT_EVENT,
-  movana: ACCENT_EVENT,
-};
-
-export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {
+export const EVENT_CATEGORY_LABELS: Record<BuiltinEventCategory, string> = {
   pilates: 'Pilates',
   reformer: 'Reformer',
   prenatal: 'Prenatal',
@@ -125,10 +128,11 @@ export const SCHEDULE_START_HOUR = 8;
 export const SCHEDULE_END_HOUR = 20;
 export const SCHEDULE_HOUR_HEIGHT = 48;
 
-export const ARBOX_EVENT_COLORS: { bg: string; border: string; text: string } = {
+export const ARBOX_EVENT_COLORS: EventColors = {
   bg: '#7A8780',
   border: '#5C6862',
   text: '#ffffff',
+  rgb: '122, 135, 128',
 };
 
 export function inferEventCategory(title: string, source: ScheduleEventSource): EventCategory {
@@ -153,9 +157,19 @@ export function getEventCategory(event: ScheduleEvent): EventCategory {
   return event.category ?? inferEventCategory(event.title, event.source);
 }
 
-export function getEventColors(event: ScheduleEvent): { bg: string; border: string; text: string } {
+export function isBuiltinEventCategory(value: string): value is BuiltinEventCategory {
+  return value in EVENT_CATEGORY_COLORS;
+}
+
+/** Instructor-defined categories take their tone from the pastel palette. */
+export function eventCategoryColors(category: EventCategory): EventColors {
+  if (isBuiltinEventCategory(category)) return EVENT_CATEGORY_COLORS[category];
+  return customTrainingTypeColor(category) ?? EVENT_CATEGORY_COLORS.movana;
+}
+
+export function getEventColors(event: ScheduleEvent): EventColors {
   if (event.source === 'arbox') return ARBOX_EVENT_COLORS;
-  return EVENT_CATEGORY_COLORS[getEventCategory(event)];
+  return eventCategoryColors(getEventCategory(event));
 }
 
 export function shouldShowEventType(event: ScheduleEvent): boolean {

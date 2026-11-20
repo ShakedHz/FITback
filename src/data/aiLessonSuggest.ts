@@ -1,4 +1,5 @@
 import type { Lesson } from './mockData';
+import type { StoredFeedback } from './feedbackStore';
 import {
   resolveLessonAnalytics,
   resolveOverallAnalytics,
@@ -7,7 +8,7 @@ import {
   type LessonAnalytics,
 } from './lessonAnalytics';
 import { getLessonSectionShell, type SectionTemplate } from './lessonTemplates';
-import { TRAINING_TYPE_LABELS, type TrainingType } from './trainingTypes';
+import { getTrainingTypeLabel, type TrainingType } from './trainingTypes';
 import { durationsFromExercises, DEFAULT_CLASS_DURATION } from '@/utils/lessonDuration';
 
 export interface AiLessonDraftSection {
@@ -43,7 +44,7 @@ export interface AiLessonSuggestion {
   };
 }
 
-function aggregateClientSignals(lessons: Lesson[]): {
+function aggregateClientSignals(lessons: Lesson[], feedback?: StoredFeedback[]): {
   analytics: LessonAnalytics[];
   themes: AiTheme[];
   bestType: TrainingType;
@@ -52,10 +53,10 @@ function aggregateClientSignals(lessons: Lesson[]): {
   totalNotes: number;
 } {
   const analytics = lessons
-    .map((l) => resolveLessonAnalytics(l))
+    .map((l) => resolveLessonAnalytics(l, feedback))
     .filter((a) => a.responseCount > 0);
 
-  const overallRaw = resolveOverallAnalytics(lessons[0]?.trainingType ?? 'pilates');
+  const overallRaw = resolveOverallAnalytics(lessons[0]?.trainingType ?? 'pilates', feedback);
   const overall = overallRaw.responseCount > 0 ? overallRaw : null;
   const themeMap = new Map<string, AiTheme>();
   const avgRatingByType = new Map<TrainingType, { sum: number; n: number }>();
@@ -165,9 +166,12 @@ function adjustTemplate(
  */
 export function suggestLessonFromClientData(
   lessons: Lesson[],
-  specialties: TrainingType[]
+  specialties: TrainingType[],
+  /** Defaults to the saved responses; pass the app's merged list to include built-in demo ratings. */
+  feedback?: StoredFeedback[]
 ): AiLessonSuggestion | null {
-  if (lessons.length === 0 || !hasSurveyResults()) return null;
+  const hasResults = feedback ? feedback.length > 0 : hasSurveyResults();
+  if (lessons.length === 0 || !hasResults) return null;
 
   const pool =
     specialties.length > 0
@@ -176,7 +180,7 @@ export function suggestLessonFromClientData(
   const source = pool.length > 0 ? pool : lessons;
 
   const { analytics, themes, bestType, avgRatingByType, totalRatings, totalNotes } =
-    aggregateClientSignals(source);
+    aggregateClientSignals(source, feedback);
 
   if (totalRatings === 0) return null;
 
@@ -202,11 +206,11 @@ export function suggestLessonFromClientData(
   const topThemes = themes.slice(0, 3).map((t) => t.theme);
 
   const draft: AiLessonDraft = {
-    title: `${titleFocus} ${TRAINING_TYPE_LABELS[type]}`,
+    title: `${titleFocus} ${getTrainingTypeLabel(type)}`,
     description:
       topThemes.length > 0
         ? `Designed from client feedback — focuses on ${topThemes.join(', ').toLowerCase()}.`
-        : `A ${TRAINING_TYPE_LABELS[type].toLowerCase()} class shaped from your clients' ratings.`,
+        : `A ${getTrainingTypeLabel(type).toLowerCase()} class shaped from your clients' ratings.`,
     duration: DEFAULT_CLASS_DURATION,
     trainingType: type,
     focus: titleFocus,
@@ -221,14 +225,14 @@ export function suggestLessonFromClientData(
     `${totalNotes} optional improvement notes analyzed`,
   ];
   if (avgForType > 0) {
-    signals.push(`${TRAINING_TYPE_LABELS[type]} averages ${avgForType} — strongest fit`);
+    signals.push(`${getTrainingTypeLabel(type)} averages ${avgForType} — strongest fit`);
   }
   topThemes.forEach((t) => signals.push(`Recurring note theme: ${t}`));
 
   const lowLessons = analytics.filter((a) => a.lowRatingRate >= 12).length;
   const rationaleParts = [
     `AI looked at how clients rated your classes and what they wrote in optional improvement notes.`,
-    `They respond best to ${TRAINING_TYPE_LABELS[type].toLowerCase()} plans` +
+    `They respond best to ${getTrainingTypeLabel(type).toLowerCase()} plans` +
       (avgForType ? ` (${avgForType} average)` : '') +
       `.`,
   ];
